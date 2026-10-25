@@ -231,6 +231,18 @@ console.log('Deployment');
   ok(E.swapSlots(s, 1, { r: 0, c: 0 }, { r: 9, c: 1 }) === false, 'cannot swap with the enemy zone');
 }
 
+console.log('No-capture draw');
+{
+  const s = blank({ drawAfter: 4 });
+  put(s, 6, 2, 1, '3');
+  put(s, 0, 2, 2, '3');
+  // four quiet orders (two each) must end the match as a draw
+  const seq = [[6, 2, 5, 2], [0, 2, 1, 2], [5, 2, 4, 2], [1, 2, 2, 2]];
+  seq.forEach((m) => { if (s.phase === 'battle') act(s, m[0], m[1], m[2], m[3]); });
+  ok(s.phase === 'over' && s.winner === 0, 'four quiet orders end the match as a draw');
+  ok(/draw/i.test(s.reason), 'draw reason is reported');
+}
+
 console.log('Belief model');
 {
   const s = blank();

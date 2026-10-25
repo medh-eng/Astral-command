@@ -1919,7 +1919,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
   function newState(config) {
     const cfg = Object.assign(
-      { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0, playerName: 'Commander', opponentName: 'Astral AI' },
+      { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0, drawAfter: 60, playerName: 'Commander', opponentName: 'Astral AI' },
       config || {}
     );
     const g = geometry(cfg.board);
@@ -1941,7 +1941,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       lastMove: null,
       winner: null,
       reason: '',
-      stats: { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0 },
+      stats: { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0, lastCapturePly: 0 },
       startedAt: Date.now(),
       preset1: 'citadel',
       preset2: 'citadel'
@@ -2253,6 +2253,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
   function recordCapture(state, byOwner, dead) {
     dead.revealed = true;
+    state.stats.lastCapturePly = state.stats.actions;
     state.captured[byOwner].push({
       key: dead.key, badge: dead.badge, name: dead.name, owner: dead.owner, rank: dead.rank
     });
@@ -2463,6 +2464,13 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
   function finishTurn(state, events) {
     if (state.phase === 'over') return;
+    // anti-stall: a long run of orders with nothing captured is a draw, so a
+    // match can never loop forever (mirrors the tabletop no-capture rule).
+    const limit = state.config.drawAfter || 60;
+    if (state.stats.actions - state.stats.lastCapturePly >= limit) {
+      endGame(state, 0, 'No piece captured in ' + limit + ' orders — the engagement is declared a draw.', events);
+      return;
+    }
     const next = state.owner === 1 ? 2 : 1;
     const nextHas = hasAnyLegalMoves(state, next);
     const curHas = hasAnyLegalMoves(state, state.owner);
@@ -2477,6 +2485,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     state.owner = next;
     if (next === 1) state.turn++;
     events.push({ kind: 'turn', owner: next, turn: state.turn });
+  }
+
+  function drawCountdown(state) {
+    const limit = state.config.drawAfter || 60;
+    return Math.max(0, limit - (state.stats.actions - (state.stats.lastCapturePly || 0)));
   }
 
   function beginBattle(state) {
@@ -2577,6 +2590,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     canAct: canAct,
     isMovable: isMovable,
     hasAnyLegalMoves: hasAnyLegalMoves,
+    drawCountdown: drawCountdown,
     allLegalActions: allLegalActions,
     applyAction: applyAction,
     beginBattle: beginBattle,
@@ -4864,6 +4878,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
           ['Mines and Cores', 'Both are immovable. Any attacker dies to a Mine except the Warp Sapper, which defuses and captures it. The Core can be captured by any attacking piece.'],
           ['Revealing', 'A piece becomes revealed when it fights, when it is scanned, or when a Strider runs two or more tiles (and when a Valkyrie dashes two). Revealed ranks stay visible for the rest of the match.'],
           ['Two-square rule', 'A piece may not shuttle between the same two squares more than three times in a row. The fourth reversal is illegal — this prevents endless stalling.'],
+          ['No-capture draw', 'If neither side captures a piece for 60 orders, the engagement is declared a draw. The intel panel shows the countdown.'],
           ['Deployment', 'Each army has 12 pieces placed anywhere in its own three-row zone. Swap any two squares before locking. Presets are starting points, not commitments.']
         ];
         return '<div class="rule-block">' + rules.map(function (r) {
@@ -5774,6 +5789,16 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
           return '<span class="intel-chip" title="' + esc(U.UNIT_DEFS[u.key].name) + '">' + A.emblem(u.key) + esc(u.badge) + '</span>';
         }).join('') + '</div>' +
         '<p class="intel-note">These ranks are known to the enemy.</p></div>';
+    }
+
+    if (st.phase === 'battle') {
+      const left = E.drawCountdown(st);
+      html += '<div class="intel-section"><div class="intel-label">No-capture clock</div>' +
+        '<div class="odds-row"><span style="color:var(--dim)">Draw in</span>' +
+        '<span class="odds-bar"><span style="width:' + Math.round((left / (st.config.drawAfter || 60)) * 100) + '%;background:' +
+        (left <= 10 ? 'var(--void)' : 'linear-gradient(90deg,var(--solar),var(--green))') + '"></span></span>' +
+        '<span class="odds-val">' + left + '</span></div>' +
+        '<p class="intel-note">If neither side captures for the full count, the match is a draw.</p></div>';
     }
 
     html += '<div class="intel-section">' +

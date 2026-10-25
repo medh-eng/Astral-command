@@ -588,6 +588,16 @@
         '<p class="intel-note">These ranks are known to the enemy.</p></div>';
     }
 
+    if (st.phase === 'battle') {
+      const left = E.drawCountdown(st);
+      html += '<div class="intel-section"><div class="intel-label">No-capture clock</div>' +
+        '<div class="odds-row"><span style="color:var(--dim)">Draw in</span>' +
+        '<span class="odds-bar"><span style="width:' + Math.round((left / (st.config.drawAfter || 60)) * 100) + '%;background:' +
+        (left <= 10 ? 'var(--void)' : 'linear-gradient(90deg,var(--solar),var(--green))') + '"></span></span>' +
+        '<span class="odds-val">' + left + '</span></div>' +
+        '<p class="intel-note">If neither side captures for the full count, the match is a draw.</p></div>';
+    }
+
     html += '<div class="intel-section">' +
       '<button class="mode-btn" data-act="advisor" style="width:100%;justify-content:center">' + A.icon('brain') + 'Ask the advisor</button>' +
       '<p class="intel-note">Odds are averaged over every rank the enemy could still be hiding. A piece that has moved can no longer be a Core or a Mine.</p>' +

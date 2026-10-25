@@ -61,7 +61,7 @@
 
   function newState(config) {
     const cfg = Object.assign(
-      { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0, playerName: 'Commander', opponentName: 'Astral AI' },
+      { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0, drawAfter: 60, playerName: 'Commander', opponentName: 'Astral AI' },
       config || {}
     );
     const g = geometry(cfg.board);
@@ -83,7 +83,7 @@
       lastMove: null,
       winner: null,
       reason: '',
-      stats: { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0 },
+      stats: { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0, lastCapturePly: 0 },
       startedAt: Date.now(),
       preset1: 'citadel',
       preset2: 'citadel'
@@ -395,6 +395,7 @@
 
   function recordCapture(state, byOwner, dead) {
     dead.revealed = true;
+    state.stats.lastCapturePly = state.stats.actions;
     state.captured[byOwner].push({
       key: dead.key, badge: dead.badge, name: dead.name, owner: dead.owner, rank: dead.rank
     });
@@ -605,6 +606,13 @@
 
   function finishTurn(state, events) {
     if (state.phase === 'over') return;
+    // anti-stall: a long run of orders with nothing captured is a draw, so a
+    // match can never loop forever (mirrors the tabletop no-capture rule).
+    const limit = state.config.drawAfter || 60;
+    if (state.stats.actions - state.stats.lastCapturePly >= limit) {
+      endGame(state, 0, 'No piece captured in ' + limit + ' orders — the engagement is declared a draw.', events);
+      return;
+    }
     const next = state.owner === 1 ? 2 : 1;
     const nextHas = hasAnyLegalMoves(state, next);
     const curHas = hasAnyLegalMoves(state, state.owner);
@@ -619,6 +627,11 @@
     state.owner = next;
     if (next === 1) state.turn++;
     events.push({ kind: 'turn', owner: next, turn: state.turn });
+  }
+
+  function drawCountdown(state) {
+    const limit = state.config.drawAfter || 60;
+    return Math.max(0, limit - (state.stats.actions - (state.stats.lastCapturePly || 0)));
   }
 
   function beginBattle(state) {
@@ -719,6 +732,7 @@
     canAct: canAct,
     isMovable: isMovable,
     hasAnyLegalMoves: hasAnyLegalMoves,
+    drawCountdown: drawCountdown,
     allLegalActions: allLegalActions,
     applyAction: applyAction,
     beginBattle: beginBattle,

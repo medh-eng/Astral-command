@@ -39,7 +39,8 @@ worker, so it installs and runs offline.
 - **Two boards** — Small Arena (6×8) and Large Expanse (8×10), each with impassable Astral Rifts.
 - **Three special powers** — Psionic Scan (Seer), Arc Barrage (Lancer), Phase Dash (Valkyrie).
 - **Two tie rules** — Attacker Advantage with Shield Break, or classic Mutual Destruction.
-- **Anti-stall** — the two-square rule is enforced on every move.
+- **Anti-stall** — the two-square rule is enforced on every move, and 60 orders without a
+  capture ends the match as a draw (countdown shown in the intel panel).
 - **Win conditions** — capture the Nexus Core (melee or barrage), or leave the opponent with no legal action.
 
 ### New in this version
