@@ -13,8 +13,11 @@ const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 
 let html = read('index.html');
 
-// 1. inline the stylesheet
-const css = read('css/app.css');
+// 1. inline the stylesheet, with the hero art as a data URI so the single
+//    file works when it is copied somewhere on its own
+let css = read('css/app.css');
+const hero = fs.readFileSync(path.join(root, 'assets/hero.jpg'));
+css = css.replace("url('../assets/hero.jpg')", "url('data:image/jpeg;base64," + hero.toString('base64') + "')");
 html = html.replace(
   /<link rel="stylesheet" href="css\/app\.css" \/>/,
   '<style>\n' + css + '\n</style>'
