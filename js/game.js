@@ -64,6 +64,7 @@
     g.over = false;
     g.busy = false;
     g.thinking = false;
+    g.hinted = false;
     AC.ui.show('game');
     render();
     autosave();
@@ -83,6 +84,7 @@
     g.mode = 'move';
     g.focus = null;
     g.slot = slot || null;
+    g.hinted = false;
     g.over = g.state.phase === 'over';
     g.busy = false;
     g.thinking = false;
@@ -731,16 +733,10 @@
     const humanTurn = isPass() || st.owner === 1;
     const unit = st.board[r][c];
 
-    if (unit && unit.owner !== st.owner) {
-      g.focus = { r: r, c: c };
-      renderIntel();
-      sfx('ui');
-      return;
-    }
-
     if (!humanTurn) return;
 
-    // clicking a highlighted target?
+    // clicking a highlighted target? (must come before the inspect branch,
+    // because an attack target is itself an enemy piece)
     if (g.sel) {
       const targets = E.computeValidTargets(st, g.sel.r, g.sel.c, g.mode);
       const hit = targets.filter(function (t) { return t.r === r && t.c === c; })[0];
@@ -748,6 +744,14 @@
         commitAction(g.sel, { r: r, c: c }, hit.type);
         return;
       }
+    }
+
+    // tapping an enemy that is out of reach: inspect it, don't clear selection
+    if (unit && unit.owner !== st.owner) {
+      g.focus = { r: r, c: c };
+      renderIntel();
+      sfx('ui');
+      return;
     }
 
     if (unit && unit.owner === st.owner) {
@@ -768,6 +772,10 @@
       g.mode = 'move';
       sfx('select');
       buzz(8);
+      if (!g.hinted) {
+        g.hinted = true;
+        FX.toast('Cyan dot = move. Red ring = attack. Tap the square to commit.', 'info');
+      }
       render();
       return;
     }

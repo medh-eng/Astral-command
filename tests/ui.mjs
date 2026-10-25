@@ -194,6 +194,91 @@ async function run() {
   await sleep(20);
   ok(game.state.phase === 'battle' && game.state.viewer === 1, 'battle starts as player 1');
 
+  // ── regression: tapping an enemy piece must RESOLVE AN ATTACK ──
+  // (an earlier build returned early to "inspect" and made attacks impossible)
+  AC.app.setup.mode = 'ai';
+  game.state = null;
+  game.start(AC.app.setup);
+  game.state.phase = 'battle';
+  AC.engine.beginBattle(game.state);
+  game.render();
+
+  const st = game.state;
+  st.owner = 1;
+  st.viewer = 1;
+
+  // deterministic setup: move an enemy piece into a free square next to one of
+  // our movable pieces, so the attack is legal whatever the random formation was
+  let mine = null;
+  let foe = null;
+  for (let r = 0; r < st.rows && !foe; r++) {
+    for (let c = 0; c < st.cols && !foe; c++) {
+      const u = st.board[r][c];
+      if (!u || u.owner !== 1 || !AC.engine.isMovable(u)) continue;
+      const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+      for (const d of dirs) {
+        const nr = r + d[0];
+        const nc = c + d[1];
+        if (!AC.engine.inBounds(st, nr, nc) || AC.engine.isRift(st, nr, nc)) continue;
+        const occ = st.board[nr][nc];
+        if (occ && occ.owner === 1) continue;
+        mine = { r: r, c: c };
+        foe = { r: nr, c: nc };
+        break;
+      }
+    }
+  }
+  ok(!!mine && !!foe, 'test can place an attacker next to an enemy');
+  // put a fresh enemy piece on the target square (keep the old one off-board)
+  const oldFoe = st.board[foe.r][foe.c];
+  if (oldFoe && oldFoe.owner === 1) {
+    st.board[foe.r][foe.c] = null;
+  }
+  const enemyUnit = AC.engine.createArmy(2).filter((u) => u.key === '3')[0];
+  st.board[foe.r][foe.c] = enemyUnit;
+  game.render();
+
+  const capBefore = st.captured[1].length;
+  click(document.querySelector('.tile[data-r="' + mine.r + '"][data-c="' + mine.c + '"]'));
+  ok(!!document.querySelector('.tile.selected'), 'own piece selects');
+  click(document.querySelector('.tile[data-r="' + foe.r + '"][data-c="' + foe.c + '"]'));
+  const confirmBtn = document.querySelector('.modal-actions [data-act="1"]');
+  ok(!!confirmBtn, 'a blind attack asks for confirmation with odds');
+  if (confirmBtn) click(confirmBtn);
+  ok(!!document.querySelector('.combat-arena'), 'combat result modal shown after the strike');
+  const foeTile = st.board[foe.r][foe.c];
+  const attackerGone = !st.board[mine.r][mine.c];
+  ok(st.captured[1].length > capBefore || (foeTile && foeTile.owner === 1) || attackerGone,
+    'the attack actually resolved on the board');
+
+  // switch the config so closing the modal does not hand the turn to the AI
+  st.config.mode = 'pass';
+  AC.app.modals.slice().forEach((m) => m.close());
+  Array.prototype.forEach.call(document.querySelectorAll('.curtain'), (n) => n.remove());
+
+  // a plain move still works afterwards
+  st.owner = 1;
+  st.viewer = 1;
+  st.phase = 'battle';
+  game.sel = null;
+  game.mode = 'move';
+  game.render();
+  let mv = null;
+  for (let r = 0; r < st.rows && !mv; r++) {
+    for (let c = 0; c < st.cols && !mv; c++) {
+      const u = st.board[r][c];
+      if (!u || u.owner !== 1 || !AC.engine.isMovable(u)) continue;
+      const t = AC.engine.computeValidTargets(st, r, c, 'move').filter((x) => x.type === 'move')[0];
+      if (t) mv = { from: { r: r, c: c }, to: { r: t.r, c: t.c } };
+    }
+  }
+  if (mv) {
+    click(document.querySelector('.tile[data-r="' + mv.from.r + '"][data-c="' + mv.from.c + '"]'));
+    click(document.querySelector('.tile[data-r="' + mv.to.r + '"][data-c="' + mv.to.c + '"]'));
+    ok(!st.board[mv.from.r][mv.from.c], 'plain moves still work');
+    AC.app.modals.slice().forEach((m) => m.close());
+  }
+
   const realErrors = errors.filter((e) => !/Not implemented: (window\.|HTMLCanvas)/.test(e));
   ok(realErrors.length === 0, 'no runtime errors' + (realErrors.length ? ': ' + realErrors.slice(0, 3).join(' | ') : ''));
 
@@ -202,6 +287,8 @@ async function run() {
 }
 
 run().catch((e) => {
-  console.error(e);
-  process.exitCode = 1;
+  // console.error is captured into `errors` above, so surface the failure on
+  // stdout explicitly — otherwise a thrown assertion looks like a silent stop.
+  process.stdout.write('\nFAILED: ' + (e && e.stack ? e.stack : e) + '\n');
+  process.exit(1);
 });
