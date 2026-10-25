@@ -670,7 +670,7 @@
     const tie = app.setup.tie === 'attacker' ? 'Attacker advantage' : 'Mutual destruction';
     const timer = app.setup.timer ? app.setup.timer + 's per turn' : 'No clock';
     document.getElementById('setup-summary').innerHTML =
-      row('Opponent', mode) + row('Board', board.label + ' (' + board.cols + '×' + board.rows + ')') +
+      row('Opponent', mode) + row('Board', board.label + ' (' + (board.cells ? board.cells + ' cells' : board.cols + '×' + board.rows) + ')') +
       row('Tie rule', tie) + row('Clock', timer) + row('Army', '12 pieces each');
   }
 
@@ -719,6 +719,7 @@
           ['Mines and Cores', 'Both are immovable. Any attacker dies to a Mine except the Warp Sapper, which defuses and captures it. The Core can be captured by any attacking piece.'],
           ['Revealing', 'A piece becomes revealed when it fights, when it is scanned, or when a Strider runs two or more tiles (and when a Valkyrie dashes two). Revealed ranks stay visible for the rest of the match.'],
           ['Two-square rule', 'A piece may not shuttle between the same two squares more than three times in a row. The fourth reversal is illegal — this prevents endless stalling.'],
+          ['The chakra turns', 'On the Chakravyuha wheel, rings 1 and 2 rotate one spoke clockwise at the start of every fifth round. Whatever they carry moves with them — and is revealed. The hub touches all eight spokes but exposes whoever stands on it.'],
           ['No-capture draw', 'If neither side captures a piece for 60 orders, the engagement is declared a draw. The intel panel shows the countdown.'],
           ['Deployment', 'Each army has 12 pieces placed anywhere in its own three-row zone. Swap any two squares before locking. Presets are starting points, not commitments.']
         ];

@@ -720,7 +720,7 @@ input::placeholder { color: var(--faint); }
   align-items: stretch;
 }
 .board-column { display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 0; }
-.board-shell { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; }
+.board-shell { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; padding: 2px; overflow: hidden; }
 
 .player-strip {
   display: flex;
@@ -767,189 +767,82 @@ input::placeholder { color: var(--faint); }
 .capture-chip.void { color: var(--void); }
 .tray-empty { font-size: 10px; color: var(--faint); font-style: italic; }
 
-/* board */
-.board {
-  display: grid;
-  gap: 3px;
-  grid-template-columns: repeat(var(--cols, 6), 1fr);
-  grid-template-rows: repeat(var(--rows, 8), 1fr);
+/* board — an SVG cell graph (square arenas and the Chakravyuha wheel) */
+.board-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
   touch-action: manipulation;
 }
-.board-coords { position: absolute; font-family: var(--display); font-size: 8.5px; color: var(--faint); letter-spacing: 0.1em; pointer-events: none; text-align: center; }
-.board-coords-top { display: grid; align-items: end; }
-.board-coords-top span { display: block; }
-.board-coords-left { display: grid; align-items: center; }
-.board-coords-left span { display: block; line-height: 1; }
+.cell { cursor: pointer; outline: none; }
+.cell .cell-fill {
+  fill: rgba(19, 28, 48, 0.92);
+  stroke: rgba(120, 160, 220, 0.16);
+  stroke-width: 0.018;
+  transition: fill 0.16s, stroke 0.16s, stroke-width 0.16s;
+}
+.cell:nth-child(even) .cell-fill { fill: rgba(16, 24, 42, 0.92); }
+.cell:hover .cell-fill { stroke: rgba(120, 160, 220, 0.42); }
+.cell:focus-visible .cell-fill { stroke: var(--solar); stroke-width: 0.04; }
+.cell.zone-1 .cell-fill { stroke: rgba(34, 211, 238, 0.3); }
+.cell.zone-2 .cell-fill { stroke: rgba(244, 63, 94, 0.3); }
+.cell.rift .cell-fill {
+  fill: rgba(139, 92, 246, 0.2);
+  stroke: rgba(168, 85, 247, 0.5);
+}
+.cell.hub .cell-fill {
+  fill: rgba(251, 191, 36, 0.1);
+  stroke: rgba(251, 191, 36, 0.45);
+}
+.cell.last-move .cell-fill { stroke: rgba(251, 191, 36, 0.55); stroke-width: 0.03; }
+.cell.selected .cell-fill {
+  fill: rgba(34, 211, 238, 0.16);
+  stroke: var(--solar);
+  stroke-width: 0.038;
+}
+.cell.hint .cell-fill { stroke: var(--green); stroke-width: 0.03; }
+.cell.target-move .cell-fill { fill: rgba(34, 211, 238, 0.16); stroke: rgba(34, 211, 238, 0.5); }
+.cell.target-attack .cell-fill { fill: rgba(244, 63, 94, 0.2); stroke: rgba(244, 63, 94, 0.7); }
+.cell.target-scan .cell-fill { fill: rgba(168, 85, 247, 0.2); stroke: rgba(168, 85, 247, 0.7); }
+.cell.target-barrage .cell-fill { fill: rgba(251, 191, 36, 0.18); stroke: rgba(251, 191, 36, 0.75); }
 
-.tile {
-  position: relative;
-  border-radius: 9px;
-  border: 1px solid rgba(120, 160, 220, 0.1);
-  background: linear-gradient(160deg, rgba(19, 28, 48, 0.9), rgba(9, 14, 25, 0.92));
-  display: grid;
-  place-items: center;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.1s;
-  overflow: visible;
-  min-width: 0;
-  min-height: 0;
-  padding: 0;
+.token { pointer-events: none; }
+.token .tok-disc {
+  fill: rgba(10, 22, 34, 0.95);
+  stroke: rgba(34, 211, 238, 0.7);
+  stroke-width: 0.014;
 }
-.tile::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  pointer-events: none;
-}
-.tile:nth-child(even) { background: linear-gradient(160deg, rgba(16, 24, 42, 0.9), rgba(8, 12, 22, 0.92)); }
-.tile:hover { border-color: rgba(120, 160, 220, 0.3); }
-.tile.rift {
-  background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.4) 0%, rgba(11, 16, 32, 0.96) 72%);
-  border-color: rgba(168, 85, 247, 0.42);
-  box-shadow: inset 0 0 16px rgba(168, 85, 247, 0.4);
-  overflow: hidden;
-}
-.tile.rift::after {
-  content: '';
-  position: absolute;
-  inset: -40%;
-  background: conic-gradient(from 0deg, transparent 0deg, rgba(196, 181, 253, 0.35) 40deg, transparent 90deg, transparent 200deg, rgba(129, 140, 248, 0.3) 240deg, transparent 300deg);
-  animation: riftSpin 9s linear infinite;
-  pointer-events: none;
-}
-.tile.zone-p1 { border-color: rgba(34, 211, 238, 0.22); }
-.tile.zone-p2 { border-color: rgba(244, 63, 94, 0.22); }
-.tile.last-move { box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.5); }
-.tile.selected {
-  border-color: var(--solar);
-  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.55), 0 0 26px rgba(34, 211, 238, 0.35);
-  z-index: 3;
-}
-.tile.target-move { background: rgba(34, 211, 238, 0.13); border-color: rgba(34, 211, 238, 0.4); }
-.tile.target-attack { background: rgba(244, 63, 94, 0.14); border-color: rgba(244, 63, 94, 0.55); }
-.tile.target-scan { background: rgba(168, 85, 247, 0.14); border-color: rgba(168, 85, 247, 0.55); }
-.tile.target-barrage { background: rgba(251, 191, 36, 0.13); border-color: rgba(251, 191, 36, 0.6); }
-.tile.hint { box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.6), 0 0 22px rgba(52, 211, 153, 0.35); z-index: 2; }
-
-.target-dot {
-  width: 26%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: var(--solar);
-  box-shadow: 0 0 12px var(--solar);
-  opacity: 0.85;
-  animation: popIn 0.18s ease both;
-}
-.target-ring {
-  position: absolute;
-  inset: 12%;
-  border-radius: 50%;
-  border: 2px dashed currentColor;
-  animation: spinSlow 6s linear infinite;
-}
-@keyframes spinSlow { to { transform: rotate(360deg); } }
-.target-glyph {
-  position: absolute;
-  font-size: 0.62em;
-  font-weight: 800;
-  color: var(--txt);
-  opacity: 0.9;
-  pointer-events: none;
-  text-shadow: 0 0 8px #000;
-}
-
-/* tokens */
-.token {
-  position: absolute;
-  inset: 5%;
-  border-radius: 22%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  border: 1.5px solid;
-  transition: transform 0.14s ease, box-shadow 0.16s;
-  animation: popIn 0.16s ease both;
-  overflow: hidden;
-}
-.token .emblem { width: 58%; height: 58%; flex: none; }
-.token-rank {
-  position: absolute;
-  bottom: 1px;
-  right: 2px;
-  font-family: var(--display);
-  font-size: 0.56em;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-.token-owner {
-  position: absolute;
-  top: 1px;
-  left: 2px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.7;
-}
-.token.solar {
-  color: #b8f3fd;
-  background: linear-gradient(165deg, rgba(13, 74, 92, 0.95), rgba(8, 32, 44, 0.98));
-  border-color: rgba(34, 211, 238, 0.65);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(165, 243, 252, 0.25);
-}
-.token.void {
-  color: #ffd7dd;
-  background: linear-gradient(165deg, rgba(88, 18, 40, 0.95), rgba(38, 10, 24, 0.98));
-  border-color: rgba(244, 63, 94, 0.65);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(254, 205, 211, 0.25);
-}
-.token.hidden-unit {
-  background: linear-gradient(165deg, rgba(24, 32, 52, 0.98), rgba(10, 14, 26, 0.98));
-  border-color: rgba(120, 150, 200, 0.35);
-  color: rgba(160, 180, 215, 0.85);
-}
-.token.hidden-unit.void { border-color: rgba(244, 63, 94, 0.4); background: linear-gradient(165deg, rgba(44, 16, 30, 0.98), rgba(14, 8, 16, 0.98)); }
-.token.hidden-unit .emblem { opacity: 0.55; }
-.token .unknown-mark {
+.token.solar .tok-disc { fill: rgba(10, 46, 58, 0.96); stroke: rgba(34, 211, 238, 0.75); }
+.token.void .tok-disc { fill: rgba(58, 12, 26, 0.96); stroke: rgba(244, 63, 94, 0.75); }
+.token.hidden-unit .tok-disc { fill: rgba(22, 28, 44, 0.96); stroke: rgba(120, 150, 200, 0.4); }
+.token.hidden-unit.void .tok-disc { fill: rgba(38, 14, 26, 0.96); stroke: rgba(244, 63, 94, 0.4); }
+.token .tok-emblem { color: #b8f3fd; }
+.token.void .tok-emblem { color: #ffd7dd; }
+.token.hidden-unit .tok-q { fill: rgba(170, 190, 220, 0.75); font-weight: 800; font-family: var(--display); }
+.token .tok-rank {
+  fill: #d8fbff;
   font-family: var(--display);
   font-weight: 800;
-  font-size: 0.9em;
-  line-height: 1;
-  opacity: 0.75;
+  paint-order: stroke;
+  stroke: rgba(4, 10, 18, 0.65);
+  stroke-width: 0.02;
 }
-.token .moved-dot {
-  position: absolute;
-  bottom: 2px;
-  left: 2px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--gold);
-  box-shadow: 0 0 6px var(--gold);
-}
-.token .reveal-eye {
-  position: absolute;
-  top: 1px;
-  right: 2px;
-  font-size: 0.5em;
-  opacity: 0.85;
-}
-.token.selected-token { transform: scale(1.06); box-shadow: 0 0 22px rgba(34, 211, 238, 0.6), 0 6px 18px rgba(0, 0, 0, 0.5); }
-.token.shield-broken::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(45deg, transparent 0 4px, rgba(251, 191, 36, 0.16) 4px 6px);
-  pointer-events: none;
-}
-.token.deploy-draggable { cursor: grab; }
-.tile.drag-over { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.5); }
-.token.ghost { opacity: 0.4; }
-.token.moving { animation: none; }
+.token.void .tok-rank { fill: #ffe1e6; }
+.token .tok-moved { fill: var(--gold); }
+.token .tok-eye { fill: rgba(196, 181, 253, 0.9); }
+.token .sel-ring { fill: none; stroke: var(--solar); stroke-width: 0.03; opacity: 0.9; }
+.token.selected-token .tok-disc { stroke-width: 0.028; }
+
+.target-dot { fill: var(--solar); opacity: 0.9; }
+.target-ring { fill: none; stroke-width: 0.022; stroke-dasharray: 0.07 0.05; opacity: 0.9; }
+.cell.target-attack .target-ring { stroke: var(--void); }
+.cell.target-scan .target-ring { stroke: #a855f7; }
+.cell.target-barrage .target-ring { stroke: var(--gold); }
+.target-glyph { fill: #f8fafc; font-weight: 800; font-family: var(--display); opacity: 0.9; }
+.coord { fill: rgba(150, 170, 200, 0.75); font-family: var(--font); font-weight: 600; letter-spacing: 0; }
 
 /* intel + log panels */
 .intel-panel, .log-panel {
@@ -1402,6 +1295,8 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border: 0; bo
   }
   .intel-panel.open { transform: none; }
   .action-bar { gap: 6px; padding: 7px 10px calc(7px + var(--safe-b)); }
+  .action-info { flex: 1 1 100%; }
+  .action-buttons { flex: 1 1 100%; justify-content: flex-end; }
   .sel-desc { display: none; }
   .hud-sub { font-size: 10px; }
   .modal { padding: 16px; }
@@ -1640,10 +1535,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         <div class="panel panel-quiet">
           <div class="panel-head"><span>Rules quick reference</span></div>
           <ul class="rules-list">
-            <li>Move orthogonally. Rifts block movement, never the Lancer's shot.</li>
+            <li>Move along a cell's lanes. Rifts block movement, never the archer's volley.</li>
             <li>Attacker resolves first: ties depend on the tie rule you pick.</li>
-            <li>Immovable pieces are a Mine or the Core — probe them cheaply.</li>
-            <li>Capture the enemy Nexus Core, or leave them with no legal move.</li>
+            <li>Immovable pieces are a Shataghni or the fort — probe them cheaply.</li>
+            <li>On the wheel, rings 1 and 2 turn every fifth round and expose what they carry.</li>
+            <li>Take the enemy fort, or leave them with no legal move.</li>
           </ul>
         </div>
       </aside>
@@ -1672,9 +1568,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       <main class="board-column">
         <div class="player-strip" id="strip-top"></div>
         <div class="board-shell" id="board-shell">
-          <div class="board-coords board-coords-top" id="coords-top"></div>
-          <div class="board" id="board" role="grid" aria-label="Battlefield"></div>
-          <div class="board-coords board-coords-left" id="coords-left"></div>
+          <svg class="board-svg" id="board" role="grid" aria-label="Battlefield" preserveAspectRatio="xMidYMid meet"></svg>
         </div>
         <div class="player-strip" id="strip-bottom"></div>
       </main>
@@ -1716,9 +1610,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   const FACTIONS = {
     1: {
       id: 1,
-      name: 'Solaris Order',
-      short: 'Solaris',
-      motto: 'Light holds the line',
+      name: 'Suryavansh',
+      short: 'Surya',
+      motto: 'The sun holds the line',
       color: '#22d3ee',
       color2: '#38bdf8',
       accent: '#a5f3fc',
@@ -1726,9 +1620,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     },
     2: {
       id: 2,
-      name: 'Void Cabal',
-      short: 'Void',
-      motto: 'Silence eats the stars',
+      name: 'Chandravansh',
+      short: 'Chandra',
+      motto: 'The moon eats the light',
       color: '#f43f5e',
       color2: '#a855f7',
       accent: '#fecdd3',
@@ -1739,15 +1633,15 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   // Complete 12-piece roster. `rank` drives combat; `power` describes the special.
   const UNIT_DEFS = {
     '10': {
-      key: '10', rank: 10, count: 1, name: 'Solar Archon', short: 'Archon',
+      key: '10', rank: 10, count: 1, name: 'Senapati', short: 'Senapati', alias: 'Senapati',
       badge: '10', movable: true, moveRange: 1, tier: 'command',
       role: 'Supreme Commander',
       power: null,
-      desc: 'Moves 1 tile. Beats every unit in melee except a Stasis Mine, or a Shadow Wraith that strikes first.',
+      desc: 'Moves 1 tile. Beats every unit in melee except a Shataghni, or a Chara that strikes first.',
       tip: 'Keep it behind a screen until the enemy Wraith is spent.'
     },
     '9': {
-      key: '9', rank: 9, count: 1, name: 'Star Paladin', short: 'Paladin',
+      key: '9', rank: 9, count: 1, name: 'Maharathi', short: 'Maharathi', alias: 'Maharathi',
       badge: '9', movable: true, moveRange: 1, tier: 'command',
       role: 'Heavy Warlord',
       power: null,
@@ -1755,7 +1649,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       tip: 'A bodyguard for your core: strong enough to absorb probes.'
     },
     '7': {
-      key: '7', rank: 7, count: 1, name: 'Valkyrie Vanguard', short: 'Valkyrie',
+      key: '7', rank: 7, count: 1, name: 'Ashvarohi', short: 'Ashvarohi', alias: 'Ashvarohi',
       badge: '7', movable: true, moveRange: 2, tier: 'elite',
       role: 'Phase Dasher',
       power: { id: 'dash', label: 'Phase Dash', range: 2 },
@@ -1763,7 +1657,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       tip: 'Reaches the second rank of a formation in one tempo.'
     },
     '6': {
-      key: '6', rank: 6, count: 1, name: 'Plasma Lancer', short: 'Lancer',
+      key: '6', rank: 6, count: 1, name: 'Dhanurdhar', short: 'Dhanurdhar', alias: 'Dhanurdhar',
       badge: '6', movable: true, moveRange: 1, tier: 'elite', hasRanged: true,
       role: 'Arc Artillery',
       power: { id: 'barrage', label: 'Arc Barrage', range: 2 },
@@ -1771,7 +1665,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       tip: 'The only unit that kills without moving — and it cannot be hurt by the reply.'
     },
     '5': {
-      key: '5', rank: 5, count: 1, name: 'Chrono Seer', short: 'Seer',
+      key: '5', rank: 5, count: 1, name: 'Divyadrishti', short: 'Divyadrishti', alias: 'Divyadrishti',
       badge: '5', movable: true, moveRange: 1, tier: 'elite', hasScan: true,
       role: 'Psionic Scanner',
       power: { id: 'scan', label: 'Psionic Scan', range: 2 },
@@ -1779,15 +1673,15 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       tip: 'Information is tempo. Scan before you commit an attack.'
     },
     '3': {
-      key: '3', rank: 3, count: 2, name: 'Warp Sapper', short: 'Sapper',
+      key: '3', rank: 3, count: 2, name: 'Yantrik', short: 'Yantrik', alias: 'Yantrik',
       badge: '3', movable: true, moveRange: 1, tier: 'line', defusesMines: true,
       role: 'Mine Specialist ×2',
       power: null,
-      desc: 'Moves 1 tile. The only unit that can defuse and capture an immovable Stasis Mine.',
+      desc: 'Moves 1 tile. The only unit that can defuse and capture an immovable Shataghni.',
       tip: 'Your mine-clearer is also your best cheap probe.'
     },
     '2': {
-      key: '2', rank: 2, count: 2, name: 'Astral Strider', short: 'Strider',
+      key: '2', rank: 2, count: 2, name: 'Rath', short: 'Rath', alias: 'Rath',
       badge: '2', movable: true, moveRange: 99, tier: 'line',
       role: 'Long-Range Scout ×2',
       power: null,
@@ -1795,7 +1689,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       tip: 'Crossing the board reveals you — run late, not early.'
     },
     '1': {
-      key: '1', rank: 1, count: 1, name: 'Shadow Wraith', short: 'Wraith',
+      key: '1', rank: 1, count: 1, name: 'Chara', short: 'Chara', alias: 'Chara',
       badge: 'S', movable: true, moveRange: 1, tier: 'line', assassin: true,
       role: 'Cloaked Assassin',
       power: null,
@@ -1803,15 +1697,15 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       tip: 'Hold it for the endgame, then trade it for a commander.'
     },
     'B': {
-      key: 'B', rank: 0, count: 1, name: 'Stasis Mine', short: 'Mine',
+      key: 'B', rank: 0, count: 1, name: 'Shataghni', short: 'Shataghni', alias: 'Shataghni',
       badge: 'B', movable: false, moveRange: 0, tier: 'trap',
       role: 'Singularity Trap',
       power: null,
-      desc: 'Immovable. Destroys any unit that attacks it, and survives — unless that unit is a Warp Sapper.',
+      desc: 'Immovable. Destroys any unit that attacks it, and survives — unless that unit is a Yantrik.',
       tip: 'A mine only works once. Hide it where a probe must pass.'
     },
     'F': {
-      key: 'F', rank: -1, count: 1, name: 'Nexus Core', short: 'Nexus',
+      key: 'F', rank: -1, count: 1, name: 'Durg', short: 'Durg', alias: 'Durg',
       badge: 'F', movable: false, moveRange: 0, tier: 'trap',
       role: 'Primary Objective',
       power: null,
@@ -1828,6 +1722,10 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   // Board geometry. Rifts are impassable, but the Lancer may fire across them.
   const BOARDS = {
     small: { key: 'small', cols: 6, rows: 8, deployRows: 3, label: 'Small Arena', blurb: '6 × 8 · fast and brutal', rifts: ['3,1', '4,1', '3,4', '4,4'] },
+    wheel: {
+      key: 'wheel', cols: 0, rows: 0, deployRows: 0, cells: 33,
+      label: 'Chakravyuha', blurb: 'the wheel · rings turn every 5 turns', rifts: []
+    },
     large: {
       key: 'large', cols: 8, rows: 10, deployRows: 3, label: 'Large Expanse', blurb: '8 × 10 · room to flank', rifts: (function () {
         const out = [];
@@ -1855,37 +1753,325 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
 </script>
 <script>
+/* js/geometry.js */
+/* Aetherfront: Astral Command — board geometry
+ * Every battlefield is a cell graph, not a rectangle of rows and columns.
+ * A cell knows where it is drawn, who may deploy on it, and its "rays" —
+ * the straight lines that leave it. Movement, the Lancer's two-cell shot and
+ * the Strider's slide all read those rays, so a square grid, a wheel or a
+ * future hex board run on exactly the same engine code.
+ */
+(function (root) {
+  'use strict';
+  const AC = (root.AC = root.AC || {});
+
+  const TAU = Math.PI * 2;
+  const cache = {};
+
+  /* ── helpers ─────────────────────────────────────────────────── */
+
+  function arcPath(ri, ro, a0, a1) {
+    const p = function (r, a) { return [Math.cos(a) * r, Math.sin(a) * r]; };
+    const s = p(ro, a0);
+    const e = p(ro, a1);
+    const f = p(ri, a1);
+    const g = p(ri, a0);
+    return 'M' + s[0].toFixed(4) + ' ' + s[1].toFixed(4) +
+      ' A' + ro + ' ' + ro + ' 0 0 1 ' + e[0].toFixed(4) + ' ' + e[1].toFixed(4) +
+      ' L' + f[0].toFixed(4) + ' ' + f[1].toFixed(4) +
+      ' A' + ri + ' ' + ri + ' 0 0 0 ' + g[0].toFixed(4) + ' ' + g[1].toFixed(4) + ' Z';
+  }
+
+  function finish(board) {
+    board.byId = {};
+    board.cellIds = [];
+    board.cells.forEach(function (c) {
+      board.byId[c.id] = c;
+      board.cellIds.push(c.id);
+    });
+    board.zones = { 1: [], 2: [] };
+    board.cells.forEach(function (c) {
+      if (c.zone === 1 || c.zone === 2) board.zones[c.zone].push(c.id);
+    });
+    // neighbours = the first step along every ray
+    board.neighbours = {};
+    board.cellIds.forEach(function (id) {
+      const seen = {};
+      const out = [];
+      (board.rays[id] || []).forEach(function (line) {
+        if (line.length && !seen[line[0]]) { seen[line[0]] = 1; out.push(line[0]); }
+      });
+      board.neighbours[id] = out;
+    });
+    return board;
+  }
+
+  /* ── square grids (Sarvatobhadra) ────────────────────────────── */
+
+  function squareBoard(opts) {
+    const cols = opts.cols;
+    const rows = opts.rows;
+    const deploy = opts.deployRows;
+    const cells = [];
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        cells.push({
+          id: r + ',' + c,
+          r: r, c: c,
+          x: c + 0.5,
+          y: r + 0.5,
+          shape: 'rect',
+          zone: r >= rows - deploy ? 1 : (r < deploy ? 2 : 0),
+          tr: 0.33,
+          points: [[c, r], [c + 1, r], [c + 1, r + 1], [c, r + 1]]
+        });
+      }
+    }
+
+    const rays = {};
+    const DIRS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    cells.forEach(function (cell) {
+      const rr = [];
+      DIRS.forEach(function (d) {
+        const line = [];
+        let nr = cell.r + d[1];
+        let nc = cell.c + d[0];
+        while (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+          line.push(nr + ',' + nc);
+          nr += d[1];
+          nc += d[0];
+        }
+        if (line.length) rr.push(line);
+      });
+      rays[cell.id] = rr;
+    });
+
+    const labels = [];
+    if (opts.coords !== false) {
+      for (let c = 0; c < cols; c++) {
+        labels.push({ x: c + 0.5, y: -0.12, text: String.fromCharCode(65 + c), anchor: 'middle' });
+      }
+      for (let r = 0; r < rows; r++) {
+        labels.push({ x: -0.14, y: r + 0.5, text: String(r + 1), anchor: 'middle', baseline: 'middle' });
+      }
+    }
+
+    return finish({
+      key: opts.key,
+      kind: 'square',
+      label: opts.label,
+      blurb: opts.blurb,
+      cells: cells,
+      rays: rays,
+      rifts: opts.rifts.slice(),
+      homes: { 1: (rows - 1) + ',' + Math.floor(cols / 2), 2: '0,' + Math.floor(cols / 2) },
+      bounds: { x: -0.3, y: -0.3, w: cols + 0.6, h: rows + 0.6 },
+      labels: labels,
+      deployRows: deploy,
+      cols: cols,
+      rows: rows
+    });
+  }
+
+  /* ── the wheel (Chakravyuha) ─────────────────────────────────── */
+
+  function wheelBoard() {
+    const SECT = 12;      // twelve spokes: six per dynasty, so a fort sits
+    const RINGS = 3;      // three cells of rim away from enemy ground
+    const R0 = 0.34;      // hub radius
+    const STEP = 0.42;    // ring thickness
+    const GAP = 0.05;     // radial gap between sectors, radians
+    const cells = [];
+    const rays = {};
+
+    cells.push({
+      id: 'h', hub: true, ring: 0, sector: 0,
+      x: 0, y: 0, shape: 'hub', zone: 0, tr: 0.22, r: R0 - 0.05
+    });
+
+    for (let ring = 1; ring <= RINGS; ring++) {
+      const inner = R0 + (ring - 1) * STEP;
+      const outer = inner + STEP;
+      const rm = (inner + outer) / 2;
+      for (let s = 0; s < SECT; s++) {
+        const a0 = (s / SECT) * TAU - Math.PI / 2 + GAP;
+        const a1 = ((s + 1) / SECT) * TAU - Math.PI / 2 - GAP;
+        const mid = (a0 + a1) / 2;
+        // sectors 9,10,11,0,1,2 belong to Suryavansh; 3..8 to Chandravansh
+        const zone = (s === 9 || s === 10 || s === 11 || s === 0 || s === 1 || s === 2) ? 1 : 2;
+        cells.push({
+          id: 'r' + ring + 's' + s,
+          ring: ring,
+          sector: s,
+          x: Math.cos(mid) * rm,
+          y: Math.sin(mid) * rm,
+          shape: 'sector',
+          zone: zone,
+          tr: 0.145,
+          path: arcPath(inner, outer, a0, a1),
+          inner: inner,
+          outer: outer
+        });
+      }
+    }
+
+    // rays: around the ring (both ways), and in/out along the spoke
+    for (let ring = 1; ring <= RINGS; ring++) {
+      for (let s = 0; s < SECT; s++) {
+        const id = 'r' + ring + 's' + s;
+        // A ring is curved, a spoke is straight. Stepping around the rim is a
+        // single cell at a time; the radial rays run the full length of the
+        // wheel, so the spokes are the real lanes — and the fort at the rim is
+        // three cells of defended ground away from enemy territory.
+        const ARC = 1;
+        const cw = [];
+        const ccw = [];
+        for (let k = 1; k <= ARC; k++) {
+          cw.push('r' + ring + 's' + ((s + k) % SECT));
+          ccw.push('r' + ring + 's' + ((s - k + SECT * 2) % SECT));
+        }
+        const out = [];
+        for (let k = 1; ring + k <= RINGS; k++) out.push('r' + (ring + k) + 's' + s);
+        const inward = [];
+        for (let k = 1; k <= ring; k++) {
+          inward.push(ring - k === 0 ? 'h' : 'r' + (ring - k) + 's' + s);
+        }
+        rays[id] = [cw, ccw, out, inward];
+      }
+    }
+    const hubRays = [];
+    for (let s = 0; s < SECT; s++) {
+      const line = [];
+      for (let ring = 1; ring <= RINGS; ring++) line.push('r' + ring + 's' + s);
+      hubRays.push(line);
+    }
+    rays.h = hubRays;
+
+    const R = R0 + RINGS * STEP;
+    return finish({
+      key: 'wheel',
+      kind: 'wheel',
+      label: 'Chakravyuha',
+      blurb: 'the wheel · rings that turn',
+      cells: cells,
+      rays: rays,
+      rifts: [],
+      homes: { 1: 'r3s0', 2: 'r3s6' },
+      bounds: { x: -R - 0.12, y: -R - 0.12, w: 2 * R + 0.24, h: 2 * R + 0.24 },
+      labels: [],
+      sectors: SECT,
+      rings: RINGS,
+      rotateRings: [1, 2],
+      rotateEvery: 5
+    });
+  }
+
+  /* ── catalogue ───────────────────────────────────────────────── */
+
+  const SPECS = {
+    small: function () {
+      return squareBoard({
+        key: 'small', label: 'Small Arena', blurb: '6 × 8 · fast and brutal',
+        cols: 6, rows: 8, deployRows: 3,
+        rifts: ['3,1', '4,1', '3,4', '4,4']
+      });
+    },
+    large: function () {
+      return squareBoard({
+        key: 'large', label: 'Large Expanse', blurb: '8 × 10 · room to flank',
+        cols: 8, rows: 10, deployRows: 3,
+        rifts: (function () {
+          const out = [];
+          [4, 5].forEach(function (r) { [1, 2, 5, 6].forEach(function (c) { out.push(r + ',' + c); }); });
+          return out;
+        })()
+      });
+    },
+    wheel: wheelBoard
+  };
+
+  const META = {
+    small: { key: 'small', label: 'Small Arena', blurb: '6 × 8 · fast and brutal', cells: 48, kind: 'square' },
+    large: { key: 'large', label: 'Large Expanse', blurb: '8 × 10 · room to flank', cells: 80, kind: 'square' },
+    wheel: { key: 'wheel', label: 'Chakravyuha', blurb: '33 cells · the rings turn every 5 turns', cells: 33, kind: 'wheel' }
+  };
+
+  function build(key) {
+    if (cache[key]) return cache[key];
+    const spec = SPECS[key] || SPECS.small;
+    cache[key] = spec();
+    return cache[key];
+  }
+
+  /* Graph distance from one cell to every other (used by the AI, the belief
+   * model and the deployment presets). */
+  const distCache = {};
+  function distances(boardKey, fromId) {
+    const k = boardKey + '|' + fromId;
+    if (distCache[k]) return distCache[k];
+    const board = build(boardKey);
+    const dist = {};
+    board.cellIds.forEach(function (id) { dist[id] = Infinity; });
+    dist[fromId] = 0;
+    const queue = [fromId];
+    while (queue.length) {
+      const id = queue.shift();
+      const d = dist[id];
+      (board.neighbours[id] || []).forEach(function (n) {
+        if (dist[n] === Infinity) { dist[n] = d + 1; queue.push(n); }
+      });
+    }
+    distCache[k] = dist;
+    return dist;
+  }
+
+  AC.geometry = {
+    META: META,
+    build: build,
+    distances: distances,
+    arcPath: arcPath
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
 /* js/engine.js */
-/* Aetherfront: Astral Command — pure rules engine
- * No DOM access. Everything here is deterministic given a state + action,
- * so it can be unit-tested and simulated headlessly.
+/* Aetherfront: Astral Command — pure rules engine (v3)
+ * Works on a cell graph: `state.board` maps cellId -> unit, and movement is
+ * read off each cell's "rays". No DOM, no coordinates, no assumptions about
+ * squares — the same code drives the square arenas and the Chakravyuha wheel.
  */
 (function (root) {
   'use strict';
   const AC = (root.AC = root.AC || {});
   const U = AC.units;
-  const VERSION = 2;
+  const G = AC.geometry;
+  const VERSION = 3;
 
-  function geometry(boardKey) {
-    const b = U.BOARDS[boardKey] || U.BOARDS.small;
-    return { cols: b.cols, rows: b.rows, deployRows: b.deployRows, rifts: b.rifts.slice(), boardKey: b.key };
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  /* ── board helpers ───────────────────────────────────────────── */
+
+  function board(state) { return G.build(state.boardKey); }
+
+  function isRift(state, id) { return state.rifts.indexOf(id) !== -1; }
+
+  function unitAt(state, id) {
+    if (!id) return null;
+    return state.board[id] || null;
   }
 
-  function clone(o) {
-    return JSON.parse(JSON.stringify(o));
-  }
+  function cellOf(state, id) { return board(state).byId[id] || null; }
 
-  function isRift(state, r, c) {
-    return state.rifts.indexOf(r + ',' + c) !== -1;
-  }
+  function cellIds(state) { return board(state).cellIds; }
 
-  function inBounds(state, r, c) {
-    return r >= 0 && r < state.rows && c >= 0 && c < state.cols;
-  }
-
-  function unitAt(state, r, c) {
-    if (!inBounds(state, r, c)) return null;
-    return state.board[r][c];
+  function forEachUnit(state, fn) {
+    const ids = cellIds(state);
+    for (let i = 0; i < ids.length; i++) {
+      const u = state.board[ids[i]];
+      if (u) fn(u, ids[i]);
+    }
   }
 
   function createArmy(owner) {
@@ -1907,315 +2093,345 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     });
   }
 
-  function emptyBoard(rows, cols) {
-    const b = [];
-    for (let r = 0; r < rows; r++) {
-      const row = [];
-      for (let c = 0; c < cols; c++) row.push(null);
-      b.push(row);
-    }
-    return b;
-  }
-
   function newState(config) {
-    const cfg = Object.assign(
-      { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0, drawAfter: 60, playerName: 'Commander', opponentName: 'Astral AI' },
-      config || {}
-    );
-    const g = geometry(cfg.board);
+    const cfg = Object.assign({
+      mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran',
+      timer: 0, drawAfter: 100, playerName: 'Commander', opponentName: 'Astral AI'
+    }, config || {});
+    const g = G.build(cfg.board);
     const state = {
       version: VERSION,
       config: cfg,
+      boardKey: g.key,
       phase: 'deploy1',
       owner: 1,
       turn: 1,
       viewer: 1,
-      cols: g.cols,
-      rows: g.rows,
-      deployRows: g.deployRows,
-      rifts: g.rifts,
-      board: emptyBoard(g.rows, g.cols),
+      rifts: g.rifts.slice(),
+      board: {},
+      homes: { 1: g.homes[1], 2: g.homes[2] },
       captured: { 1: [], 2: [] },
       log: [],
       replay: [],
       lastMove: null,
       winner: null,
       reason: '',
+      rotation: { count: 0, lastTurn: 0, every: g.rotateEvery || 0, rings: (g.rotateRings || []).slice() },
       stats: { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0, lastCapturePly: 0 },
-      startedAt: Date.now(),
-      preset1: 'citadel',
-      preset2: 'citadel'
+      startedAt: Date.now()
     };
     deployPreset(state, 1, 'citadel');
     deployPreset(state, 2, 'citadel');
     return state;
   }
 
-  /* ---------- deployment ---------- */
+  /* ── deployment ──────────────────────────────────────────────── */
 
-  function zoneRows(state, owner) {
-    if (owner === 1) {
-      return [state.rows - 1, state.rows - 2, state.rows - 3];
-    }
-    return [0, 1, 2];
+  function inDeployZone(state, owner, id) {
+    const cell = cellOf(state, id);
+    return !!cell && cell.zone === owner;
   }
 
-  function inDeployZone(state, owner, r) {
-    if (owner === 1) return r >= state.rows - state.deployRows && r < state.rows;
-    return r >= 0 && r < state.deployRows;
+  function armyComplete(state, owner) {
+    let n = 0;
+    forEachUnit(state, function (u) { if (u.owner === owner) n++; });
+    return n === 12;
   }
 
-  function clampCol(cols, c) {
-    return Math.max(0, Math.min(cols - 1, c));
+  function groupArmy(army) {
+    const byKey = {};
+    army.forEach(function (u) { (byKey[u.key] = byKey[u.key] || []).push(u); });
+    return {
+      pull: function (k) {
+        const arr = byKey[k];
+        return arr && arr.length ? arr.pop() : null;
+      },
+      left: function () {
+        const out = [];
+        Object.keys(byKey).forEach(function (k) { byKey[k].forEach(function (u) { out.push(u); }); });
+        return out;
+      }
+    };
   }
 
-  /* Ordered slots for a preset. Each entry is [rowOffset(0=back), col].
-   * Cols are expressed for the "left" orientation and mirrored by `flip`. */
-  function presetSlots(style, cols, flip) {
+  /* Square arenas keep their hand-tuned formations. */
+  function squarePresetSlots(style, cols, flip) {
     const M = function (c) { return flip ? cols - 1 - c : c; };
     const mid = Math.floor(cols / 2);
-    let slots;
     if (style === 'citadel') {
-      slots = [
+      return [
         [0, M(1)], [1, M(1)], [0, M(0)], [1, M(2)],
         [1, M(0)], [2, M(2)], [2, M(3)], [2, M(0)],
         [2, M(cols - 1)], [1, M(3)], [1, M(mid + 1)], [2, M(cols - 2)]
       ];
-    } else if (style === 'blitz') {
-      slots = [
+    }
+    if (style === 'blitz') {
+      return [
         [0, mid], [0, mid - 1], [0, mid + 1], [1, mid],
         [2, M(0)], [2, M(cols - 1)], [2, M(1)], [2, M(cols - 2)],
         [2, M(2)], [1, M(1)], [1, M(cols - 2)], [1, M(2)]
       ];
-    } else if (style === 'lattice') {
-      slots = [
+    }
+    if (style === 'lattice') {
+      return [
         [0, M(1)], [0, M(cols - 2)], [1, M(2)], [1, M(cols - 3)],
         [0, mid], [2, M(0)], [2, M(cols - 1)], [1, mid],
         [2, M(1)], [2, M(cols - 2)], [2, M(mid - 1)], [2, M(mid + 1)]
       ];
-    } else {
-      slots = [];
     }
-    return slots;
+    return [];
   }
 
-  // Which roster piece goes to which preset slot (same order as presetSlots)
-  const PRESET_ORDER = {
+  const SQUARE_ORDER = {
     citadel: ['F', 'B', '3', '3', '1', '9', '10', '2', '2', '5', '6', '7'],
     blitz: ['F', 'B', '3', '3', '7', '10', '2', '2', '6', '5', '9', '1'],
     lattice: ['F', 'B', '3', '3', '2', '2', '10', '5', '6', '9', '1', '7']
   };
 
-  function deployPreset(state, owner, style) {
-    // clear zone
-    for (let r = 0; r < state.rows; r++) {
-      if (!inDeployZone(state, owner, r)) continue;
-      for (let c = 0; c < state.cols; c++) state.board[r][c] = null;
-    }
+  function clearZone(state, owner) {
+    board(state).zones[owner].forEach(function (id) { state.board[id] = null; });
+  }
+
+  function deploySquare(state, owner, style) {
+    const g = board(state);
+    clearZone(state, owner);
     const army = createArmy(owner);
-    const byKey = {};
-    army.forEach(function (u) { (byKey[u.key] = byKey[u.key] || []).push(u); });
-    const pull = function (k) {
-      const arr = byKey[k];
-      return arr && arr.length ? arr.pop() : null;
-    };
-    const rows = zoneRows(state, owner);
+    const grp = groupArmy(army);
 
     if (style === 'shuffle' || style === 'random') {
-      const slots = [];
-      for (let i = 0; i < state.deployRows; i++) {
-        for (let c = 0; c < state.cols; c++) slots.push({ r: rows[i], c: c });
-      }
+      const slots = g.zones[owner].slice();
       for (let i = slots.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         const t = slots[i]; slots[i] = slots[j]; slots[j] = t;
       }
-      // Core always ends up in the back row so a shuffle never self-destructs
-      const back = slots.filter(function (s) { return s.r === rows[0]; });
-      const core = pull('F');
-      const coreSlot = back[Math.floor(Math.random() * back.length)];
-      state.board[coreSlot.r][coreSlot.c] = core;
-      const rest = slots.filter(function (s) { return !(s.r === coreSlot.r && s.c === coreSlot.c); });
-      const others = army.filter(function (u) { return u !== core; });
-      // Mine stays in the back two rows
-      const mine = others.filter(function (u) { return u.key === 'B'; })[0];
-      const mineIdx = rest.findIndex(function (s) { return s.r === rows[0] || s.r === rows[1]; });
-      if (mine && mineIdx !== -1) {
-        state.board[rest[mineIdx].r][rest[mineIdx].c] = mine;
-        rest.splice(mineIdx, 1);
-      }
-      const pool = others.filter(function (u) { return u !== mine; });
-      pool.forEach(function (u, i) {
-        const s = rest[i];
-        if (s) state.board[s.r][s.c] = u;
+      const core = grp.pull('F');
+      state.board[slots[0]] = core;
+      const rest = slots.slice(1);
+      const mine = grp.pull('B');
+      // the mine goes somewhere in the back half of the zone
+      const home = state.homes[owner];
+      const dist = G.distances(state.boardKey, home);
+      rest.sort(function (a, b) { return dist[a] - dist[b]; });
+      state.board[rest[0]] = mine;
+      const free = rest.slice(1);
+      grp.left().forEach(function (u, i) {
+        if (free[i]) state.board[free[i]] = u;
       });
       return;
     }
 
     const flip = Math.random() < 0.5;
-    const slots = presetSlots(style, state.cols, flip);
-    const order = PRESET_ORDER[style] || PRESET_ORDER.citadel;
+    const slots = squarePresetSlots(style, g.cols, flip);
+    const order = SQUARE_ORDER[style] || SQUARE_ORDER.citadel;
+    const rows = owner === 1
+      ? [g.rows - 1, g.rows - 2, g.rows - 3]
+      : [0, 1, 2];
     const used = {};
-    const placed = [];
     slots.forEach(function (slot, i) {
-      const key = order[i];
-      const u = pull(key);
+      const id = rows[slot[0]] + ',' + Math.max(0, Math.min(g.cols - 1, slot[1]));
+      if (state.board[id]) return;          // occupied: never pull a piece we cannot place
+      const u = grp.pull(order[i]);
       if (!u) return;
-      const r = rows[slot[0]];
-      const c = clampCol(state.cols, slot[1]);
-      if (state.board[r][c]) return; // collision — leave for the filler pass
-      state.board[r][c] = u;
+      state.board[id] = u;
       used[u.id] = true;
-      placed.push(r + ',' + c);
     });
-    // filler: any piece not placed goes to any free zone square
-    const leftovers = army.filter(function (u) { return !used[u.id]; });
+    const leftovers = grp.left();
     if (leftovers.length) {
-      const free = [];
-      for (let i = 0; i < state.deployRows; i++) {
-        for (let c = 0; c < state.cols; c++) {
-          if (!state.board[rows[i]][c]) free.push({ r: rows[i], c: c });
-        }
-      }
+      const free = g.zones[owner].filter(function (id) { return !state.board[id]; });
       for (let i = free.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         const t = free[i]; free[i] = free[j]; free[j] = t;
       }
-      leftovers.forEach(function (u, i) {
-        if (free[i]) state.board[free[i].r][free[i].c] = u;
-      });
+      leftovers.forEach(function (u, i) { if (free[i]) state.board[free[i]] = u; });
     }
+  }
+
+  /* The wheel deploys by distance from home: core and mine sit deep, scouts
+   * reach out toward the rim of your own half. */
+  function deployWheel(state, owner, style) {
+    const g = board(state);
+    clearZone(state, owner);
+    const army = createArmy(owner);
+    const grp = groupArmy(army);
+    const home = state.homes[owner];
+    const dist = G.distances(state.boardKey, home);
+    const zone = g.zones[owner].slice().sort(function (a, b) {
+      if (dist[a] !== dist[b]) return dist[a] - dist[b];
+      return a < b ? -1 : 1;
+    });
+
+    if (style === 'shuffle' || style === 'random') {
+      const order = ['F', 'B', '3', '3', '2', '2', '5', '6', '7', '9', '10', '1'];
+      order.forEach(function (k, i) {
+        const u = grp.pull(k);
+        if (u && zone[i]) state.board[zone[i]] = u;
+      });
+      return;
+    }
+
+    const order = style === 'blitz'
+      ? ['F', 'B', '3', '3', '7', '10', '2', '2', '6', '5', '9', '1']
+      : style === 'lattice'
+        ? ['F', 'B', '3', '3', '2', '2', '10', '5', '6', '9', '1', '7']
+        : ['F', 'B', '3', '3', '5', '6', '9', '10', '7', '2', '2', '1'];
+
+    if (style === 'blitz') {
+      // heavies on the rim, the fort tucked at the back
+      const back = zone.slice(0, 4);
+      const front = zone.slice(4).reverse();
+      const placed = back.concat(front);
+      order.forEach(function (k, i) {
+        const u = grp.pull(k);
+        if (u && placed[i]) state.board[placed[i]] = u;
+      });
+      return;
+    }
+
+    order.forEach(function (k, i) {
+      const u = grp.pull(k);
+      if (u && zone[i]) state.board[zone[i]] = u;
+    });
+  }
+
+  function deployPreset(state, owner, style) {
+    if (state.boardKey === 'wheel') deployWheel(state, owner, style);
+    else deploySquare(state, owner, style);
   }
 
   function swapSlots(state, owner, a, b) {
-    if (!inDeployZone(state, owner, a.r) || !inDeployZone(state, owner, b.r)) return false;
-    const ua = state.board[a.r][a.c];
-    const ub = state.board[b.r][b.c];
+    if (!inDeployZone(state, owner, a) || !inDeployZone(state, owner, b)) return false;
+    const ua = state.board[a];
+    const ub = state.board[b];
     if (ua && ua.owner !== owner) return false;
     if (ub && ub.owner !== owner) return false;
-    state.board[a.r][a.c] = ub;
-    state.board[b.r][b.c] = ua;
+    state.board[a] = ub || null;
+    state.board[b] = ua || null;
     return true;
   }
 
-  function armyComplete(state, owner) {
-    let n = 0;
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (u && u.owner === owner) n++;
-      }
-    }
-    return n === 12;
-  }
+  /* ── legality ────────────────────────────────────────────────── */
 
-  /* ---------- legality ---------- */
-
-  function violatesTwoSquare(unit, fromR, fromC, toR, toC) {
+  function violatesTwoSquare(unit, fromId, toId) {
     const h = unit.moveHistory;
     if (!h || h.length < 3) return false;
-    const a = fromR + ',' + fromC;
-    const b = toR + ',' + toC;
     const l1 = h[h.length - 1];
     const l2 = h[h.length - 2];
     const l3 = h[h.length - 3];
-    return l1.from === b && l1.to === a && l2.from === a && l2.to === b && l3.from === b && l3.to === a;
+    return l1.from === toId && l1.to === fromId &&
+      l2.from === fromId && l2.to === toId &&
+      l3.from === toId && l3.to === fromId;
   }
-
-  const DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
   function isMovable(unit) {
     const def = unit && U.UNIT_DEFS[unit.key];
     return !!(def && def.movable);
   }
 
-  function computeValidTargets(state, r, c, mode) {
-    const unit = unitAt(state, r, c);
-    if (!isMovable(unit)) return [];
-    const def = U.UNIT_DEFS[unit.key];
-    const targets = [];
-
-    if (mode === 'special') {
-      if (def.hasScan) {
-        for (let tr = 0; tr < state.rows; tr++) {
-          for (let tc = 0; tc < state.cols; tc++) {
-            const d = Math.abs(tr - r) + Math.abs(tc - c);
-            const occ = state.board[tr][tc];
-            if (d >= 1 && d <= 2 && occ && occ.owner !== unit.owner && !occ.revealed) {
-              targets.push({ r: tr, c: tc, type: 'scan' });
-            }
-          }
-        }
-      }
-      if (def.hasRanged) {
-        DIRS.forEach(function (d) {
-          const tr = r + d[0] * 2;
-          const tc = c + d[1] * 2;
-          if (!inBounds(state, tr, tc) || isRift(state, tr, tc)) return;
-          const occ = state.board[tr][tc];
-          if (occ && occ.owner !== unit.owner) targets.push({ r: tr, c: tc, type: 'barrage' });
-        });
-      }
-      return targets;
-    }
-
-    const maxSteps = def.moveRange;
-    DIRS.forEach(function (d) {
-      for (let step = 1; step <= maxSteps; step++) {
-        const tr = r + d[0] * step;
-        const tc = c + d[1] * step;
-        if (!inBounds(state, tr, tc)) break;
-        if (isRift(state, tr, tc)) break;
-        const occ = state.board[tr][tc];
+  /* Walk the rays out from a cell. Stops at a rift, at an occupied cell, and
+   * at the unit's own range. */
+  function rayTargets(state, id, range, unit) {
+    const g = board(state);
+    const out = [];
+    (g.rays[id] || []).forEach(function (line) {
+      for (let i = 0; i < line.length && i < range; i++) {
+        const to = line[i];
+        if (isRift(state, to)) break;
+        const occ = state.board[to];
         if (!occ) {
-          if (!violatesTwoSquare(unit, r, c, tr, tc)) targets.push({ r: tr, c: tc, type: 'move' });
+          if (!violatesTwoSquare(unit, id, to)) out.push({ id: to, type: 'move' });
         } else {
-          if (occ.owner !== unit.owner && !violatesTwoSquare(unit, r, c, tr, tc)) {
-            targets.push({ r: tr, c: tc, type: 'attack' });
+          if (occ.owner !== unit.owner && !violatesTwoSquare(unit, id, to)) {
+            out.push({ id: to, type: 'attack' });
           }
           break;
         }
       }
     });
-    return targets;
+    return out;
   }
 
-  function canAct(state, r, c) {
-    const u = unitAt(state, r, c);
-    if (!isMovable(u)) return false;
-    return computeValidTargets(state, r, c, 'move').length > 0 || computeValidTargets(state, r, c, 'special').length > 0;
+  function scanTargets(state, id, unit) {
+    const g = board(state);
+    const out = [];
+    const seen = {};
+    seen[id] = 1;
+    let frontier = [id];
+    for (let step = 0; step < 2; step++) {
+      const next = [];
+      frontier.forEach(function (from) {
+        (g.neighbours[from] || []).forEach(function (n) {
+          if (seen[n] || isRift(state, n)) return;
+          seen[n] = 1;
+          next.push(n);
+          const occ = state.board[n];
+          if (occ && occ.owner !== unit.owner && !occ.revealed) out.push({ id: n, type: 'scan' });
+        });
+      });
+      frontier = next;
+    }
+    return out;
+  }
+
+  function barrageTargets(state, id, unit) {
+    const g = board(state);
+    const out = [];
+    (g.rays[id] || []).forEach(function (line) {
+      const to = line[1]; // exactly two cells away
+      if (!to) return;
+      if (isRift(state, to)) return;
+      const occ = state.board[to];
+      if (occ && occ.owner !== unit.owner) out.push({ id: to, type: 'barrage' });
+    });
+    return out;
+  }
+
+  function computeValidTargets(state, id, mode) {
+    const unit = unitAt(state, id);
+    if (!isMovable(unit)) return [];
+    const def = U.UNIT_DEFS[unit.key];
+    if (mode === 'special') {
+      let out = [];
+      if (def.hasScan) out = out.concat(scanTargets(state, id, unit));
+      if (def.hasRanged) out = out.concat(barrageTargets(state, id, unit));
+      return out;
+    }
+    return rayTargets(state, id, def.moveRange, unit);
+  }
+
+  function canAct(state, id) {
+    if (!isMovable(unitAt(state, id))) return false;
+    return computeValidTargets(state, id, 'move').length > 0 ||
+      computeValidTargets(state, id, 'special').length > 0;
   }
 
   function hasAnyLegalMoves(state, player) {
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (!u || u.owner !== player || !isMovable(u)) continue;
-        if (computeValidTargets(state, r, c, 'move').length) return true;
-        if (computeValidTargets(state, r, c, 'special').length) return true;
-      }
+    const ids = cellIds(state);
+    for (let i = 0; i < ids.length; i++) {
+      const u = state.board[ids[i]];
+      if (!u || u.owner !== player || !isMovable(u)) continue;
+      if (computeValidTargets(state, ids[i], 'move').length) return true;
+      if (computeValidTargets(state, ids[i], 'special').length) return true;
     }
     return false;
   }
 
   function allLegalActions(state, player) {
     const out = [];
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (!u || u.owner !== player || !isMovable(u)) continue;
-        computeValidTargets(state, r, c, 'move').forEach(function (t) {
-          out.push({ type: t.type, from: { r: r, c: c }, to: { r: t.r, c: t.c } });
-        });
-        computeValidTargets(state, r, c, 'special').forEach(function (t) {
-          out.push({ type: t.type, from: { r: r, c: c }, to: { r: t.r, c: t.c } });
-        });
-      }
-    }
+    const ids = cellIds(state);
+    ids.forEach(function (id) {
+      const u = state.board[id];
+      if (!u || u.owner !== player || !isMovable(u)) return;
+      computeValidTargets(state, id, 'move').forEach(function (t) {
+        out.push({ type: t.type, from: id, to: t.id });
+      });
+      computeValidTargets(state, id, 'special').forEach(function (t) {
+        out.push({ type: t.type, from: id, to: t.id });
+      });
+    });
     return out;
   }
 
-  /* ---------- state log helpers ---------- */
+  /* ── log / replay ────────────────────────────────────────────── */
 
   function log(state, kind, text, at) {
     state.log.push({ turn: state.turn, kind: kind, text: text, at: at || null, t: Date.now() });
@@ -2223,11 +2439,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   }
 
   function compactBoard(state) {
-    return state.board.map(function (row) {
-      return row.map(function (u) {
-        return u ? [u.owner, u.key, u.revealed ? 1 : 0, u.hasMoved ? 1 : 0, u.rank, u.shieldBroken ? 1 : 0] : 0;
-      });
+    const out = { boardKey: state.boardKey, cells: {} };
+    forEachUnit(state, function (u, id) {
+      out.cells[id] = [u.owner, u.key, u.revealed ? 1 : 0, u.hasMoved ? 1 : 0, u.rank, u.shieldBroken ? 1 : 0];
     });
+    return out;
   }
 
   function snapshot(state, label) {
@@ -2241,15 +2457,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     if (state.replay.length > 500) state.replay.shift();
   }
 
-  function faction(owner) {
-    return U.FACTIONS[owner] ? U.FACTIONS[owner].name : 'Neutral';
-  }
-
-  function removeUnit(state, r, c) {
-    const u = state.board[r][c];
-    state.board[r][c] = null;
-    return u;
-  }
+  function faction(owner) { return U.FACTIONS[owner] ? U.FACTIONS[owner].name : 'Neutral'; }
 
   function recordCapture(state, byOwner, dead) {
     dead.revealed = true;
@@ -2259,22 +2467,20 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     });
   }
 
-  /* ---------- combat ---------- */
+  /* ── combat ──────────────────────────────────────────────────── */
 
   function resolveMelee(state, attacker, defender) {
-    // returns { winner:'att'|'def'|'both', text, kind }
     if (defender.key === 'F') {
-      return { winner: 'att', core: true, text: attacker.name + ' [' + attacker.badge + '] seized the ' + faction(defender.owner) + ' Nexus Core!' };
+      return { winner: 'att', core: true, text: attacker.name + ' [' + attacker.badge + '] seized the ' + faction(defender.owner) + ' fort!' };
     }
     if (defender.key === 'B') {
-      const sapper = U.UNIT_DEFS[attacker.key].defusesMines;
-      if (sapper) {
-        return { winner: 'att', mine: true, text: 'Warp Sapper [3] safely dismantled the Stasis Mine — the lane is open.' };
+      if (U.UNIT_DEFS[attacker.key].defusesMines) {
+        return { winner: 'att', mine: true, text: 'The Yantrik safely dismantled the Shataghni — the lane is open.' };
       }
-      return { winner: 'def', mine: true, text: attacker.name + ' [' + attacker.badge + '] struck a Stasis Mine and was annihilated. The mine holds.' };
+      return { winner: 'def', mine: true, text: attacker.name + ' [' + attacker.badge + '] struck a Shataghni and was annihilated. The trap holds.' };
     }
     if (U.UNIT_DEFS[attacker.key].assassin && (defender.key === '10' || defender.key === '9')) {
-      return { winner: 'att', assassinate: true, text: 'Assassination — the Shadow Wraith slipped past the guard and slew the ' + defender.name + ' [' + defender.badge + '].' };
+      return { winner: 'att', assassinate: true, text: 'Assassination — the spy slipped past the guard and slew the ' + defender.name + ' [' + defender.badge + '].' };
     }
     if (attacker.rank > defender.rank) {
       return { winner: 'att', text: attacker.name + ' [' + attacker.badge + '] overpowered the ' + defender.name + ' [' + defender.badge + '].' };
@@ -2295,38 +2501,90 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     return { winner: 'both', text: 'Mutual destruction — both Rank ' + attacker.rank + ' units were destroyed.' };
   }
 
-  /* ---------- main action ---------- */
+  /* ── the chakra turns ────────────────────────────────────────── */
+
+  function rotate(state, events) {
+    if (state.boardKey !== 'wheel') return false;
+    const g = board(state);
+    const rings = state.rotation.rings.length ? state.rotation.rings : [1, 2];
+    let moved = 0;
+    rings.forEach(function (ring) {
+      const held = {};
+      for (let s = 0; s < g.sectors; s++) {
+        const id = 'r' + ring + 's' + s;
+        if (state.board[id]) held[s] = state.board[id];
+        state.board[id] = null;
+      }
+      Object.keys(held).forEach(function (s) {
+        const ns = (Number(s) + 1) % g.sectors;
+        const u = held[s];
+        state.board['r' + ring + 's' + ns] = u;
+        u.revealed = true; // riding the wheel exposes you
+        moved++;
+      });
+    });
+    state.rotation.count++;
+    state.rotation.lastTurn = state.turn;
+    if (moved) {
+      log(state, 'rotate', 'The chakra turns: the inner two rings shift one spoke clockwise. Anything on them is exposed.');
+      if (events) {
+        events.push({
+          kind: 'rotate', sfx: 'rotate',
+          text: 'The chakra turns — rings 1 and 2 shifted one spoke. Everything they carried is now revealed.'
+        });
+      }
+    }
+    return moved > 0;
+  }
+
+  function turnsUntilRotation(state) {
+    if (state.boardKey !== 'wheel') return null;
+    const every = state.rotation.every || 5;
+    const next = Math.ceil(state.turn / every) * every;
+    const gap = next - state.turn;
+    return gap === 0 ? every : gap;
+  }
+
+  /* ── main action ─────────────────────────────────────────────── */
 
   function applyAction(state, action) {
     const events = [];
     if (state.phase !== 'battle') return { ok: false, error: 'Not in battle phase', events: events };
     const from = action.from;
     const to = action.to;
-    const unit = unitAt(state, from.r, from.c);
+    const unit = unitAt(state, from);
     if (!unit) return { ok: false, error: 'No unit there', events: events };
     if (unit.owner !== state.owner) return { ok: false, error: 'Not your unit', events: events };
-    const legal = computeValidTargets(state, from.r, from.c, action.type === 'move' || action.type === 'attack' ? 'move' : 'special');
-    const match = legal.filter(function (t) { return t.r === to.r && t.c === to.c; })[0];
-    if (!match) return { ok: false, error: 'Illegal action', events: events };
-    const type = match.type; // authoritative
-    const target = state.board[to.r][to.c];
-    const dist = Math.abs(to.r - from.r) + Math.abs(to.c - from.c);
-    state.stats.actions++;
 
+    const mode = (action.type === 'move' || action.type === 'attack') ? 'move' : 'special';
+    const legal = computeValidTargets(state, from, mode);
+    const match = legal.filter(function (t) { return t.id === to; })[0];
+    if (!match) return { ok: false, error: 'Illegal action', events: events };
+    const type = match.type;
+    const target = state.board[to] || null;
+    const dist = (function () {
+      const d = G.distances(state.boardKey, from);
+      return d[to] === undefined ? 1 : d[to];
+    })();
+    state.stats.actions++;
     state.lastMove = { from: from, to: to, type: type };
 
-    /* --- plain move --- */
+    /* ── plain move ── */
     if (type === 'move') {
       unit.hasMoved = true;
-      unit.moveHistory.push({ from: from.r + ',' + from.c, to: to.r + ',' + to.c });
-      state.board[to.r][to.c] = unit;
-      state.board[from.r][from.c] = null;
+      unit.moveHistory.push({ from: from, to: to });
+      state.board[to] = unit;
+      state.board[from] = null;
       if (unit.key === '2' && dist >= 2) {
         unit.revealed = true;
-        events.push({ kind: 'reveal', text: 'Astral Strider ran ' + dist + ' tiles — its position is now exposed.' });
+        events.push({ kind: 'reveal', text: 'The chariot ran ' + dist + ' cells — its position is now exposed.' });
       } else if (unit.key === '7' && dist === 2) {
         unit.revealed = true;
-        events.push({ kind: 'reveal', text: 'Valkyrie Vanguard phase-dashed 2 tiles.' });
+        events.push({ kind: 'reveal', text: 'The cavalry dashed two cells.' });
+      }
+      if (to === 'h') {
+        unit.revealed = true;
+        events.push({ kind: 'reveal', text: 'Standing on the hub of the chakra exposes a piece to every spoke.' });
       }
       events.push({ kind: 'move', sfx: 'move', from: from, to: to, unit: unit });
       log(state, 'move', faction(unit.owner) + ' advanced a ' + (unit.revealed ? unit.name : 'unit') + '.', to);
@@ -2335,67 +2593,67 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       return { ok: true, type: type, events: events };
     }
 
-    /* --- psionic scan --- */
+    /* ── psionic scan ── */
     if (type === 'scan') {
       unit.revealed = true;
       target.revealed = true;
       events.push({
         kind: 'scan', sfx: 'scan', at: to, unit: unit, target: target,
-        text: 'Psionic Scan: ' + target.name + ' [' + target.badge + '] revealed at no cost.'
+        text: 'Divya-drishti: ' + target.name + ' [' + target.badge + '] revealed at no cost.'
       });
-      log(state, 'scan', 'Chrono Seer scanned the ' + target.name + ' [' + target.badge + '].', to);
+      log(state, 'scan', 'The Divyadrishti scanned the ' + target.name + ' [' + target.badge + '].', to);
       snapshot(state, 'scan');
       finishTurn(state, events);
       return { ok: true, type: type, events: events };
     }
 
-    /* --- arc barrage --- */
+    /* ── arc barrage ── */
     if (type === 'barrage') {
       unit.revealed = true;
       target.revealed = true;
       state.stats.attacks++;
       if (target.key === 'F') {
-        removeUnit(state, to.r, to.c);
+        state.board[to] = null;
         recordCapture(state, unit.owner, target);
         events.push({
           kind: 'core', sfx: 'core', at: to, unit: unit, target: target, win: true,
-          text: 'Arc Barrage punched through the Nexus Core from 2 tiles out. The enemy objective is gone.'
+          text: 'Shara-varsha punched through the fort from two cells out. The enemy objective is gone.'
         });
-        log(state, 'core', faction(unit.owner) + ' shattered the enemy Nexus Core with an Arc Barrage!', to);
+        log(state, 'core', faction(unit.owner) + ' shattered the enemy fort with a volley!', to);
         snapshot(state, 'barrage-core');
-        endGame(state, unit.owner, faction(unit.owner) + ' broke the enemy Nexus Core with an Arc Barrage on turn ' + state.turn + '.', events);
+        endGame(state, unit.owner, faction(unit.owner) + ' broke the enemy fort with a volley on turn ' + state.turn + '.', events);
         return { ok: true, type: type, events: events };
       }
       if (target.key === 'B') {
         events.push({
           kind: 'barrage', sfx: 'mine', at: to, unit: unit, target: target, noKill: true,
-          text: 'The bolt washed over a Stasis Mine — singularity shielding absorbed it. Mine revealed, nothing lost.'
+          text: 'The volley washed over a Shataghni — its shield absorbed the arrows. Trap revealed, nothing lost.'
         });
-        log(state, 'barrage', 'Arc Barrage splashed off a Stasis Mine (no damage).', to);
+        log(state, 'barrage', 'The volley splashed off a Shataghni (no damage).', to);
       } else if (target.rank >= 0 && target.rank <= 5) {
-        removeUnit(state, to.r, to.c);
+        state.board[to] = null;
         recordCapture(state, unit.owner, target);
         state.stats.wins++;
         events.push({
           kind: 'barrage', sfx: 'laser', at: to, unit: unit, target: target, kill: true,
-          text: 'Arc Barrage vaporised the ' + target.name + ' [' + target.badge + '] at range. The Lancer never left its square.'
+          text: 'The volley cut down the ' + target.name + ' [' + target.badge + '] at range. The archer never left its cell.'
         });
-        log(state, 'barrage', 'Arc Barrage vaporised the ' + target.name + ' [' + target.badge + '].', to);
+        log(state, 'barrage', 'The volley cut down the ' + target.name + ' [' + target.badge + '].', to);
       } else {
         events.push({
           kind: 'barrage', sfx: 'clash', at: to, unit: unit, target: target, deflect: true,
-          text: 'Heavy Rank ' + target.badge + ' shielding deflected the bolt. Both units are now revealed.'
+          text: 'Heavy Rank ' + target.badge + ' armour turned the volley. Both pieces are now revealed.'
         });
-        log(state, 'barrage', 'Arc Barrage was deflected by the ' + target.name + ' [' + target.badge + '].', to);
+        log(state, 'barrage', 'The volley was turned by the ' + target.name + ' [' + target.badge + '].', to);
       }
       snapshot(state, 'barrage');
       finishTurn(state, events);
       return { ok: true, type: type, events: events };
     }
 
-    /* --- melee attack --- */
+    /* ── melee ── */
     unit.hasMoved = true;
-    unit.moveHistory.push({ from: from.r + ',' + from.c, to: to.r + ',' + to.c });
+    unit.moveHistory.push({ from: from, to: to });
     unit.revealed = true;
     target.revealed = true;
     state.stats.attacks++;
@@ -2403,23 +2661,18 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     const res = resolveMelee(state, unit, target);
 
     if (res.winner === 'att') {
-      state.board[to.r][to.c] = unit;
-      state.board[from.r][from.c] = null;
+      state.board[to] = unit;
+      state.board[from] = null;
       recordCapture(state, unit.owner, target);
       state.stats.wins++;
     } else if (res.winner === 'def') {
-      state.board[from.r][from.c] = null;
-      if (res.mine) {
-        // mine survives, stays put; attacker removed from board
-        state.board[to.r][to.c] = target;
-      } else {
-        recordCapture(state, target.owner, unit);
-      }
-      if (res.mine) recordCapture(state, target.owner, unit);
+      state.board[from] = null;
+      if (res.mine) state.board[to] = target;
+      recordCapture(state, target.owner, unit);
       state.stats.losses++;
     } else {
-      state.board[to.r][to.c] = null;
-      state.board[from.r][from.c] = null;
+      state.board[to] = null;
+      state.board[from] = null;
       recordCapture(state, unit.owner, target);
       recordCapture(state, target.owner, unit);
       state.stats.wins++;
@@ -2430,7 +2683,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       state.stats.firstBlood = state.turn;
     }
 
-    const ev = {
+    events.push({
       kind: 'clash',
       sfx: res.winner === 'att' ? 'clash-win' : res.winner === 'def' ? 'clash-lose' : 'clash-both',
       at: to,
@@ -2439,13 +2692,12 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       outcome: res.winner,
       core: !!res.core,
       text: res.text
-    };
-    events.push(ev);
+    });
     log(state, 'clash', res.text, to);
     snapshot(state, 'clash');
 
     if (res.core) {
-      endGame(state, unit.owner, faction(unit.owner) + ' captured the enemy Nexus Core on turn ' + state.turn + '.', events);
+      endGame(state, unit.owner, faction(unit.owner) + ' captured the enemy fort on turn ' + state.turn + '.', events);
       return { ok: true, type: type, events: events };
     }
     finishTurn(state, events);
@@ -2464,9 +2716,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
   function finishTurn(state, events) {
     if (state.phase === 'over') return;
-    // anti-stall: a long run of orders with nothing captured is a draw, so a
-    // match can never loop forever (mirrors the tabletop no-capture rule).
-    const limit = state.config.drawAfter || 60;
+    const limit = state.config.drawAfter || 100;
     if (state.stats.actions - state.stats.lastCapturePly >= limit) {
       endGame(state, 0, 'No piece captured in ' + limit + ' orders — the engagement is declared a draw.', events);
       return;
@@ -2483,13 +2733,14 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       return;
     }
     state.owner = next;
-    if (next === 1) state.turn++;
+    if (next === 1) {
+      state.turn++;
+      // the wheel turns at the start of every fifth round
+      if (state.boardKey === 'wheel' && state.turn % (state.rotation.every || 5) === 0) {
+        rotate(state, events);
+      }
+    }
     events.push({ kind: 'turn', owner: next, turn: state.turn });
-  }
-
-  function drawCountdown(state) {
-    const limit = state.config.drawAfter || 60;
-    return Math.max(0, limit - (state.stats.actions - (state.stats.lastCapturePly || 0)));
   }
 
   function beginBattle(state) {
@@ -2501,36 +2752,26 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     snapshot(state, 'battle-start');
   }
 
-  /* ---------- intel helpers (used by AI and by the UI intel panel) ---------- */
+  /* ── intel ───────────────────────────────────────────────────── */
 
-  // Which enemy roster keys are still unaccounted for (not visible/revealed, not captured)
   function unknownPool(state, viewer) {
     const foe = viewer === 1 ? 2 : 1;
     const remaining = {};
     U.ROSTER_ORDER.forEach(function (k) { remaining[k] = (remaining[k] || 0) + 1; });
-    // captured by the viewer's opponent (i.e. our own losses) are irrelevant
-    // remove pieces of the foe that we can see on the board (revealed or otherwise visible)
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (!u || u.owner !== foe) continue;
-        if (u.revealed) remaining[u.key] = Math.max(0, (remaining[u.key] || 0) - 1);
-      }
-    }
-    // remove foe pieces captured by the viewer
+    forEachUnit(state, function (u) {
+      if (u.owner !== foe) return;
+      if (u.revealed) remaining[u.key] = Math.max(0, (remaining[u.key] || 0) - 1);
+    });
     (state.captured[viewer] || []).forEach(function (d) {
       remaining[d.key] = Math.max(0, (remaining[d.key] || 0) - 1);
     });
     return remaining;
   }
 
-  /* Probability distribution over what an unknown enemy unit could be.
-   * Immovable pieces (Nexus, Mine) can only be candidates while the unit has
-   * never moved; that single constraint is what makes probing worthwhile. */
-  function beliefFor(state, viewer, r, c) {
-    const u = state.board[r][c];
-    const pool = unknownPool(state, viewer);
+  function beliefFor(state, viewer, id) {
+    const u = state.board[id];
     if (!u || u.owner === viewer || u.revealed) return null;
+    const pool = unknownPool(state, viewer);
     const out = {};
     let total = 0;
     Object.keys(pool).forEach(function (k) {
@@ -2540,15 +2781,17 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       out[k] = n;
       total += n;
     });
-    if (!total) {
-      // fall back: everything already seen — treat as generic line unit
-      return { '2': 1 };
-    }
+    if (!total) return { '2': 1 };
     Object.keys(out).forEach(function (k) { out[k] = out[k] / total; });
     return out;
   }
 
-  /* ---------- serialisation ---------- */
+  function drawCountdown(state) {
+    const limit = state.config.drawAfter || 100;
+    return Math.max(0, limit - (state.stats.actions - (state.stats.lastCapturePly || 0)));
+  }
+
+  /* ── serialisation ───────────────────────────────────────────── */
 
   function serialize(state) {
     const copy = clone(state);
@@ -2558,31 +2801,55 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
   function deserialize(raw) {
     let s = typeof raw === 'string' ? JSON.parse(raw) : clone(raw);
-    if (!s || !s.board) throw new Error('Corrupt save');
-    // migrate older saves defensively
+    if (!s) throw new Error('Corrupt save');
+
+    // v2 saves stored board as a 2-D array of rows and columns
+    if (Array.isArray(s.board)) {
+      const map = {};
+      s.board.forEach(function (row, r) {
+        row.forEach(function (u, c) { if (u) map[r + ',' + c] = u; });
+      });
+      s.board = map;
+      s.boardKey = s.config && s.config.board === 'large' ? 'large' : 'small';
+      s.version = VERSION;
+      s.homes = { 1: (s.rows - 1) + ',' + Math.floor(s.cols / 2), 2: '0,' + Math.floor(s.cols / 2) };
+      s.rotation = { count: 0, lastTurn: 0, every: 0, rings: [] };
+      delete s.rows;
+      delete s.cols;
+      delete s.deployRows;
+    }
+
+    if (!s.boardKey) s.boardKey = (s.config && s.config.board) || 'small';
+    if (!s.board) s.board = {};
+    if (!s.homes) {
+      const g = G.build(s.boardKey);
+      s.homes = { 1: g.homes[1], 2: g.homes[2] };
+    }
+    if (!s.rotation) s.rotation = { count: 0, lastTurn: 0, every: 0, rings: [] };
     if (!s.captured) s.captured = { 1: [], 2: [] };
     if (!s.log) s.log = [];
     if (!s.replay) s.replay = [];
-    if (!s.stats) s.stats = { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0 };
+    if (!s.stats) s.stats = { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0, lastCapturePly: 0 };
+    if (s.stats.lastCapturePly == null) s.stats.lastCapturePly = 0;
     if (!s.config) s.config = { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran' };
+    if (!s.rifts) s.rifts = G.build(s.boardKey).rifts.slice();
     return s;
   }
 
-  function thumbnailBoard(state) {
-    return compactBoard(state);
-  }
+  function thumbnailBoard(state) { return compactBoard(state); }
 
   AC.engine = {
     VERSION: VERSION,
-    geometry: geometry,
     newState: newState,
     createArmy: createArmy,
     clone: clone,
+    board: board,
+    cellIds: cellIds,
+    cellOf: cellOf,
     isRift: isRift,
-    inBounds: inBounds,
     unitAt: unitAt,
+    forEachUnit: forEachUnit,
     inDeployZone: inDeployZone,
-    zoneRows: zoneRows,
     deployPreset: deployPreset,
     swapSlots: swapSlots,
     armyComplete: armyComplete,
@@ -2590,16 +2857,19 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     canAct: canAct,
     isMovable: isMovable,
     hasAnyLegalMoves: hasAnyLegalMoves,
-    drawCountdown: drawCountdown,
     allLegalActions: allLegalActions,
     applyAction: applyAction,
     beginBattle: beginBattle,
     endGame: endGame,
+    rotate: rotate,
+    turnsUntilRotation: turnsUntilRotation,
     unknownPool: unknownPool,
     beliefFor: beliefFor,
+    drawCountdown: drawCountdown,
     serialize: serialize,
     deserialize: deserialize,
     thumbnailBoard: thumbnailBoard,
+    compactBoard: compactBoard,
     faction: faction,
     log: log
   };
@@ -2608,31 +2878,30 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 </script>
 <script>
 /* js/ai.js */
-/* Aetherfront: Astral Command — Astral AI
- * Hidden-information bot. It never looks at the opponent's hidden ranks:
- * it reasons over a belief distribution built from the pieces it has not
- * accounted for, plus the public "has this unit ever moved" signal.
- *
- * Also used by the in-game Advisor, so the hint the player gets is exactly
- * the reasoning the bot would use.
+/* Aetherfront: Astral Command — Astral AI (v3)
+ * Hidden-information bot on a cell graph. It never looks at the opponent's
+ * hidden ranks: it reasons over a belief distribution built from the pieces it
+ * has not accounted for, plus the public "has this unit ever moved" signal.
+ * Positional sense is graph distance to the enemy fort, so the same code plays
+ * a square arena and the Chakravyuha wheel.
  */
 (function (root) {
   'use strict';
   const AC = (root.AC = root.AC || {});
   const E = AC.engine;
   const U = AC.units;
+  const G = AC.geometry;
 
   const VALUE = {
     F: 900, '10': 120, '9': 80, '7': 56, '6': 56, '5': 50,
     '3': 26, '2': 30, '1': 46, B: 16
   };
 
-  /* Pure outcome prediction — mirrors engine.resolveMelee / barrage without
-   * touching state. Keeps the bot honest about the ruleset. */
+  /* Pure outcome prediction — mirrors engine.resolveMelee / barrage. */
   function predict(attKey, defKey, tie, isBarrage) {
     const A = U.UNIT_DEFS[attKey];
     const D = U.UNIT_DEFS[defKey];
-    if (!A || !D) return { out: 'none', p: 0 };
+    if (!A || !D) return { out: 'none' };
     if (isBarrage) {
       if (defKey === 'F') return { out: 'core' };
       if (defKey === 'B') return { out: 'noop' };
@@ -2647,58 +2916,25 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     return { out: tie === 'attacker' ? 'att' : 'both' };
   }
 
-  function boardUnits(state, owner) {
+  function unitsOf(state, owner) {
     const out = [];
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (u && u.owner === owner) out.push({ u: u, r: r, c: c });
-      }
-    }
+    E.forEachUnit(state, function (u, id) {
+      if (u.owner === owner) out.push({ u: u, id: id });
+    });
     return out;
   }
 
   function findCore(state, owner) {
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (u && u.owner === owner && u.key === 'F') return { r: r, c: c };
-      }
-    }
-    return null;
+    let found = null;
+    E.forEachUnit(state, function (u, id) {
+      if (!found && u.owner === owner && u.key === 'F') found = id;
+    });
+    return found;
   }
 
-  /* Expected value of attacking an unknown defender. */
-  function attackEV(state, viewer, attKey, target, isBarrage) {
-    const A = U.UNIT_DEFS[attKey];
-    const tie = state.config.tie;
-    const own = VALUE[attKey] || 30;
-    if (target.revealed) {
-      const res = predict(attKey, target.key, tie, isBarrage);
-      const tval = VALUE[target.key] || 30;
-      if (res.out === 'core') return 900;
-      if (res.out === 'att') return tval - (target.key === 'B' && isBarrage ? 0 : 0);
-      if (res.out === 'def') return -own;
-      if (res.out === 'mine') return -own;
-      if (res.out === 'both') return tval - own;
-      return 0;
-    }
-    const dist = beliefDist(state, viewer, target);
-    let ev = 0;
-    Object.keys(dist).forEach(function (k) {
-      const p = dist[k];
-      const res = predict(attKey, k, tie, isBarrage);
-      const tval = VALUE[k] || 30;
-      if (res.out === 'core') ev += p * 900;
-      else if (res.out === 'att') ev += p * tval;
-      else if (res.out === 'def') ev += p * -own;
-      else if (res.out === 'mine') ev += p * -own;
-      else if (res.out === 'both') ev += p * (tval - own);
-    });
-    // Unknown-but-unmoved pieces in the enemy backfield are the core/mine
-    // candidates; probing them is worth a little extra initiative.
-    if (!target.hasMoved) ev += 4;
-    return ev;
+  function distMap(state, fromId) {
+    if (!fromId) return null;
+    return G.distances(state.boardKey, fromId);
   }
 
   function beliefDist(state, viewer, target) {
@@ -2717,146 +2953,173 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     return out;
   }
 
+  /* Expected value of attacking a defender, averaged over what it could be. */
+  function attackEV(state, viewer, attKey, target, isBarrage) {
+    const tie = state.config.tie;
+    const own = VALUE[attKey] || 30;
+    if (target.revealed) {
+      const res = predict(attKey, target.key, tie, isBarrage);
+      const tval = VALUE[target.key] || 30;
+      if (res.out === 'core') return 900;
+      if (res.out === 'att') return tval;
+      if (res.out === 'def' || res.out === 'mine') return -own;
+      if (res.out === 'both') return tval - own;
+      return 0;
+    }
+    const dist = beliefDist(state, viewer, target);
+    let ev = 0;
+    Object.keys(dist).forEach(function (k) {
+      const p = dist[k];
+      const res = predict(attKey, k, tie, isBarrage);
+      const tval = VALUE[k] || 30;
+      if (res.out === 'core') ev += p * 900;
+      else if (res.out === 'att') ev += p * tval;
+      else if (res.out === 'def' || res.out === 'mine') ev += p * -own;
+      else if (res.out === 'both') ev += p * (tval - own);
+    });
+    if (!target.hasMoved) ev += 4;
+    // information is worth something: a cheap piece poking an unknown one
+    // learns a rank even when it dies, which is what keeps games moving
+    const own2 = VALUE[attKey] || 30;
+    const infoBonus = own2 <= 30 ? 12 : own2 <= 56 ? 5 : 1.5;
+    ev += infoBonus;
+    return ev;
+  }
+
   function ownCorePressure(state, viewer) {
-    // how many unknown/known enemy units sit within 2 tiles of our core
     const core = findCore(state, viewer);
     if (!core) return 0;
+    const d = distMap(state, core);
     let n = 0;
-    boardUnits(state, viewer === 1 ? 2 : 1).forEach(function (e) {
-      const d = Math.abs(e.r - core.r) + Math.abs(e.c - core.c);
-      if (d <= 2) n += d === 1 ? 2 : 1;
+    unitsOf(state, viewer === 1 ? 2 : 1).forEach(function (e) {
+      const dd = d[e.id];
+      if (dd <= 2) n += dd === 1 ? 2 : 1;
     });
     return n;
   }
 
   function positional(state, viewer, unit, from, to) {
     const foe = viewer === 1 ? 2 : 1;
-    const forward = viewer === 1 ? -1 : 1; // direction toward the enemy backfield
+    const enemyCore = findCore(state, foe);
+    const ownCore = findCore(state, viewer);
+    const dEnemy = distMap(state, enemyCore);
+    const dOwn = distMap(state, ownCore);
     let s = 0;
-    const adv = (to.r - from.r) * forward;
-    const homeRows = state.deployRows;
 
-    // general advance, but heavy pieces are worth more alive than advanced
-    if (unit.key === '10' || unit.key === '9') s += adv * 1.2;
-    else if (unit.key === 'F' || unit.key === 'B') s += 0;
-    else s += adv * 3.4;
-
-    // centrality: rifts pinch the lanes, the middle is safer
-    const midC = (state.cols - 1) / 2;
-    s -= Math.abs(to.c - midC) * 0.35;
-
-    // don't wander back into your own back rows once out
-    const inHome = viewer === 1 ? to.r >= state.rows - homeRows : to.r < homeRows;
-    if (inHome && unit.key !== 'F' && unit.key !== 'B') s -= 2.5;
-
-    // sappers hunt unmoved backfield pieces (mine/core candidates)
-    if (U.UNIT_DEFS[unit.key].defusesMines) {
-      let best = 99;
-      boardUnits(state, foe).forEach(function (e) {
-        if (!e.u.hasMoved) best = Math.min(best, Math.abs(e.r - to.r) + Math.abs(e.c - to.c));
-      });
-      if (best < 99) s += (6 - Math.min(6, best)) * 2.6;
+    // closing on the enemy fort
+    if (dEnemy) {
+      const before = dEnemy[from];
+      const after = dEnemy[to];
+      if (isFinite(before) && isFinite(after)) {
+        const gain = before - after;
+        if (unit.key === '10' || unit.key === '9') s += gain * 1.1;
+        else if (unit.key === 'F' || unit.key === 'B') s += 0;
+        else s += gain * 3.2;
+      }
     }
 
-    // wraith stalks revealed commanders
-    if (U.UNIT_DEFS[unit.key].assassin) {
+    // heavy pieces should not drift far from home
+    if ((unit.key === '10' || unit.key === '9') && dOwn) {
+      const dHome = dOwn[to];
+      if (dHome > 4) s -= (dHome - 4) * 1.6;
+    }
+
+    // the hub is powerful but exposes you
+    if (to === 'h') s += 2.5;
+
+    // sappers hunt unmoved pieces (mine / fort candidates)
+    if (U.UNIT_DEFS[unit.key].defusesMines) {
       let best = 99;
-      boardUnits(state, foe).forEach(function (e) {
+      unitsOf(state, foe).forEach(function (e) {
+        if (e.u.hasMoved) return;
+        const d = dOwn ? dOwn[e.id] : 99;
+        void d;
+      });
+      const dd = distMap(state, to);
+      unitsOf(state, foe).forEach(function (e) {
+        if (e.u.hasMoved) return;
+        const v = dd[e.id];
+        if (v < best) best = v;
+      });
+      if (best < 99) s += (6 - Math.min(6, best)) * 2.4;
+    }
+
+    // the spy stalks revealed commanders
+    if (U.UNIT_DEFS[unit.key].assassin) {
+      const dd = distMap(state, to);
+      let best = 99;
+      unitsOf(state, foe).forEach(function (e) {
         if (e.u.revealed && (e.u.key === '10' || e.u.key === '9')) {
-          best = Math.min(best, Math.abs(e.r - to.r) + Math.abs(e.c - to.c));
+          const v = dd[e.id];
+          if (v < best) best = v;
         }
       });
       if (best < 99) s += (5 - Math.min(5, best)) * 5;
     }
 
-    // a lone piece stepping next to unknowns is a gamble; punish carelessly
-    // feeding high-value units forward
+    // stepping next to unknowns with a valuable piece is a gamble
     if (VALUE[unit.key] >= 50) {
+      const b = E.board(state);
       let threats = 0;
-      boardUnits(state, foe).forEach(function (e) {
-        const d = Math.abs(e.r - to.r) + Math.abs(e.c - to.c);
-        if (d === 1 && !e.u.revealed) threats++;
+      (b.neighbours[to] || []).forEach(function (n) {
+        const occ = state.board[n];
+        if (occ && occ.owner === foe && !occ.revealed) threats++;
       });
       s -= threats * (VALUE[unit.key] / 22);
     }
     return s;
   }
 
-  function coreSafety(state, viewer, unit, to) {
-    const core = findCore(state, viewer);
-    if (!core) return 0;
-    let s = 0;
-    // keep something between the enemy and the core
-    if (unit.key !== 'F' && unit.key !== 'B') {
-      const dFromCore = Math.abs(to.r - core.r) + Math.abs(to.c - core.c);
-      if (dFromCore <= 2) s += 3; // screen stays home
-    }
-    // core square itself: never voluntarily vacated (immovable anyway)
-    return s;
-  }
-
   function scoreAction(state, viewer, act, difficulty) {
-    const unit = state.board[act.from.r][act.from.c];
+    const unit = state.board[act.from];
     if (!unit) return -1e9;
-    const target = state.board[act.to.r][act.to.c];
+    const target = state.board[act.to] || null;
     const isBarrage = act.type === 'barrage';
-    const isScan = act.type === 'scan';
-    let s = 0;
 
-    if (isScan) {
-      s = 34;
-      if (target && !target.revealed) {
-        // scanning a piece that has never moved is more informative
-        s += target.hasMoved ? 4 : 12;
-      }
+    // when the no-capture clock runs down, a draw is a loss of tempo: the bot
+    // starts forcing contact instead of manoeuvring forever
+    let urgency = 0;
+    if (typeof E.drawCountdown === 'function') {
+      const left = E.drawCountdown(state);
+      if (left < 30) urgency = (30 - left) * 1.8;
+    }
+
+    if (act.type === 'scan') {
+      let s = 34 + urgency * 0.3;
+      if (target && !target.revealed) s += target.hasMoved ? 4 : 12;
       return s + Math.random() * 6;
     }
-
     if (isBarrage) {
-      s = attackEV(state, viewer, unit.key, target, true);
-      if (target && !target.revealed) s += 10; // free probe, no risk
-      s += 6; // tempo: shooting costs nothing but the turn
-      return s;
+      let s = attackEV(state, viewer, unit.key, target, true);
+      if (target && !target.revealed) s += 10;
+      return s + 6 + urgency * 0.5;
     }
-
     if (act.type === 'attack') {
-      s = attackEV(state, viewer, unit.key, target, false);
-      // attacker advantage tie is worth taking
+      let s = attackEV(state, viewer, unit.key, target, false);
       if (target && target.revealed && unit.rank === target.rank && state.config.tie === 'attacker') s += 6;
-      return s;
+      return s + urgency;
     }
-
-    // plain move
-    s = positional(state, viewer, unit, act.from, act.to) + coreSafety(state, viewer, unit, act.to);
-    // with pressure on our core, screen pieces should not wander
+    let s = positional(state, viewer, unit, act.from, act.to);
     if (difficulty === 'archon' && ownCorePressure(state, viewer) > 0) {
       if (unit.key === '10' || unit.key === '9') s -= 2.5;
     }
-    // prefer moves that keep options open: standing still is not an action
-    s += Math.random() * 2;
-    return s;
+    return s + Math.random() * 2;
   }
 
   function evaluatePosition(state, player) {
     let s = 0;
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (!u) continue;
-        const v = VALUE[u.key] || 30;
-        s += u.owner === player ? v : -v;
-      }
-    }
+    E.forEachUnit(state, function (u) {
+      const v = VALUE[u.key] || 30;
+      s += u.owner === player ? v : -v;
+    });
     if (state.phase === 'over') {
       if (state.winner === player) s += 5000;
-      else if (state.winner === 0) s += 0;
-      else s -= 5000;
+      else if (state.winner !== 0) s -= 5000;
     }
     return s;
   }
 
   function bestReplyValue(state, player) {
-    // `state` is now the opponent's turn; how good is their best greedy reply?
     const foe = player === 1 ? 2 : 1;
     const actions = E.allLegalActions(state, foe);
     if (!actions.length) return -5000;
@@ -2879,14 +3142,12 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     });
     scored.sort(function (x, y) { return y.s - x.s; });
 
-    // difficulty noise: recruit sometimes plays a merely-ok move
     const top = diff.key === 'recruit' ? Math.min(scored.length, 6) : diff.key === 'veteran' ? 3 : 2;
     let pick = 0;
     if (rand() < diff.noise) pick = Math.floor(rand() * top);
     pick = Math.min(pick, scored.length - 1);
 
     if (diff.key === 'archon' && scored.length > 1) {
-      // 1-ply lookahead: prefer moves that survive the opponent's best answer
       const shortlist = scored.slice(0, Math.min(10, scored.length));
       let best = null;
       let bestVal = -1e12;
@@ -2905,11 +3166,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       });
       if (best) return best;
     }
-
     return scored[pick].a;
   }
 
-  /* For the Advisor panel: top 3 candidate actions with plain-language notes */
   function advise(state, player, limit) {
     const actions = E.allLegalActions(state, player);
     const scored = actions.map(function (a) {
@@ -2919,21 +3178,17 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     const seen = {};
     for (let i = 0; i < scored.length && out.length < (limit || 3); i++) {
       const cand = scored[i];
-      const unit = state.board[cand.a.from.r][cand.a.from.c];
-      const target = state.board[cand.a.to.r][cand.a.to.c];
-      const key = cand.a.type + ':' + (target ? target.id : cand.a.to.r + ',' + cand.a.to.c);
+      const unit = state.board[cand.a.from];
+      const target = state.board[cand.a.to] || null;
+      const key = cand.a.type + ':' + (target ? target.id : cand.a.to);
       if (seen[key]) continue;
       seen[key] = true;
       let note = '';
       if (cand.a.type === 'scan') note = 'Reveal a hidden piece before committing.';
       else if (cand.a.type === 'barrage') {
-        note = target && target.revealed
-          ? 'Known target — safe shot.'
-          : 'Free probe at range: the Lancer cannot be hurt by the reply.';
+        note = target && target.revealed ? 'Known target — safe volley.' : 'Free probe at range: the archer cannot be hurt by the reply.';
       } else if (cand.a.type === 'attack') {
-        note = target && target.revealed
-          ? 'Known strength — favourable trade.'
-          : 'Unknown defender. Risky if it is a Mine or a heavier piece.';
+        note = target && target.revealed ? 'Known strength — favourable trade.' : 'Unknown defender. Risky if it is a Shataghni or a heavier piece.';
       } else {
         note = 'Reposition to improve the next tempo.';
       }
@@ -2954,7 +3209,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     advise: advise,
     attackEV: attackEV,
     beliefDist: beliefDist,
-    scoreAction: scoreAction
+    scoreAction: scoreAction,
+    findCore: findCore
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -3213,6 +3469,14 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     },
     keypad: function () { tone({ freq: 900, to: 1100, dur: 0.05, type: 'square', gain: 0.05 }); },
     tick: function () { tone({ freq: 1500, dur: 0.03, type: 'square', gain: 0.04 }); },
+    rotate: function () {
+      // stone grinding on stone, with a rising shimmer as the wheel settles
+      noise({ freq: 220, to: 90, dur: 1.1, gain: 0.14, filter: 'lowpass', q: 0.8 });
+      [110, 165, 220, 330].forEach(function (f, i) {
+        tone({ freq: f, dur: 0.9, type: 'sine', gain: 0.05, delay: i * 0.09 });
+      });
+      tone({ freq: 440, to: 660, dur: 0.7, type: 'triangle', gain: 0.05, delay: 0.35 });
+    },
     save: function () {
       tone({ freq: 880, dur: 0.12, type: 'sine', gain: 0.08 });
       tone({ freq: 1174, dur: 0.16, type: 'sine', gain: 0.07, delay: 0.08 });
@@ -3951,25 +4215,28 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     return '<svg class="ico ' + (cls || '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + body + '</svg>';
   }
 
-  /* Tiny board preview used by the save-slot cards. */
-  function boardPreview(compact, opts) {
-    if (!compact || !compact.length) return '';
-    const rows = compact.length;
-    const cols = compact[0].length;
-    const cell = 6;
-    let out = '<svg class="board-preview" viewBox="0 0 ' + (cols * cell) + ' ' + (rows * cell) + '" preserveAspectRatio="xMidYMid meet">';
-    out += '<rect x="0" y="0" width="' + cols * cell + '" height="' + rows * cell + '" fill="rgba(8,12,24,.85)"/>';
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const v = compact[r][c];
-        if (!v) continue;
-        const owner = v[0];
-        const revealed = v[2];
-        const fill = owner === 1 ? '#22d3ee' : '#f43f5e';
-        out += '<rect x="' + (c * cell + 0.6) + '" y="' + (r * cell + 0.6) + '" width="' + (cell - 1.2) + '" height="' + (cell - 1.2) +
-          '" rx="1.2" fill="' + fill + '" fill-opacity="' + (revealed ? 0.95 : 0.55) + '"/>';
+  /* Tiny board preview used by the save-slot cards. Works for any geometry. */
+  function boardPreview(compact) {
+    if (!compact || !compact.cells) return '';
+    const geo = AC.geometry.build(compact.boardKey || 'small');
+    const b = geo.bounds;
+    let out = '<svg class="board-preview" viewBox="' + b.x + ' ' + b.y + ' ' + b.w + ' ' + b.h +
+      '" preserveAspectRatio="xMidYMid meet">';
+    out += '<rect x="' + b.x + '" y="' + b.y + '" width="' + b.w + '" height="' + b.h + '" fill="rgba(8,12,24,.9)"/>';
+    geo.cells.forEach(function (cell) {
+      const v = compact.cells[cell.id];
+      if (!v) return;
+      const fill = v[0] === 1 ? '#22d3ee' : '#f43f5e';
+      const op = v[2] ? 0.95 : 0.5;
+      if (cell.shape === 'sector') {
+        out += '<path d="' + cell.path + '" fill="' + fill + '" fill-opacity="' + op + '"/>';
+      } else if (cell.shape === 'hub') {
+        out += '<circle cx="0" cy="0" r="' + cell.r + '" fill="' + fill + '" fill-opacity="' + op + '"/>';
+      } else {
+        out += '<rect x="' + cell.points[0][0] + '" y="' + cell.points[0][1] +
+          '" width="1" height="1" fill="' + fill + '" fill-opacity="' + op + '"/>';
       }
-    }
+    });
     out += '</svg>';
     return out;
   }
@@ -4829,7 +5096,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     const tie = app.setup.tie === 'attacker' ? 'Attacker advantage' : 'Mutual destruction';
     const timer = app.setup.timer ? app.setup.timer + 's per turn' : 'No clock';
     document.getElementById('setup-summary').innerHTML =
-      row('Opponent', mode) + row('Board', board.label + ' (' + board.cols + '×' + board.rows + ')') +
+      row('Opponent', mode) + row('Board', board.label + ' (' + (board.cells ? board.cells + ' cells' : board.cols + '×' + board.rows) + ')') +
       row('Tie rule', tie) + row('Clock', timer) + row('Army', '12 pieces each');
   }
 
@@ -4878,6 +5145,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
           ['Mines and Cores', 'Both are immovable. Any attacker dies to a Mine except the Warp Sapper, which defuses and captures it. The Core can be captured by any attacking piece.'],
           ['Revealing', 'A piece becomes revealed when it fights, when it is scanned, or when a Strider runs two or more tiles (and when a Valkyrie dashes two). Revealed ranks stay visible for the rest of the match.'],
           ['Two-square rule', 'A piece may not shuttle between the same two squares more than three times in a row. The fourth reversal is illegal — this prevents endless stalling.'],
+          ['The chakra turns', 'On the Chakravyuha wheel, rings 1 and 2 rotate one spoke clockwise at the start of every fifth round. Whatever they carry moves with them — and is revealed. The hub touches all eight spokes but exposes whoever stands on it.'],
           ['No-capture draw', 'If neither side captures a piece for 60 orders, the engagement is declared a draw. The intel panel shows the countdown.'],
           ['Deployment', 'Each army has 12 pieces placed anywhere in its own three-row zone. Swap any two squares before locking. Presets are starting points, not commitments.']
         ];
@@ -5201,9 +5469,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 </script>
 <script>
 /* js/game.js */
-/* Aetherfront: Astral Command — battle screen
- * Board rendering, tap/click/drag deployment, ability bar, intel ledger,
- * turn clock, AI turn loop, privacy curtain, combat and result modals.
+/* Aetherfront: Astral Command — battle screen (v3)
+ * Renders any cell graph as SVG, so the square arenas and the Chakravyuha
+ * wheel share one renderer, one input path and one set of animations.
  */
 (function (root) {
   'use strict';
@@ -5215,6 +5483,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   const AU = AC.audio;
   const FX = AC.fx;
   const S = AC.storage;
+  const G = AC.geometry;
 
   const g = (AC.game = AC.game || {});
   g.state = null;
@@ -5228,12 +5497,19 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   g.aiTimer = null;
   g.busy = false;
   g.over = false;
-  g.lastRects = {};
+  g.hinted = false;
 
   const $ = function (s) { return document.querySelector(s); };
   const esc = function (s) { return AC.ui.esc(s); };
   const sfx = function (n) { AU.play(n); };
   const buzz = function (p) { AU.buzz(p); };
+
+  function settings() { return AC.app.settings; }
+  function isPass() { return g.state && g.state.config.mode === 'pass'; }
+  function isAi() { return g.state && g.state.config.mode === 'ai'; }
+  function board() { return G.build(g.state.boardKey); }
+
+  /* ══ lifecycle ═════════════════════════════════════════════════ */
 
   function clearOverlays() {
     Array.prototype.forEach.call(document.querySelectorAll('.curtain'), function (n) { n.remove(); });
@@ -5244,15 +5520,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       if (p) p.classList.remove('open');
     });
   }
-
   g.clearOverlays = clearOverlays;
-
-  function state() { return g.state; }
-  function settings() { return AC.app.settings; }
-  function isPass() { return g.state && g.state.config.mode === 'pass'; }
-  function isAi() { return g.state && g.state.config.mode === 'ai'; }
-
-  /* ══ lifecycle ═════════════════════════════════════════════════ */
 
   g.start = function (config) {
     clearTimers();
@@ -5271,7 +5539,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     AC.ui.show('game');
     render();
     autosave();
-    FX.toast('Army deployed. Arrange your formation, then lock it in.', 'info');
+    FX.toast(g.state.boardKey === 'wheel'
+      ? 'Deploy on your half of the wheel. Every fifth round the inner rings turn.'
+      : 'Army deployed. Arrange your formation, then lock it in.', 'info');
   };
 
   g.load = function (raw, slot) {
@@ -5300,27 +5570,22 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     if (g.state.phase === 'battle' && isAi() && g.state.owner === 2) scheduleAi();
   };
 
-  g.onShow = function () {
-    render();
-    requestAnimationFrame(layoutBoard);
-  };
-
+  g.onShow = function () { render(); };
   g.isActive = function () { return !!g.state; };
   g.canSave = function () { return !!g.state && g.state.phase !== 'over'; };
   g.onSettingsChange = function () { render(); };
-
   g.updateResumeState = function () { /* home reads storage directly */ };
 
   g.saveTo = function (slot) {
     if (!g.canSave()) return null;
     const st = g.state;
-    const label = (U.BOARDS[st.config.board] || U.BOARDS.small).label + ' · ' +
+    const label = (U.BOARDS[st.boardKey] || U.BOARDS.small).label + ' · ' +
       (st.config.mode === 'pass' ? 'Pass & play' : 'vs ' + U.DIFFICULTIES[st.config.difficulty].label) +
       ' · turn ' + st.turn;
     const entry = S.saveGame(slot, st, {
       label: label,
       mode: st.config.mode,
-      board: st.config.board,
+      board: st.boardKey,
       difficulty: st.config.difficulty,
       tie: st.config.tie,
       timer: st.config.timer,
@@ -5337,7 +5602,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     S.saveGame('auto', st, {
       label: 'Autosave',
       mode: st.config.mode,
-      board: st.config.board,
+      board: st.boardKey,
       difficulty: st.config.difficulty,
       tie: st.config.tie,
       timer: st.config.timer,
@@ -5362,11 +5627,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     renderActionBar();
     renderIntel();
     renderLog();
-    layoutBoard();
     startClockIfNeeded();
   }
-
-  function factionName(owner) { return U.FACTIONS[owner].name; }
 
   function renderHud() {
     const st = g.state;
@@ -5384,7 +5646,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       const owner = st.phase === 'deploy1' ? 1 : 2;
       pill.classList.add(owner === 1 ? 'solar' : 'void');
       pill.textContent = 'Deployment · ' + U.FACTIONS[owner].short;
-      sub.textContent = 'Swap any two squares in your back three rows, then lock the formation.';
+      sub.textContent = 'Swap any two cells in your deployment zone, then lock the formation.';
     } else if (st.phase === 'battle') {
       if (g.thinking) {
         pill.classList.add('void');
@@ -5394,13 +5656,18 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         const owner = st.owner;
         pill.classList.add(owner === 1 ? 'solar' : 'void');
         pill.textContent = 'Turn ' + st.turn + ' · ' + U.FACTIONS[owner].short;
-        sub.textContent = isPass()
-          ? (owner === 1 ? 'Solaris to move' : 'Void to move') + ' — tap a unit to command it.'
-          : (owner === 1 ? 'Your move — tap a unit to command it.' : 'Void Cabal is moving.');
+        let extra = '';
+        if (st.boardKey === 'wheel') {
+          const until = E.turnsUntilRotation(st);
+          extra = ' · chakra turns in ' + until;
+        }
+        sub.textContent = (isPass()
+          ? (owner === 1 ? 'Suryavansh' : 'Chandravansh') + ' to move — tap a unit.'
+          : (owner === 1 ? 'Your move — tap a unit to command it.' : 'Chandravansh is moving.')) + extra;
       }
     } else {
       pill.classList.add('gold');
-      pill.textContent = st.winner === 0 ? 'Stalemate' : (st.winner === 1 ? 'Solaris victory' : 'Void victory');
+      pill.textContent = st.winner === 0 ? 'Stalemate' : (st.winner === 1 ? 'Suryavansh victory' : 'Chandravansh victory');
       sub.textContent = 'Match complete — all ranks revealed.';
     }
 
@@ -5419,40 +5686,30 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
   function aliveCount(owner) {
     let n = 0;
-    for (let r = 0; r < g.state.rows; r++) {
-      for (let c = 0; c < g.state.cols; c++) {
-        const u = g.state.board[r][c];
-        if (u && u.owner === owner) n++;
-      }
-    }
+    E.forEachUnit(g.state, function (u) { if (u.owner === owner) n++; });
     return n;
   }
 
   function renderStrips() {
     const st = g.state;
-    const topOwner = 2;
-    const botOwner = 1;
-    const topLabel = st.config.mode === 'ai' ? 'Void Cabal · Astral AI' : 'Void Cabal · Commander 2';
+    const topLabel = st.config.mode === 'ai' ? 'Chandravansh · Astral AI' : 'Chandravansh · Commander 2';
     const botLabel = st.config.mode === 'ai'
-      ? 'Solaris Order · ' + (AC.app.profile ? AC.app.profile.name : 'You')
-      : 'Solaris Order · Commander 1';
+      ? 'Suryavansh · ' + (AC.app.profile ? AC.app.profile.name : 'You')
+      : 'Suryavansh · Commander 1';
 
-    $('#strip-top').className = 'player-strip' + (st.phase === 'battle' && st.owner === topOwner ? ' active-void' : '');
-    $('#strip-bottom').className = 'player-strip' + (st.phase === 'battle' && st.owner === botOwner ? ' active-solar' : '') +
+    $('#strip-top').className = 'player-strip' + (st.phase === 'battle' && st.owner === 2 ? ' active-void' : '');
+    $('#strip-bottom').className = 'player-strip' + (st.phase === 'battle' && st.owner === 1 ? ' active-solar' : '') +
       (st.phase === 'deploy1' ? ' active-solar' : '');
 
     $('#strip-top').innerHTML =
       '<span class="strip-name" style="color:var(--void)">' + esc(topLabel) + '</span>' +
-      '<span class="strip-count">' + aliveCount(2) + '/12</span>' +
-      captureTray(2);
+      '<span class="strip-count">' + aliveCount(2) + '/12</span>' + captureTray(2);
     $('#strip-bottom').innerHTML =
       '<span class="strip-name" style="color:var(--solar)">' + esc(botLabel) + '</span>' +
-      '<span class="strip-count">' + aliveCount(1) + '/12</span>' +
-      captureTray(1);
+      '<span class="strip-count">' + aliveCount(1) + '/12</span>' + captureTray(1);
   }
 
   function captureTray(victimOwner) {
-    // pieces this side has lost (captured by the other side)
     const byOther = victimOwner === 2 ? 1 : 2;
     const dead = g.state.captured[byOther] || [];
     if (!dead.length) return '<span class="capture-tray"><span class="tray-empty">no losses</span></span>';
@@ -5463,7 +5720,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     }).join('') + '</span>';
   }
 
-  /* ── board ─────────────────────────────────────────────────── */
+  /* ── the board ─────────────────────────────────────────────── */
 
   function visibleToViewer(u) {
     if (!u) return false;
@@ -5471,176 +5728,109 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     return st.viewer === 3 || u.owner === st.viewer || u.revealed;
   }
 
-  function tokenHTML(u, isSel) {
-    const st = g.state;
-    const canSee = visibleToViewer(u);
-    const cls = u.owner === 1 ? 'solar' : 'void';
-    if (!canSee) {
-      return '<div class="token hidden-unit ' + cls + '" data-uid="' + u.id + '" aria-hidden="true">' +
-        '<span class="unknown-mark">?</span>' +
-        (u.hasMoved ? '<span class="moved-dot"></span>' : '') +
-        '</div>';
-    }
-    const eye = (u.revealed && u.owner === st.viewer && st.phase !== 'over')
-      ? '<span class="reveal-eye" title="Revealed to the enemy">◉</span>' : '';
-    return '<div class="token ' + cls + (isSel ? ' selected-token' : '') + (u.shieldBroken ? ' shield-broken' : '') +
-      '" data-uid="' + u.id + '">' +
-      '<span class="token-owner"></span>' +
-      A.emblem(u.key) +
-      '<span class="token-rank">' + esc(u.badge) + '</span>' +
-      (u.hasMoved ? '<span class="moved-dot" title="This piece has moved"></span>' : '') +
-      eye +
-      '</div>';
+  function shapeSvg(cell) {
+    if (cell.shape === 'hub') return '<circle class="cell-fill" cx="0" cy="0" r="' + cell.r + '"/>';
+    if (cell.shape === 'sector') return '<path class="cell-fill" d="' + cell.path + '"/>';
+    return '<polygon class="cell-fill" points="' + cell.points.map(function (p) {
+      return p[0].toFixed(2) + ',' + p[1].toFixed(2);
+    }).join(' ') + '"/>';
   }
 
-  function captureRects() {
-    const map = {};
-    Array.prototype.forEach.call(document.querySelectorAll('.token[data-uid]'), function (el) {
-      map[el.getAttribute('data-uid')] = el.getBoundingClientRect();
-    });
-    return map;
+  function tokenSvg(u, cell, isSel) {
+    const R = cell.tr;
+    const cls = u.owner === 1 ? 'solar' : 'void';
+    const moved = u.hasMoved ? '<circle class="tok-moved" cx="' + (-R * 0.62) + '" cy="' + (R * 0.62) + '" r="' + (R * 0.14) + '"/>' : '';
+    if (!visibleToViewer(u)) {
+      return '<g class="token hidden-unit ' + cls + '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
+        '<circle class="tok-disc" r="' + R + '"/>' +
+        '<text class="tok-q" y="' + (R * 0.33) + '" font-size="' + (R * 0.92) + '" text-anchor="middle">?</text>' +
+        moved + '</g>';
+    }
+    const sel = isSel ? '<circle class="sel-ring" r="' + (R * 1.14) + '"/>' : '';
+    const eye = (u.revealed && u.owner === g.state.viewer && g.state.phase !== 'over')
+      ? '<circle class="tok-eye" cx="' + (R * 0.6) + '" cy="' + (-R * 0.6) + '" r="' + (R * 0.15) + '"/>' : '';
+    const scale = (R * 1.3) / 32;
+    return '<g class="token ' + cls + (isSel ? ' selected-token' : '') + (u.shieldBroken ? ' shield-broken' : '') +
+      '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
+      '<circle class="tok-disc" r="' + R + '"/>' +
+      sel +
+      '<g class="tok-emblem" transform="translate(' + (-R * 0.65) + ',' + (-R * 0.65) + ') scale(' + scale + ')">' +
+      (A.EMBLEMS[u.key] || '') + '</g>' +
+      '<text class="tok-rank" x="' + (R * 0.46) + '" y="' + (R * 0.74) + '" font-size="' + (R * 0.52) + '" text-anchor="middle">' +
+      esc(u.badge) + '</text>' +
+      moved + eye + '</g>';
+  }
+
+  function targetMarker(type, R) {
+    if (type === 'move') return '<circle class="target-dot" r="' + (R * 0.3) + '"/>';
+    const glyph = type === 'attack' ? '×' : type === 'scan' ? '◉' : '⌖';
+    return '<circle class="target-ring" r="' + (R * 1.0) + '"/>' +
+      '<text class="target-glyph" y="' + (R * 0.34) + '" font-size="' + (R * 1.05) + '" text-anchor="middle">' + glyph + '</text>';
   }
 
   function renderBoard() {
     const st = g.state;
-    const board = $('#board');
-    if (!board) return;
-    const before = g.lastRects;
-
-    board.style.setProperty('--cols', st.cols);
-    board.style.setProperty('--rows', st.rows);
-    board.style.gridTemplateColumns = 'repeat(' + st.cols + ', 1fr)';
-    board.style.gridTemplateRows = 'repeat(' + st.rows + ', 1fr)';
+    const svg = $('#board');
+    if (!svg) return;
+    const b = board();
+    const bounds = b.bounds;
+    svg.setAttribute('viewBox', bounds.x + ' ' + bounds.y + ' ' + bounds.w + ' ' + bounds.h);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
     const targets = {};
     if (g.sel && st.phase === 'battle' && !g.thinking) {
-      E.computeValidTargets(st, g.sel.r, g.sel.c, g.mode).forEach(function (t) {
-        targets[t.r + ',' + t.c] = t.type;
-      });
+      E.computeValidTargets(st, g.sel, g.mode).forEach(function (t) { targets[t.id] = t.type; });
     }
 
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
-    let html = '';
+    const last = st.lastMove;
+    let out = '';
 
-    for (let r = 0; r < st.rows; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        const u = st.board[r][c];
-        const rift = E.isRift(st, r, c);
-        const isSel = g.sel && g.sel.r === r && g.sel.c === c;
-        const isFocus = g.focus && g.focus.r === r && g.focus.c === c;
-        const target = targets[r + ',' + c];
-        const inZone = deployOwner && E.inDeployZone(st, deployOwner, r);
-        const isLast = st.lastMove && ((st.lastMove.from.r === r && st.lastMove.from.c === c) || (st.lastMove.to.r === r && st.lastMove.to.c === c));
+    b.cells.forEach(function (cell) {
+      const id = cell.id;
+      const u = st.board[id] || null;
+      const rift = E.isRift(st, id);
+      const isSel = g.sel === id;
+      const isFocus = g.focus === id;
+      const target = targets[id];
+      const inZone = deployOwner && cell.zone === deployOwner;
+      const isLast = last && (last.from === id || last.to === id);
 
-        let cls = 'tile';
-        if (rift) cls += ' rift';
-        if (inZone) cls += deployOwner === 1 ? ' zone-p1' : ' zone-p2';
-        if (isSel) cls += ' selected';
-        if (isFocus && !isSel) cls += ' hint';
-        if (isLast) cls += ' last-move';
-        if (target) cls += ' target-' + target;
+      let cls = 'cell';
+      if (cell.shape === 'hub') cls += ' hub';
+      if (rift) cls += ' rift';
+      if (inZone) cls += ' zone-' + deployOwner;
+      if (isSel) cls += ' selected';
+      if (isFocus && !isSel) cls += ' hint';
+      if (isLast) cls += ' last-move';
+      if (target) cls += ' target-' + target;
 
-        let inner = '';
-        if (rift) {
-          inner = '';
-        } else if (u) {
-          inner = tokenHTML(u, isSel);
-        } else if (target === 'move') {
-          inner = '<span class="target-dot"></span>';
-        }
-        if (target === 'attack') inner += '<span class="target-ring" style="color:var(--void)"></span><span class="target-glyph">×</span>';
-        if (target === 'scan') inner += '<span class="target-ring" style="color:#a855f7"></span><span class="target-glyph">◉</span>';
-        if (target === 'barrage') inner += '<span class="target-ring" style="color:var(--gold)"></span><span class="target-glyph">⌖</span>';
+      const label = rift ? 'rift'
+        : u ? (visibleToViewer(u) ? u.name + ', rank ' + u.badge : 'unknown enemy piece')
+          : 'empty cell';
 
-        const label = rift
-          ? 'Astral rift, impassable'
-          : u
-            ? (visibleToViewer(u) ? u.name + ', rank ' + u.badge : 'Unknown enemy piece')
-            : 'Empty square, row ' + (r + 1) + ' column ' + (c + 1);
+      out += '<g class="' + cls + '" data-id="' + id + '" tabindex="0" role="gridcell" aria-label="' + esc(label) + '">' +
+        shapeSvg(cell) +
+        (u ? tokenSvg(u, cell, isSel)
+          : (target ? '<g transform="translate(' + cell.x + ',' + cell.y + ')">' + targetMarker(target, cell.tr) + '</g>' : '')) +
+        '</g>';
+    });
 
-        html += '<button class="' + cls + '" data-r="' + r + '" data-c="' + c + '" role="gridcell" aria-label="' + esc(label) + '">' + inner + '</button>';
-      }
-    }
-    board.innerHTML = html;
+    (b.labels || []).forEach(function (l) {
+      if (settings().coordinates === false) return;
+      out += '<text class="coord" x="' + l.x + '" y="' + l.y + '" font-size="0.3" text-anchor="' + (l.anchor || 'middle') +
+        '" dominant-baseline="' + (l.baseline || 'auto') + '">' + l.text + '</text>';
+    });
 
-    // coordinate rails
-    const coords = settings().coordinates !== false;
-    const cTop = $('#coords-top');
-    const cLeft = $('#coords-left');
-    cTop.innerHTML = coords ? Array.from({ length: st.cols }, function (_, i) {
-      return '<span>' + String.fromCharCode(65 + i) + '</span>';
-    }).join('') : '';
-    cLeft.innerHTML = coords ? Array.from({ length: st.rows }, function (_, i) {
-      return '<span>' + (i + 1) + '</span>';
-    }).join('') : '';
-    cTop.style.gridTemplateColumns = 'repeat(' + st.cols + ', 1fr)';
-    cLeft.style.gridTemplateRows = 'repeat(' + st.rows + ', 1fr)';
-    cTop.hidden = !coords;
-    cLeft.hidden = !coords;
-
-    // FLIP animation for moved pieces
-    if (!settings().reducedMotion) {
-      Array.prototype.forEach.call(board.querySelectorAll('.token[data-uid]'), function (el) {
-        const id = el.getAttribute('data-uid');
-        const prev = before[id];
-        if (!prev) return;
-        const now = el.getBoundingClientRect();
-        const dx = prev.left - now.left;
-        const dy = prev.top - now.top;
-        if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
-        if (typeof el.animate === 'function') {
-          el.animate([
-            { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.96)' },
-            { transform: 'translate(0,0) scale(1)' }
-          ], { duration: 190, easing: 'cubic-bezier(.2,.8,.2,1)' });
-        }
-      });
-    }
-    g.lastRects = captureRects();
-  }
-
-  function layoutBoard() {
-    const st = g.state;
-    if (!st) return;
-    const shell = $('#board-shell');
-    const board = $('#board');
-    if (!shell || !board) return;
-    const gap = st.cols > 7 ? 2.5 : 3;
-    const rect = shell.getBoundingClientRect();
-    if (rect.width < 10 || rect.height < 10) return;
-    const availW = rect.width - 4;
-    const availH = rect.height - 4;
-    const k = Math.min(
-      (availW - gap * (st.cols - 1)) / st.cols,
-      (availH - gap * (st.rows - 1)) / st.rows
-    );
-    if (!isFinite(k) || k <= 0) return;
-    const w = k * st.cols + gap * (st.cols - 1);
-    const h = k * st.rows + gap * (st.rows - 1);
-    board.style.width = Math.floor(w) + 'px';
-    board.style.height = Math.floor(h) + 'px';
-    board.style.gap = gap + 'px';
-    board.style.fontSize = Math.max(9, Math.floor(k * 0.42)) + 'px';
-    g.tileSize = k;
-
-    // align the coordinate rails to the actual board box
-    const br = board.getBoundingClientRect();
-    const sr = shell.getBoundingClientRect();
-    const offX = br.left - sr.left;
-    const offY = br.top - sr.top;
-    const cTop = $('#coords-top');
-    const cLeft = $('#coords-left');
-    if (cTop) {
-      cTop.style.left = offX + 'px';
-      cTop.style.top = Math.max(0, offY - 13) + 'px';
-      cTop.style.width = br.width + 'px';
-      cTop.style.height = '12px';
-    }
-    if (cLeft) {
-      cLeft.style.left = Math.max(0, offX - 13) + 'px';
-      cLeft.style.top = offY + 'px';
-      cLeft.style.height = br.height + 'px';
-      cLeft.style.width = '12px';
+    // Parse through an HTML <template>: the HTML parser understands SVG
+    // foreign content, creates the right namespace, and tolerates the repeated
+    // presentation attributes our emblem art uses.
+    const tpl = document.createElement('template');
+    tpl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
+    const parsed = tpl.content.firstElementChild;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    if (parsed) {
+      while (parsed.firstChild) svg.appendChild(parsed.firstChild);
     }
   }
 
@@ -5653,12 +5843,12 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
     if (st.phase === 'deploy1' || st.phase === 'deploy2') {
       const owner = st.phase === 'deploy1' ? 1 : 2;
-      const formations = S.listFormations().filter(function (f) { return f.board === st.config.board; });
+      const formations = S.listFormations().filter(function (f) { return f.board === st.boardKey; });
       bar.innerHTML =
         '<div class="action-info">' +
           '<span class="sel-badge ' + (owner === 1 ? 'solar' : 'void') + '">' + A.icon('grid') + '</span>' +
           '<span class="sel-text"><span class="sel-name">' + U.FACTIONS[owner].name + ' deployment</span>' +
-          '<span class="sel-desc">Tap two squares in your zone to swap them. Presets are a starting point.</span></span>' +
+          '<span class="sel-desc">Tap two cells in your zone to swap them. Presets are a starting point.</span></span>' +
         '</div>' +
         '<div class="action-buttons">' +
           presetBtn('citadel', 'Citadel') + presetBtn('blitz', 'Blitz') + presetBtn('lattice', 'Lattice') + presetBtn('shuffle', 'Shuffle') +
@@ -5681,8 +5871,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       return;
     }
 
-    // battle
-    const selUnit = g.sel ? st.board[g.sel.r][g.sel.c] : null;
+    const selUnit = g.sel ? st.board[g.sel] : null;
     const isHumanTurn = !g.thinking && (isPass() || st.owner === 1);
     let info;
     if (selUnit) {
@@ -5694,8 +5883,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       info = '<span class="sel-badge">' + A.icon('sword') + '</span>' +
         '<span class="sel-text"><span class="sel-name">' + (isHumanTurn ? 'Select a unit' : 'Waiting') + '</span>' +
         '<span class="sel-desc">' + (isHumanTurn
-          ? 'Tap one of your pieces, then tap a highlighted square to move or strike.'
-          : 'The Void Cabal is choosing its move.') + '</span></span>';
+          ? 'Tap one of your pieces, then tap a highlighted cell to move or strike.'
+          : 'The Chandravansh is choosing its move.') + '</span></span>';
     }
 
     let buttons = '';
@@ -5704,7 +5893,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         buttons += '<button class="mode-btn' + (g.mode === 'move' ? ' on' : '') + '" data-mode="move">' + A.icon('sword') + 'Move / Strike</button>';
         const def = U.UNIT_DEFS[selUnit.key];
         if (def.hasScan) buttons += '<button class="mode-btn special' + (g.mode === 'special' ? ' on' : '') + '" data-mode="special">' + A.icon('eye') + 'Scan</button>';
-        if (def.hasRanged) buttons += '<button class="mode-btn special' + (g.mode === 'special' ? ' on' : '') + '" data-mode="special">' + A.icon('bolt') + 'Barrage</button>';
+        if (def.hasRanged) buttons += '<button class="mode-btn special' + (g.mode === 'special' ? ' on' : '') + '" data-mode="special">' + A.icon('bolt') + 'Volley</button>';
         buttons += '<button class="mode-btn" data-act="deselect">' + A.icon('close') + '</button>';
       }
       buttons += '<button class="mode-btn" data-act="advisor">' + A.icon('brain') + 'Advisor</button>';
@@ -5722,90 +5911,79 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     const host = $('#intel-panel');
     if (!host) return;
     const st = g.state;
-    if (settings().showIntel === false || st.phase === 'over') {
-      host.innerHTML = '<div class="intel-head"><span class="intel-title">Intel ledger</span></div>' +
-        '<p class="intel-note">Intel panel is hidden in settings.</p>';
-      return;
-    }
     if (st.viewer === 0) {
       host.innerHTML = '<div class="intel-head"><span class="intel-title">Intel ledger</span></div>' +
         '<p class="intel-note">Sealed by the privacy curtain.</p>';
       return;
     }
+    if (settings().showIntel === false || st.phase === 'over') {
+      host.innerHTML = '<div class="intel-head"><span class="intel-title">Intel ledger</span></div>' +
+        '<p class="intel-note">Intel panel is hidden in settings.</p>';
+      return;
+    }
+
     const viewer = st.viewer === 3 ? 1 : st.viewer;
     const foe = viewer === 1 ? 2 : 1;
     const pool = E.unknownPool(st, viewer);
     const unknowns = Object.keys(pool).filter(function (k) { return pool[k] > 0; });
 
-    const knownOnBoard = [];
-    const spent = [];
-    for (let r = 0; r < st.rows; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        const u = st.board[r][c];
-        if (!u || u.owner !== foe) continue;
-        if (u.revealed) knownOnBoard.push(u);
-      }
-    }
-    (st.captured[viewer] || []).forEach(function (d) { spent.push(d); });
+    const known = [];
+    const exposed = [];
+    E.forEachUnit(st, function (u) {
+      if (u.owner === foe && u.revealed) known.push(u);
+      if (u.owner === viewer && u.revealed) exposed.push(u);
+    });
 
     let html = '<div class="intel-head"><span class="intel-title">Intel ledger</span>' +
       '<span class="chip chip-' + (viewer === 1 ? 'solar' : 'void') + '">' + U.FACTIONS[foe].short + '</span></div>';
 
-    html += '<div class="intel-section"><div class="intel-label">Still hidden (' + unknowns.reduce(function (a, k) { return a + pool[k]; }, 0) + ' pieces)</div>' +
+    html += '<div class="intel-section"><div class="intel-label">Still hidden (' +
+      unknowns.reduce(function (a, k) { return a + pool[k]; }, 0) + ' pieces)</div>' +
       '<div class="intel-chips">' +
       (unknowns.length
         ? unknowns.map(function (k) {
-          return '<span class="intel-chip unknown" title="' + esc(U.UNIT_DEFS[k].name) + '">' + A.emblem(k) + esc(U.UNIT_DEFS[k].badge) + (pool[k] > 1 ? '×' + pool[k] : '') + '</span>';
+          return '<span class="intel-chip unknown" title="' + esc(U.UNIT_DEFS[k].name) + '">' + A.emblem(k) +
+            esc(U.UNIT_DEFS[k].badge) + (pool[k] > 1 ? '×' + pool[k] : '') + '</span>';
         }).join('')
         : '<span class="intel-note">Every enemy piece is accounted for.</span>') +
       '</div></div>';
 
-    if (knownOnBoard.length) {
+    if (known.length) {
       html += '<div class="intel-section"><div class="intel-label">Identified on the field</div><div class="intel-chips">' +
-        knownOnBoard.map(function (u) {
-          return '<span class="intel-chip" title="' + esc(U.UNIT_DEFS[u.key].name) + '">' + A.emblem(u.key) + esc(U.UNIT_DEFS[u.key].badge) + '</span>';
+        known.map(function (u) {
+          return '<span class="intel-chip" title="' + esc(U.UNIT_DEFS[u.key].name) + '">' + A.emblem(u.key) + esc(u.badge) + '</span>';
         }).join('') + '</div></div>';
-    }
-    if (spent.length) {
-      html += '<div class="intel-section"><div class="intel-label">Destroyed</div><div class="intel-chips">' +
-        spent.map(function (d) {
-          return '<span class="intel-chip spent">' + A.emblem(d.key) + esc(d.badge) + '</span>';
-        }).join('') + '</div></div>';
-    }
-
-    // odds block
-    const odds = oddsBlock();
-    if (odds) html += odds;
-
-    // what the enemy can see of you
-    const exposed = [];
-    for (let r = 0; r < st.rows; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        const u = st.board[r][c];
-        if (u && u.owner === viewer && u.revealed) exposed.push(u);
-      }
     }
     if (exposed.length) {
       html += '<div class="intel-section"><div class="intel-label">Your exposed pieces</div><div class="intel-chips">' +
         exposed.map(function (u) {
           return '<span class="intel-chip" title="' + esc(U.UNIT_DEFS[u.key].name) + '">' + A.emblem(u.key) + esc(u.badge) + '</span>';
-        }).join('') + '</div>' +
-        '<p class="intel-note">These ranks are known to the enemy.</p></div>';
+        }).join('') + '</div><p class="intel-note">These ranks are known to the enemy.</p></div>';
     }
+
+    const odds = oddsBlock();
+    if (odds) html += odds;
 
     if (st.phase === 'battle') {
       const left = E.drawCountdown(st);
+      const limit = st.config.drawAfter || 100;
       html += '<div class="intel-section"><div class="intel-label">No-capture clock</div>' +
         '<div class="odds-row"><span style="color:var(--dim)">Draw in</span>' +
-        '<span class="odds-bar"><span style="width:' + Math.round((left / (st.config.drawAfter || 60)) * 100) + '%;background:' +
+        '<span class="odds-bar"><span style="width:' + Math.round((left / limit) * 100) + '%;background:' +
         (left <= 10 ? 'var(--void)' : 'linear-gradient(90deg,var(--solar),var(--green))') + '"></span></span>' +
-        '<span class="odds-val">' + left + '</span></div>' +
-        '<p class="intel-note">If neither side captures for the full count, the match is a draw.</p></div>';
+        '<span class="odds-val">' + left + '</span></div></div>';
+
+      if (st.boardKey === 'wheel') {
+        const until = E.turnsUntilRotation(st);
+        html += '<div class="intel-section"><div class="intel-label">The chakra</div>' +
+          '<p class="intel-note">Rings 1 and 2 turn one spoke every 5 rounds, carrying whatever stands on them — and exposing it. Turns until the wheel moves: <b style="color:var(--gold)">' +
+          until + '</b>.</p></div>';
+      }
     }
 
     html += '<div class="intel-section">' +
       '<button class="mode-btn" data-act="advisor" style="width:100%;justify-content:center">' + A.icon('brain') + 'Ask the advisor</button>' +
-      '<p class="intel-note">Odds are averaged over every rank the enemy could still be hiding. A piece that has moved can no longer be a Core or a Mine.</p>' +
+      '<p class="intel-note">Odds are averaged over every rank the enemy could still be hiding. A piece that has moved can no longer be a fort or a trap.</p>' +
       '</div>';
 
     host.innerHTML = html;
@@ -5814,20 +5992,17 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   function oddsBlock() {
     const st = g.state;
     const viewer = st.viewer === 3 ? 1 : st.viewer;
-    const selUnit = g.sel ? st.board[g.sel.r][g.sel.c] : null;
-    const focus = g.focus ? st.board[g.focus.r][g.focus.c] : null;
-
+    const selUnit = g.sel ? st.board[g.sel] : null;
+    const focus = g.focus ? st.board[g.focus] : null;
     if (!focus || focus.owner === viewer) return '';
+
     if (selUnit && selUnit.owner === viewer) {
       const isBarrage = g.mode === 'special' && U.UNIT_DEFS[selUnit.key].hasRanged;
       const dist = focus.revealed
         ? (function () { const o = {}; o[focus.key] = 1; return o; })()
-        : E.beliefFor(st, viewer, g.focus.r, g.focus.c);
+        : E.beliefFor(st, viewer, g.focus);
       if (!dist) return '';
-      let win = 0;
-      let lose = 0;
-      let both = 0;
-      let core = 0;
+      let win = 0, lose = 0, both = 0, core = 0;
       Object.keys(dist).forEach(function (k) {
         const p = dist[k];
         const res = AI.predict(selUnit.key, k, st.config.tie, isBarrage);
@@ -5841,48 +6016,40 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       if (win > 0.001) rows.push(['You win', win, 'var(--green)']);
       if (both > 0.001) rows.push(['Both fall', both, 'var(--gold)']);
       if (lose > 0.001) rows.push(['You lose', lose, 'var(--void)']);
-      const title = isBarrage ? 'Barrage odds' : 'Clash odds';
-      return '<div class="intel-section"><div class="intel-label">' + title + ' · ' + esc(selUnit.short) + ' → unknown</div>' +
-        '<div class="intel-odds">' + rows.map(function (r) {
+      return '<div class="intel-section"><div class="intel-label">' + (isBarrage ? 'Volley odds' : 'Clash odds') +
+        ' · ' + esc(selUnit.short) + ' → unknown</div><div class="intel-odds">' +
+        rows.map(function (r) {
           return '<div class="odds-row"><span style="color:' + r[2] + '">' + r[0] + '</span>' +
             '<span class="odds-bar"><span style="width:' + Math.round(r[1] * 100) + '%"></span></span>' +
             '<span class="odds-val">' + Math.round(r[1] * 100) + '%</span></div>';
         }).join('') + '</div>' +
-        (focus.revealed ? '' : '<div class="intel-note">Identity odds: ' + topBeliefs(st, viewer, focus) + '</div>') +
+        (focus.revealed ? '' : '<div class="intel-note">Identity odds: ' + topBeliefs(st, viewer, g.focus) + '</div>') +
         '</div>';
     }
 
     if (!focus.revealed) {
-      const dist = E.beliefFor(st, viewer, g.focus.r, g.focus.c);
+      const dist = E.beliefFor(st, viewer, g.focus);
       if (!dist) return '';
       return '<div class="intel-section"><div class="intel-label">Tapped piece — identity odds</div>' +
-        '<div class="intel-note">' + topBeliefs(st, viewer, focus) + '</div>' +
-        '<div class="intel-odds">' + Object.keys(dist).sort(function (a, b) { return dist[b] - dist[a]; }).slice(0, 4).map(function (k) {
-          return '<div class="odds-row"><span>' + esc(U.UNIT_DEFS[k].badge) + '</span>' +
-            '<span class="odds-bar"><span style="width:' + Math.round(dist[k] * 100) + '%"></span></span>' +
-            '<span class="odds-val">' + Math.round(dist[k] * 100) + '%</span></div>';
-        }).join('') + '</div></div>';
+        '<div class="intel-note">' + topBeliefs(st, viewer, g.focus) + '</div>' +
+        '<div class="intel-odds">' + Object.keys(dist).sort(function (a, b) { return dist[b] - dist[a]; })
+          .slice(0, 4).map(function (k) {
+            return '<div class="odds-row"><span>' + esc(U.UNIT_DEFS[k].badge) + '</span>' +
+              '<span class="odds-bar"><span style="width:' + Math.round(dist[k] * 100) + '%"></span></span>' +
+              '<span class="odds-val">' + Math.round(dist[k] * 100) + '%</span></div>';
+          }).join('') + '</div></div>';
     }
     return '';
   }
 
-  function topBeliefs(st, viewer, unit) {
-    let pos = null;
-    for (let r = 0; r < st.rows && !pos; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        if (st.board[r][c] === unit) { pos = { r: r, c: c }; break; }
-      }
-    }
-    if (!pos) return '';
-    const dist = E.beliefFor(st, viewer, pos.r, pos.c) || {};
+  function topBeliefs(st, viewer, id) {
+    const dist = E.beliefFor(st, viewer, id) || {};
     const ranked = Object.keys(dist).sort(function (a, b) { return dist[b] - dist[a]; }).slice(0, 3);
     if (!ranked.length) return '';
     return ranked.map(function (k) {
       return U.UNIT_DEFS[k].short + ' ' + Math.round(dist[k] * 100) + '%';
     }).join(' · ');
   }
-
-  /* ── log ───────────────────────────────────────────────────── */
 
   function renderLog() {
     const host = $('#battle-log');
@@ -5899,59 +6066,51 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
   /* ══ interaction ═══════════════════════════════════════════════ */
 
-  function onTile(r, c) {
+  function onCell(id) {
     const st = g.state;
     if (!st || g.busy) return;
-    if (st.phase === 'over') { g.focus = { r: r, c: c }; renderIntel(); return; }
+    if (st.phase === 'over') { g.focus = id; renderIntel(); return; }
 
     if (st.phase === 'deploy1' || st.phase === 'deploy2') {
       const owner = st.phase === 'deploy1' ? 1 : 2;
-      if (!E.inDeployZone(st, owner, r)) {
-        FX.toast('Deploy inside your own three rows.', 'warn');
+      if (!E.inDeployZone(st, owner, id)) {
+        FX.toast('Deploy inside your own zone.', 'warn');
         sfx('error');
         return;
       }
-      const unit = st.board[r][c];
+      const unit = st.board[id];
       if (unit && unit.owner !== owner) return;
       if (!g.sel) {
-        g.sel = { r: r, c: c };
+        g.sel = id;
         sfx('select');
-      } else if (g.sel.r === r && g.sel.c === c) {
+      } else if (g.sel === id) {
         g.sel = null;
         sfx('deselect');
-      } else {
-        const a = g.sel;
-        if (E.swapSlots(st, owner, a, { r: r, c: c })) {
-          sfx('swap');
-          buzz(10);
-          g.sel = null;
-        }
+      } else if (E.swapSlots(st, owner, g.sel, id)) {
+        sfx('swap');
+        buzz(10);
+        g.sel = null;
       }
       render();
       return;
     }
 
-    // battle
     if (g.thinking) return;
     const humanTurn = isPass() || st.owner === 1;
-    const unit = st.board[r][c];
-
     if (!humanTurn) return;
 
-    // clicking a highlighted target? (must come before the inspect branch,
-    // because an attack target is itself an enemy piece)
+    // a highlighted target wins over everything else
     if (g.sel) {
-      const targets = E.computeValidTargets(st, g.sel.r, g.sel.c, g.mode);
-      const hit = targets.filter(function (t) { return t.r === r && t.c === c; })[0];
+      const hit = E.computeValidTargets(st, g.sel, g.mode).filter(function (t) { return t.id === id; })[0];
       if (hit) {
-        commitAction(g.sel, { r: r, c: c }, hit.type);
+        commitAction(g.sel, id, hit.type);
         return;
       }
     }
 
-    // tapping an enemy that is out of reach: inspect it, don't clear selection
+    const unit = st.board[id];
     if (unit && unit.owner !== st.owner) {
-      g.focus = { r: r, c: c };
+      g.focus = id;
       renderIntel();
       sfx('ui');
       return;
@@ -5959,25 +6118,25 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
     if (unit && unit.owner === st.owner) {
       if (!E.isMovable(unit)) {
-        FX.toast(unit.name + ' is immovable — it can never leave that square.', 'warn');
+        FX.toast(unit.name + ' is immovable — it can never leave that cell.', 'warn');
         sfx('error');
         g.sel = null;
         render();
         return;
       }
-      if (g.sel && g.sel.r === r && g.sel.c === c) {
+      if (g.sel === id) {
         g.sel = null;
         sfx('deselect');
         render();
         return;
       }
-      g.sel = { r: r, c: c };
+      g.sel = id;
       g.mode = 'move';
       sfx('select');
       buzz(8);
       if (!g.hinted) {
         g.hinted = true;
-        FX.toast('Cyan dot = move. Red ring = attack. Tap the square to commit.', 'info');
+        FX.toast('Cyan dot = move. Red ring = attack. Tap the cell to commit.', 'info');
       }
       render();
       return;
@@ -5990,28 +6149,19 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
   function commitAction(from, to, type) {
     const st = g.state;
-    const attacker = st.board[from.r][from.c];
-    const target = st.board[to.r][to.c];
-
-    // Confirm unknown attacks so nobody loses a commander to a stray tap.
+    const target = st.board[to];
     const risky = type === 'attack' && target && !target.revealed && settings().confirmActions !== false;
-    if (risky) {
-      showOddsConfirm(from, to, type);
-      return;
-    }
+    if (risky) { showOddsConfirm(from, to, type); return; }
     performAction({ from: from, to: to, type: type });
   }
 
   function showOddsConfirm(from, to, type) {
     const st = g.state;
-    const attacker = st.board[from.r][from.c];
-    const target = st.board[to.r][to.c];
+    const attacker = st.board[from];
+    const target = st.board[to];
     const viewer = st.viewer === 3 ? 1 : st.viewer;
-    const dist = E.beliefFor(st, viewer, to.r, to.c) || { '2': 1 };
-    let win = 0;
-    let lose = 0;
-    let both = 0;
-    let core = 0;
+    const dist = E.beliefFor(st, viewer, to) || { '2': 1 };
+    let win = 0, lose = 0, both = 0, core = 0;
     Object.keys(dist).forEach(function (k) {
       const p = dist[k];
       const res = AI.predict(attacker.key, k, st.config.tie, false);
@@ -6020,14 +6170,12 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       else if (res.out === 'def' || res.out === 'mine') lose += p;
       else if (res.out === 'both') both += p;
     });
-
-    const row = function (label, p, cls) {
-      return '<div class="odds-row"><span style="color:' + cls + '">' + label + '</span>' +
+    const row = function (label, p, color) {
+      return '<div class="odds-row"><span style="color:' + color + '">' + label + '</span>' +
         '<span class="odds-bar"><span style="width:' + Math.round(p * 100) + '%"></span></span>' +
         '<span class="odds-val">' + Math.round(p * 100) + '%</span></div>';
     };
-
-    const m = AC.ui.modal({
+    AC.ui.modal({
       kicker: 'Commit attack',
       title: 'Strike an unknown piece?',
       sub: 'You are attacking blind. These odds are averaged over every rank this piece could still be.',
@@ -6037,15 +6185,13 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
             '<div class="combat-emblem">' + A.emblem(attacker.key) + '</div>' +
             '<div class="combat-faction">' + U.FACTIONS[attacker.owner].short + '</div>' +
             '<div class="combat-name">' + esc(attacker.name) + '</div>' +
-            '<div class="combat-rank">rank ' + esc(attacker.badge) + '</div>' +
-          '</div>' +
+            '<div class="combat-rank">rank ' + esc(attacker.badge) + '</div></div>' +
           '<div class="combat-vs">VS</div>' +
           '<div class="combat-card void">' +
             '<div class="combat-emblem">' + A.emblem('F') + '</div>' +
             '<div class="combat-faction">unknown</div>' +
             '<div class="combat-name">Hidden piece</div>' +
-            '<div class="combat-rank">rank ?</div>' +
-          '</div>' +
+            '<div class="combat-rank">rank ?</div></div>' +
         '</div>' +
         '<div class="intel-odds">' +
           (core > 0.001 ? row('Objective', core, 'var(--gold)') : '') +
@@ -6059,7 +6205,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       ],
       onClose: function () { g.sel = null; render(); }
     });
-    void m;
+  }
+
+  function cellCenter(id) {
+    const el = document.querySelector('.cell[data-id="' + id + '"]');
+    return FX.centerOf(el);
   }
 
   function performAction(action) {
@@ -6077,15 +6227,19 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     g.focus = null;
     stopClock();
 
-    const toTile = document.querySelector('.tile[data-r="' + action.to.r + '"][data-c="' + action.to.c + '"]');
-    const at = FX.centerOf(toTile);
-
+    const at = cellCenter(action.to);
     let dramatic = null;
+    let rotated = false;
+
     res.events.forEach(function (ev) {
       if (ev.sfx) sfx(ev.sfx);
+      if (ev.kind === 'rotate') {
+        rotated = true;
+        FX.burst(FX.centerOf($('#board')).x, FX.centerOf($('#board')).y, { count: 40, color: '#f2cf8b', speed: 6, size: 3 });
+        FX.shake(8);
+        FX.float('THE CHAKRA TURNS', FX.centerOf($('#board')).x, FX.centerOf($('#board')).y - 40, '#f2cf8b');
+      }
       if (ev.kind === 'clash' || ev.kind === 'barrage' || ev.kind === 'scan' || ev.kind === 'core') {
-        dramatic = ev;
-      } else if (ev.kind === 'end' && !dramatic) {
         dramatic = ev;
       }
       if (ev.kind === 'clash') {
@@ -6098,60 +6252,42 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       } else if (ev.kind === 'barrage') {
         FX.burst(at.x, at.y, { count: 22, color: ev.kill ? '#fbbf24' : '#a855f7', speed: 5 });
         FX.shake(4);
-        if (ev.kill) FX.float('VAPORISED', at.x, at.y - 16, '#fbbf24');
+        if (ev.kill) FX.float('CUT DOWN', at.x, at.y - 16, '#fbbf24');
       } else if (ev.kind === 'scan') {
         FX.spawn(at.x, at.y, { count: 26, color: '#a855f7', speed: 2.4, size: 3 });
-        FX.float('SCANNED', at.x, at.y - 16, '#c4b5fd');
+        FX.float('REVEALED', at.x, at.y - 16, '#c4b5fd');
       } else if (ev.kind === 'move') {
         FX.spawn(at.x, at.y, { count: 8, color: '#22d3ee', speed: 1.4, size: 1.8, gravity: 0.02 });
       }
     });
 
     render();
+    if (rotated) FX.toast('The inner rings turned — everything they carried is exposed.', 'warn');
 
     const finish = function () {
       g.busy = false;
       autosave();
       render();
-      if (st.phase === 'over') {
-        handleGameOver();
-        return;
-      }
-      if (isAi() && st.owner === 2) {
-        scheduleAi();
-      } else if (isPass()) {
-        showCurtain(st.owner, 'battle');
-      }
+      if (st.phase === 'over') { handleGameOver(); return; }
+      if (isAi() && st.owner === 2) scheduleAi();
+      else if (isPass()) showCurtain(st.owner, 'battle');
       startClockIfNeeded();
     };
 
-    if (dramatic && dramatic.kind !== 'end') {
-      showCombatModal(dramatic, finish);
-    } else if (dramatic && dramatic.kind === 'end') {
-      showCombatModal(dramatic, finish);
-    } else {
-      finish();
-    }
+    if (dramatic) showCombatModal(dramatic, finish);
+    else finish();
   }
 
   /* ── combat modal ──────────────────────────────────────────── */
 
   function showCombatModal(ev, done) {
-    if (ev.kind === 'end') { if (done) done(); return; }
     const st = g.state;
+    const viewer = st.viewer === 3 ? 1 : st.viewer;
     const att = ev.unit;
     const def = ev.target;
-    const viewer = st.viewer === 3 ? 1 : st.viewer;
 
-    const card = function (u, dead, unknown) {
-      if (unknown) {
-        return '<div class="combat-card ' + (u.owner === 1 ? 'solar' : 'void') + (dead ? ' dead' : '') + '">' +
-          '<div class="combat-emblem">' + A.emblem('F') + '</div>' +
-          '<div class="combat-faction">' + U.FACTIONS[u.owner].short + '</div>' +
-          '<div class="combat-name">Hidden piece</div>' +
-          '<div class="combat-rank">rank ?</div></div>';
-      }
-      const show = u.owner === viewer || u.revealed || st.phase === 'over' || u.owner === (viewer === 1 ? 2 : 1);
+    const card = function (u, dead) {
+      const show = u.owner === viewer || u.revealed || st.phase === 'over' || u.owner !== viewer;
       return '<div class="combat-card ' + (u.owner === 1 ? 'solar' : 'void') + (dead ? ' dead' : '') + '">' +
         '<div class="combat-emblem">' + A.emblem(show ? u.key : 'F') + '</div>' +
         '<div class="combat-faction">' + U.FACTIONS[u.owner].short + '</div>' +
@@ -6166,41 +6302,30 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     let defDead = false;
 
     if (ev.kind === 'clash') {
-      if (ev.outcome === 'att') { title = ev.core ? 'Nexus Core captured' : 'Attacker prevails'; outcomeCls = 'win'; defDead = true; }
+      if (ev.core) { title = 'The fort is taken'; outcomeCls = 'win'; defDead = true; }
+      else if (ev.outcome === 'att') { title = 'Attacker prevails'; outcomeCls = 'win'; defDead = true; }
       else if (ev.outcome === 'def') { title = 'Defender holds'; outcomeCls = 'lose'; attDead = true; }
       else { title = 'Mutual destruction'; outcomeCls = 'both'; attDead = true; defDead = true; }
-      if (ev.core) { title = 'Nexus Core captured'; outcomeCls = 'win'; defDead = true; }
     } else if (ev.kind === 'barrage') {
-      kicker = 'Arc Barrage · 2 tiles';
-      if (ev.kill) { title = 'Target vaporised'; outcomeCls = 'win'; defDead = true; }
-      else if (ev.deflect) { title = 'Bolt deflected'; outcomeCls = 'lose'; }
-      else { title = 'Singularity shield absorbed the bolt'; outcomeCls = 'both'; }
+      kicker = 'Shara-varsha · two cells';
+      if (ev.kill) { title = 'Target cut down'; outcomeCls = 'win'; defDead = true; }
+      else if (ev.deflect) { title = 'Volley turned'; outcomeCls = 'lose'; }
+      else { title = 'The trap absorbed it'; outcomeCls = 'both'; }
     } else if (ev.kind === 'scan') {
-      kicker = 'Psionic Scan';
+      kicker = 'Divya-drishti';
       title = 'Identity revealed';
       outcomeCls = 'win';
     }
 
-    const unknownDef = ev.kind !== 'scan' && def && !def.revealed && st.phase !== 'over' && def.owner !== viewer;
-    const body =
-      '<div class="combat-arena">' +
-        card(att, attDead, false) +
-        '<div class="combat-vs">' + (ev.kind === 'scan' ? '◎' : 'VS') + '</div>' +
-        card(def, defDead, unknownDef && false) +
-      '</div>' +
-      '<div class="combat-outcome ' + outcomeCls + '">' + esc(ev.text) + '</div>';
-
     let fired = false;
-    const fire = function () {
-      if (fired) return;
-      fired = true;
-      if (done) done();
-    };
+    const fire = function () { if (!fired) { fired = true; if (done) done(); } };
 
     AC.ui.modal({
       kicker: kicker,
       title: title,
-      body: body,
+      body: '<div class="combat-arena">' + card(att, attDead) + '<div class="combat-vs">' +
+        (ev.kind === 'scan' ? '◎' : 'VS') + '</div>' + card(def, defDead) + '</div>' +
+        '<div class="combat-outcome ' + outcomeCls + '">' + esc(ev.text) + '</div>',
       dismissible: false,
       actions: [{ label: 'Continue', cls: 'btn-primary', onClick: fire }],
       onClose: fire
@@ -6224,7 +6349,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       if (!act) {
         render();
         if (st.phase === 'battle') {
-          E.endGame(st, 1, 'Void Cabal has no legal action left.', []);
+          E.endGame(st, 1, 'Chandravansh has no legal action left.', []);
           handleGameOver();
         }
         return;
@@ -6239,10 +6364,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   function startClockIfNeeded() {
     const st = g.state;
     if (!st) return;
-    if (!st.config.timer || st.phase !== 'battle' || g.thinking) {
-      stopClock();
-      return;
-    }
+    if (!st.config.timer || st.phase !== 'battle' || g.thinking) { stopClock(); return; }
     const humanTurn = isPass() || st.owner === 1;
     if (!humanTurn) { stopClock(); return; }
     if (g.timerId) return;
@@ -6255,10 +6377,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         clock.classList.toggle('warn', g.timeLeft <= 10);
       }
       if (g.timeLeft <= 5 && g.timeLeft > 0) sfx('tick');
-      if (g.timeLeft <= 0) {
-        stopClock();
-        autoMoveOnTimeout();
-      }
+      if (g.timeLeft <= 0) { stopClock(); autoMoveOnTimeout(); }
     }, 1000);
   }
 
@@ -6284,9 +6403,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     st.viewer = 0;
     render();
     const isDeploy = kind === 'deploy';
-    const title = isDeploy
-      ? 'Pass to ' + U.FACTIONS[nextOwner].name
-      : 'Pass to ' + U.FACTIONS[nextOwner].short + ' — turn ' + st.turn;
+    const title = isDeploy ? 'Pass to ' + U.FACTIONS[nextOwner].name : 'Pass to ' + U.FACTIONS[nextOwner].short + ' — turn ' + st.turn;
     const sub = isDeploy
       ? 'The previous commander has locked their formation. Hand the device over before continuing.'
       : 'Hide the screen from your opponent, then hand over the device.';
@@ -6303,7 +6420,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       '</div>';
     document.body.appendChild(overlay);
     sfx('curtain');
-
     const reveal = function () {
       overlay.remove();
       st.viewer = nextOwner;
@@ -6312,9 +6428,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       sfx('unlock');
     };
     overlay.querySelector('#curtain-go').addEventListener('click', reveal);
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) reveal();
-    });
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) reveal(); });
   }
 
   /* ── deployment actions ──────────────────────────────────── */
@@ -6361,19 +6475,15 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   function keepFormation() {
     const st = g.state;
     const owner = st.phase === 'deploy1' ? 1 : 2;
-    const layout = [];
-    for (let r = 0; r < st.rows; r++) {
-      const row = [];
-      for (let c = 0; c < st.cols; c++) {
-        const u = st.board[r][c];
-        row.push(u && u.owner === owner ? u.key : null);
-      }
-      layout.push(row);
-    }
+    const map = {};
+    board().zones[owner].forEach(function (id) {
+      const u = st.board[id];
+      if (u && u.owner === owner) map[id] = u.key;
+    });
     AC.ui.promptText({ kicker: 'Formation', title: 'Save this formation', label: 'Formation name', value: 'My formation' })
       .then(function (name) {
         if (!name) return;
-        S.saveFormation(name, layout, st.config.board);
+        S.saveFormation(name, map, st.boardKey);
         FX.toast('Formation saved.', 'success');
         sfx('save');
         render();
@@ -6383,14 +6493,14 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   function applySavedFormation() {
     const st = g.state;
     const owner = st.phase === 'deploy1' ? 1 : 2;
-    const list = S.listFormations().filter(function (f) { return f.board === st.config.board; });
+    const list = S.listFormations().filter(function (f) { return f.board === st.boardKey; });
     if (!list.length) { FX.toast('No saved formations for this board.', 'warn'); return; }
     const m = AC.ui.modal({
       kicker: 'Formations',
       title: 'Load a formation',
       body: '<div class="save-list">' + list.map(function (f, i) {
         return '<div class="save-card"><div class="save-info"><div class="save-title">' + esc(f.name) + '</div>' +
-          '<div class="save-meta">' + U.BOARDS[f.board].label + ' · saved ' + AC.ui.timeAgo(f.createdAt) + '</div></div>' +
+          '<div class="save-meta">' + (U.BOARDS[f.board] || U.BOARDS.small).label + ' · saved ' + AC.ui.timeAgo(f.createdAt) + '</div></div>' +
           '<div class="save-actions"><button class="btn btn-primary btn-xs" data-use="' + i + '">Use</button>' +
           '<button class="btn btn-danger btn-xs" data-drop="' + i + '">' + A.icon('trash') + '</button></div></div>';
       }).join('') + '</div>',
@@ -6401,10 +6511,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       const drop = e.target.closest('[data-drop]');
       if (use) {
         const f = list[Number(use.getAttribute('data-use'))];
-        if (f) {
-          applyLayout(f.layout, owner);
-          m.close();
-        }
+        if (f) { applyLayout(f.layout, owner); m.close(); }
       } else if (drop) {
         const f = list[Number(drop.getAttribute('data-drop'))];
         if (f) { S.deleteFormation(f.id); m.close(); FX.toast('Formation deleted.', 'success'); render(); }
@@ -6412,38 +6519,26 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     });
   }
 
-  function applyLayout(layout, owner) {
+  function applyLayout(map, owner) {
     const st = g.state;
     const army = [];
-    for (let r = 0; r < st.rows; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        const u = st.board[r][c];
-        if (u && u.owner === owner) army.push(u);
-      }
-    }
-    // clear zone
-    for (let r = 0; r < st.rows; r++) {
-      if (!E.inDeployZone(st, owner, r)) continue;
-      for (let c = 0; c < st.cols; c++) st.board[r][c] = null;
-    }
+    E.forEachUnit(st, function (u) { if (u.owner === owner) army.push(u); });
+    board().zones[owner].forEach(function (id) { st.board[id] = null; });
+
     const byKey = {};
     army.forEach(function (u) { (byKey[u.key] = byKey[u.key] || []).push(u); });
-    for (let r = 0; r < st.rows; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        const k = layout[r] && layout[r][c];
-        if (!k || !E.inDeployZone(st, owner, r)) continue;
-        const pool = byKey[k];
-        if (pool && pool.length) st.board[r][c] = pool.pop();
-      }
-    }
-    // anything left goes to any free square
-    const leftovers = army.filter(function (u) { return !st.board.some(function (row) { return row.indexOf(u) !== -1; }); });
-    for (let r = 0; r < st.rows && leftovers.length; r++) {
-      if (!E.inDeployZone(st, owner, r)) continue;
-      for (let c = 0; c < st.cols && leftovers.length; c++) {
-        if (!st.board[r][c]) st.board[r][c] = leftovers.shift();
-      }
-    }
+    Object.keys(map || {}).forEach(function (id) {
+      if (!E.inDeployZone(st, owner, id)) return;
+      const pool = byKey[map[id]];
+      if (pool && pool.length) st.board[id] = pool.pop();
+    });
+    // anything unplaced goes to a free zone cell
+    const placed = {};
+    E.forEachUnit(st, function (u, id) { placed[u.id] = id; });
+    const leftovers = army.filter(function (u) { return !placed[u.id]; });
+    const free = board().zones[owner].filter(function (id) { return !st.board[id]; });
+    leftovers.forEach(function (u, i) { if (free[i]) st.board[free[i]] = u; });
+
     sfx('deploy');
     render();
   }
@@ -6454,12 +6549,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     const st = g.state;
     if (!st || st.phase !== 'battle') { FX.toast('The advisor only speaks during battle.', 'warn'); return; }
     if (g.thinking) return;
-    const humanTurn = isPass() || st.owner === 1;
-    if (!humanTurn) return;
+    if (!(isPass() || st.owner === 1)) return;
     const advice = AI.advise(st, st.owner, 3);
     if (!advice.length) { FX.toast('No legal moves available.', 'warn'); return; }
     const m = AC.ui.modal({
-      kicker: 'Advisor · ' + (st.owner === 1 ? 'Solaris' : 'Void'),
+      kicker: 'Advisor · ' + U.FACTIONS[st.owner].short,
       title: 'Recommended orders',
       sub: 'Ranked by the same belief model the AI uses. Tap one to see it on the board.',
       body: '<div class="advice-list">' + advice.map(function (a, i) {
@@ -6471,19 +6565,16 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       actions: [{ label: 'Close', cls: 'btn-ghost' }]
     });
     m.el.addEventListener('click', function (e) {
-      const b = e.target.closest('[data-adv]');
-      if (!b) return;
-      const a = advice[Number(b.getAttribute('data-adv'))];
+      const btn = e.target.closest('[data-adv]');
+      if (!btn) return;
+      const a = advice[Number(btn.getAttribute('data-adv'))];
       if (!a) return;
-      g.sel = { r: a.action.from.r, c: a.action.from.c };
-      g.mode = a.action.type === 'scan' || a.action.type === 'barrage' ? 'special' : 'move';
+      g.sel = a.action.from;
+      g.mode = (a.action.type === 'scan' || a.action.type === 'barrage') ? 'special' : 'move';
       m.close();
       render();
-      const tile = document.querySelector('.tile[data-r="' + a.action.to.r + '"][data-c="' + a.action.to.c + '"]');
-      if (tile) {
-        const at = FX.centerOf(tile);
-        FX.spawn(at.x, at.y, { count: 14, color: '#34d399', speed: 2 });
-      }
+      const at = cellCenter(a.action.to);
+      FX.spawn(at.x, at.y, { count: 14, color: '#34d399', speed: 2 });
     });
   }
 
@@ -6507,7 +6598,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
     const winner = st.winner;
     const isAiGame = isAi();
-    const meIsP1 = true;
     let outcome = 'draw';
     if (winner === 1) outcome = 'win';
     else if (winner === 2) outcome = 'loss';
@@ -6521,26 +6611,21 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       });
       AC.app.profile = S.getProfile(AC.app.profile.id);
     }
-
     S.deleteSave('auto');
 
-    const title = winner === 0 ? 'Stalemate' : (winner === 1 ? 'Solaris Order triumphs' : 'Void Cabal conquers');
+    const title = winner === 0 ? 'Stalemate' : (winner === 1 ? 'Suryavansh triumphs' : 'Chandravansh conquers');
     const cls = winner === 0 ? 'draw' : winner === 1 ? 'win' : 'lose';
-    const myOutcome = isAiGame
-      ? (outcome === 'win' ? 'Victory — the Void Cabal line is broken.' : outcome === 'loss' ? 'Defeat — your Nexus Core is lost.' : 'Draw — the field is exhausted.')
-      : title + '.';
-
     sfx(winner === 0 ? 'draw' : isAiGame ? (outcome === 'win' ? 'win' : 'lose') : 'win');
     if (winner !== 0) FX.shake(9);
 
-    const m = AC.ui.modal({
+    AC.ui.modal({
       kicker: 'Engagement complete',
       title: '',
       dismissible: false,
       body:
         '<div class="result-hero">' +
           '<div class="result-title ' + cls + '">' + esc(title) + '</div>' +
-          '<div class="result-reason">' + esc(st.reason || myOutcome) + '</div>' +
+          '<div class="result-reason">' + esc(st.reason || '') + '</div>' +
         '</div>' +
         '<div class="result-stats">' +
           '<div class="result-stat"><b>' + st.turn + '</b><span>turns</span></div>' +
@@ -6553,7 +6638,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         { label: 'Rematch', cls: 'btn-primary', onClick: function () { g.start(st.config); } }
       ]
     });
-    void m;
   }
 
   g.resign = function () {
@@ -6566,42 +6650,59 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   /* ── wiring ───────────────────────────────────────────────── */
 
   function wire() {
-    const board = document.getElementById('board');
-    board.addEventListener('click', function (e) {
-      const tile = e.target.closest('.tile');
-      if (!tile) return;
-      onTile(Number(tile.getAttribute('data-r')), Number(tile.getAttribute('data-c')));
+    const svg = document.getElementById('board');
+    svg.addEventListener('click', function (e) {
+      const cell = e.target.closest('[data-id]');
+      if (!cell) return;
+      onCell(cell.getAttribute('data-id'));
     });
-    board.addEventListener('pointerover', function (e) {
-      const tile = e.target.closest('.tile');
-      if (!tile || !g.state || g.state.phase !== 'battle') return;
-      const r = Number(tile.getAttribute('data-r'));
-      const c = Number(tile.getAttribute('data-c'));
-      const u = g.state.board[r][c];
+    svg.addEventListener('pointerover', function (e) {
+      const cell = e.target.closest('[data-id]');
+      if (!cell || !g.state || g.state.phase !== 'battle') return;
+      const id = cell.getAttribute('data-id');
+      const u = g.state.board[id];
       const viewer = g.state.viewer === 3 ? 1 : g.state.viewer;
-      if (u && u.owner !== viewer && !u.revealed) {
-        if (!g.focus || g.focus.r !== r || g.focus.c !== c) {
-          g.focus = { r: r, c: c };
-          renderIntel();
-        }
+      if (u && u.owner !== viewer && !u.revealed && g.focus !== id) {
+        g.focus = id;
+        renderIntel();
       }
     });
-
-    board.addEventListener('keydown', function (e) {
-      const tile = e.target.closest('.tile');
-      if (!tile) return;
-      const r = Number(tile.getAttribute('data-r'));
-      const c = Number(tile.getAttribute('data-c'));
-      let nr = r;
-      let nc = c;
-      if (e.key === 'ArrowUp') nr = Math.max(0, r - 1);
-      else if (e.key === 'ArrowDown') nr = Math.min(g.state.rows - 1, r + 1);
-      else if (e.key === 'ArrowLeft') nc = Math.max(0, c - 1);
-      else if (e.key === 'ArrowRight') nc = Math.min(g.state.cols - 1, c + 1);
-      else return;
+    svg.addEventListener('keydown', function (e) {
+      const cell = e.target.closest('[data-id]');
+      if (!cell) return;
+      const id = cell.getAttribute('data-id');
+      const b = board();
+      const c = b.byId[id];
+      if (!c) return;
+      let nextId = null;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+        const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+        let best = null;
+        let bestScore = 1e9;
+        b.cells.forEach(function (other) {
+          if (other.id === id) return;
+          const vx = other.x - c.x;
+          const vy = other.y - c.y;
+          const along = vx * dx + vy * dy;
+          if (along <= 0.05) return;
+          const off = Math.abs(vx * dy - vy * dx);
+          const score = off * 2 + along;
+          if (score < bestScore) { bestScore = score; best = other.id; }
+        });
+        nextId = best;
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onCell(id);
+        return;
+      } else {
+        return;
+      }
       e.preventDefault();
-      const next = document.querySelector('.tile[data-r="' + nr + '"][data-c="' + nc + '"]');
-      if (next) next.focus();
+      if (nextId) {
+        const el = svg.querySelector('[data-id="' + nextId + '"]');
+        if (el) el.focus();
+      }
     });
 
     const bar = document.getElementById('action-bar');
@@ -6617,12 +6718,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       }
       if (e.target.closest('[data-formation]')) { applySavedFormation(); return; }
       const mode = e.target.closest('[data-mode]');
-      if (mode) {
-        g.mode = mode.getAttribute('data-mode');
-        sfx('ui');
-        render();
-        return;
-      }
+      if (mode) { g.mode = mode.getAttribute('data-mode'); sfx('ui'); render(); return; }
       const act = e.target.closest('[data-act]');
       if (act) {
         const what = act.getAttribute('data-act');
@@ -6665,23 +6761,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       document.getElementById('intel-panel').classList.remove('open');
       document.getElementById('scrim').classList.remove('on');
     });
-
-    let resizeRaf = null;
-    window.addEventListener('resize', function () {
-      if (resizeRaf) cancelAnimationFrame(resizeRaf);
-      resizeRaf = requestAnimationFrame(function () {
-        layoutBoard();
-        g.lastRects = captureRects();
-      });
-    });
-    window.addEventListener('orientationchange', function () {
-      setTimeout(layoutBoard, 250);
-    });
   }
 
   g.wire = wire;
   g.render = render;
-  g.tile = onTile;
+  g.tile = onCell;
   g.advisor = openAdvisor;
   g.autosave = autosave;
 

@@ -210,10 +210,11 @@
         <div class="panel panel-quiet">
           <div class="panel-head"><span>Rules quick reference</span></div>
           <ul class="rules-list">
-            <li>Move orthogonally. Rifts block movement, never the Lancer's shot.</li>
+            <li>Move along a cell's lanes. Rifts block movement, never the archer's volley.</li>
             <li>Attacker resolves first: ties depend on the tie rule you pick.</li>
-            <li>Immovable pieces are a Mine or the Core — probe them cheaply.</li>
-            <li>Capture the enemy Nexus Core, or leave them with no legal move.</li>
+            <li>Immovable pieces are a Shataghni or the fort — probe them cheaply.</li>
+            <li>On the wheel, rings 1 and 2 turn every fifth round and expose what they carry.</li>
+            <li>Take the enemy fort, or leave them with no legal move.</li>
           </ul>
         </div>
       </aside>
@@ -242,9 +243,7 @@
       <main class="board-column">
         <div class="player-strip" id="strip-top"></div>
         <div class="board-shell" id="board-shell">
-          <div class="board-coords board-coords-top" id="coords-top"></div>
-          <div class="board" id="board" role="grid" aria-label="Battlefield"></div>
-          <div class="board-coords board-coords-left" id="coords-left"></div>
+          <svg class="board-svg" id="board" role="grid" aria-label="Battlefield" preserveAspectRatio="xMidYMid meet"></svg>
         </div>
         <div class="player-strip" id="strip-bottom"></div>
       </main>
@@ -274,6 +273,7 @@
 </noscript>
 
 <script src="js/units.js"></script>
+<script src="js/geometry.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/audio.js"></script>

@@ -11,8 +11,8 @@ no tracking. Open `index.html` and play.
 
 ## Play it
 
-**Hosted (GitHub Pages):** enable Pages on this repo (Settings → Pages → Branch `main`, `/` root),
-then open the URL it gives you.
+**Hosted (GitHub Pages):** <https://medh-eng.github.io/Astral-command/> — the design studio for the
+next chapter lives at `/docs/vyuha-design-studio.html`.
 
 **Locally, with the source:**
 
@@ -34,9 +34,13 @@ worker, so it installs and runs offline.
 ## What is in this build
 
 ### Core game
-- **12-piece army, 10 hidden ranks** — Archon, Paladin, Valkyrie, Lancer, Seer, two Sappers,
-  two Striders, Wraith, Stasis Mine, Nexus Core.
-- **Two boards** — Small Arena (6×8) and Large Expanse (8×10), each with impassable Astral Rifts.
+- **12-piece army, 10 hidden ranks** — Senapati, Maharathi, Ashvarohi, Dhanurdhar, Divyadrishti,
+  two Yantrik, two Rath, Chara, Shataghni, Durg (the sci-fi names are kept as aliases in the Codex).
+- **Three boards** — Small Arena (6×8) and Large Expanse (8×10) with impassable Astral Rifts, plus
+  **Chakravyuha**, a wheel of 37 cells (hub + 3 rings × 12 spokes) where the inner rings turn.
+- **The chakra turns** — on the wheel, rings 1 and 2 rotate one spoke clockwise every fifth round,
+  carrying whatever stands on them and revealing it. The hub touches all twelve spokes and exposes
+  whoever stands on it. Arcs are one cell at a time; only the spokes are long lanes.
 - **Three special powers** — Psionic Scan (Seer), Arc Barrage (Lancer), Phase Dash (Valkyrie).
 - **Two tie rules** — Attacker Advantage with Shield Break, or classic Mutual Destruction.
 - **Anti-stall** — the two-square rule is enforced on every move, and 60 orders without a
@@ -56,6 +60,7 @@ worker, so it installs and runs offline.
 | **Three AI tiers** | Recruit (greedy, noisy), Veteran (beliefs + reply check), Archon (full belief model with 1-ply lookahead). |
 | **Pass & play privacy curtain** | Between deployments and between turns, a full-screen curtain hides the board while the device changes hands. |
 | **Turn clock** | Off, 60s or 30s per turn, with a warning pulse and an auto-move fallback. |
+| **Cell-graph engine** | The board is a graph of cells with neighbours and rays, not a grid — the same rules code drives squares, the wheel, and any future hex or triangle board. |
 | **Accessibility** | Colour-blind palette (blue/orange), high contrast, reduced motion, keyboard play on the board (arrows + Enter), ARIA labels on every square, visible focus rings. |
 | **Installable / offline** | Web manifest + service worker cache of the whole shell. |
 
@@ -83,7 +88,8 @@ Full rules, every rank and every edge case live in the in-game **Codex** (top ba
 index.html                  app shell (screens, HUD, board containers)
 css/app.css                 design system: glass panels, board, tokens, modals, responsive
 js/units.js                 roster, boards, difficulties — the balance file
-js/engine.js                pure rules engine (no DOM): legality, combat, turns, beliefs
+js/geometry.js              board geometry: cells, neighbours, rays, zones, distances
+js/engine.js                pure rules engine (no DOM): legality, combat, turns, beliefs, rotation
 js/ai.js                    belief-model bot + advisor
 js/audio.js                 Web Audio SFX + procedural score
 js/storage.js               profiles, PIN hashing, saves, settings, export/import
@@ -102,8 +108,8 @@ aetherfront-standalone.html generated single-file build
 The engine is deliberately DOM-free, so the rules can be tested and simulated in Node:
 
 ```bash
-node tests/rules.mjs        # 38 rule assertions (combat, mines, rifts, two-square, beliefs)
-node tests/selfplay.mjs 60  # 60 full AI-vs-AI matches: legality + termination checks
+node tests/rules.mjs        # 60 rule assertions (combat, traps, rifts, rotation, hub, beliefs)
+node tests/selfplay.mjs 60  # 60 full AI-vs-AI matches across all three boards
 node tests/ui.mjs           # boots index.html in jsdom and drives login → deploy → battle → save
 ```
 
@@ -116,8 +122,11 @@ node tests/ui.mjs           # boots index.html in jsdom and drives login → dep
 Everything you would want to adjust is data, not logic:
 
 - **Ranks, counts, movement, powers** → `js/units.js` (`UNIT_DEFS`, `ROSTER_ORDER`).
-  Rank numbers drive combat directly; `moveRange: 99` is the Strider's slide.
-- **Boards and rift layouts** → `js/units.js` (`BOARDS`). Rifts are `"row,col"` strings.
+  Rank numbers drive combat directly; `moveRange: 99` is the Rath's slide.
+- **Boards and rift layouts** → `js/units.js` (`BOARDS`) for labels, `js/geometry.js` for shape.
+  Rifts are cell ids (`"row,col"` on squares).
+- **The wheel** → `js/geometry.js` (`wheelBoard`: sectors, rings, zones, rotation rings) and
+  `js/engine.js` (`rotate`).
 - **AI difficulty** → `js/units.js` (`DIFFICULTIES`: `noise`, `think`, `depth`).
 - **Starting formations** → `js/engine.js` (`presetSlots`, `PRESET_ORDER`).
 - **Combat rules** → `js/engine.js` (`resolveMelee`, `applyAction`).

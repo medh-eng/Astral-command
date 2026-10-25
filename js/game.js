@@ -1,6 +1,6 @@
-/* Aetherfront: Astral Command — battle screen
- * Board rendering, tap/click/drag deployment, ability bar, intel ledger,
- * turn clock, AI turn loop, privacy curtain, combat and result modals.
+/* Aetherfront: Astral Command — battle screen (v3)
+ * Renders any cell graph as SVG, so the square arenas and the Chakravyuha
+ * wheel share one renderer, one input path and one set of animations.
  */
 (function (root) {
   'use strict';
@@ -12,6 +12,7 @@
   const AU = AC.audio;
   const FX = AC.fx;
   const S = AC.storage;
+  const G = AC.geometry;
 
   const g = (AC.game = AC.game || {});
   g.state = null;
@@ -25,12 +26,19 @@
   g.aiTimer = null;
   g.busy = false;
   g.over = false;
-  g.lastRects = {};
+  g.hinted = false;
 
   const $ = function (s) { return document.querySelector(s); };
   const esc = function (s) { return AC.ui.esc(s); };
   const sfx = function (n) { AU.play(n); };
   const buzz = function (p) { AU.buzz(p); };
+
+  function settings() { return AC.app.settings; }
+  function isPass() { return g.state && g.state.config.mode === 'pass'; }
+  function isAi() { return g.state && g.state.config.mode === 'ai'; }
+  function board() { return G.build(g.state.boardKey); }
+
+  /* ══ lifecycle ═════════════════════════════════════════════════ */
 
   function clearOverlays() {
     Array.prototype.forEach.call(document.querySelectorAll('.curtain'), function (n) { n.remove(); });
@@ -41,15 +49,7 @@
       if (p) p.classList.remove('open');
     });
   }
-
   g.clearOverlays = clearOverlays;
-
-  function state() { return g.state; }
-  function settings() { return AC.app.settings; }
-  function isPass() { return g.state && g.state.config.mode === 'pass'; }
-  function isAi() { return g.state && g.state.config.mode === 'ai'; }
-
-  /* ══ lifecycle ═════════════════════════════════════════════════ */
 
   g.start = function (config) {
     clearTimers();
@@ -68,7 +68,9 @@
     AC.ui.show('game');
     render();
     autosave();
-    FX.toast('Army deployed. Arrange your formation, then lock it in.', 'info');
+    FX.toast(g.state.boardKey === 'wheel'
+      ? 'Deploy on your half of the wheel. Every fifth round the inner rings turn.'
+      : 'Army deployed. Arrange your formation, then lock it in.', 'info');
   };
 
   g.load = function (raw, slot) {
@@ -97,27 +99,22 @@
     if (g.state.phase === 'battle' && isAi() && g.state.owner === 2) scheduleAi();
   };
 
-  g.onShow = function () {
-    render();
-    requestAnimationFrame(layoutBoard);
-  };
-
+  g.onShow = function () { render(); };
   g.isActive = function () { return !!g.state; };
   g.canSave = function () { return !!g.state && g.state.phase !== 'over'; };
   g.onSettingsChange = function () { render(); };
-
   g.updateResumeState = function () { /* home reads storage directly */ };
 
   g.saveTo = function (slot) {
     if (!g.canSave()) return null;
     const st = g.state;
-    const label = (U.BOARDS[st.config.board] || U.BOARDS.small).label + ' · ' +
+    const label = (U.BOARDS[st.boardKey] || U.BOARDS.small).label + ' · ' +
       (st.config.mode === 'pass' ? 'Pass & play' : 'vs ' + U.DIFFICULTIES[st.config.difficulty].label) +
       ' · turn ' + st.turn;
     const entry = S.saveGame(slot, st, {
       label: label,
       mode: st.config.mode,
-      board: st.config.board,
+      board: st.boardKey,
       difficulty: st.config.difficulty,
       tie: st.config.tie,
       timer: st.config.timer,
@@ -134,7 +131,7 @@
     S.saveGame('auto', st, {
       label: 'Autosave',
       mode: st.config.mode,
-      board: st.config.board,
+      board: st.boardKey,
       difficulty: st.config.difficulty,
       tie: st.config.tie,
       timer: st.config.timer,
@@ -159,11 +156,8 @@
     renderActionBar();
     renderIntel();
     renderLog();
-    layoutBoard();
     startClockIfNeeded();
   }
-
-  function factionName(owner) { return U.FACTIONS[owner].name; }
 
   function renderHud() {
     const st = g.state;
@@ -181,7 +175,7 @@
       const owner = st.phase === 'deploy1' ? 1 : 2;
       pill.classList.add(owner === 1 ? 'solar' : 'void');
       pill.textContent = 'Deployment · ' + U.FACTIONS[owner].short;
-      sub.textContent = 'Swap any two squares in your back three rows, then lock the formation.';
+      sub.textContent = 'Swap any two cells in your deployment zone, then lock the formation.';
     } else if (st.phase === 'battle') {
       if (g.thinking) {
         pill.classList.add('void');
@@ -191,13 +185,18 @@
         const owner = st.owner;
         pill.classList.add(owner === 1 ? 'solar' : 'void');
         pill.textContent = 'Turn ' + st.turn + ' · ' + U.FACTIONS[owner].short;
-        sub.textContent = isPass()
-          ? (owner === 1 ? 'Solaris to move' : 'Void to move') + ' — tap a unit to command it.'
-          : (owner === 1 ? 'Your move — tap a unit to command it.' : 'Void Cabal is moving.');
+        let extra = '';
+        if (st.boardKey === 'wheel') {
+          const until = E.turnsUntilRotation(st);
+          extra = ' · chakra turns in ' + until;
+        }
+        sub.textContent = (isPass()
+          ? (owner === 1 ? 'Suryavansh' : 'Chandravansh') + ' to move — tap a unit.'
+          : (owner === 1 ? 'Your move — tap a unit to command it.' : 'Chandravansh is moving.')) + extra;
       }
     } else {
       pill.classList.add('gold');
-      pill.textContent = st.winner === 0 ? 'Stalemate' : (st.winner === 1 ? 'Solaris victory' : 'Void victory');
+      pill.textContent = st.winner === 0 ? 'Stalemate' : (st.winner === 1 ? 'Suryavansh victory' : 'Chandravansh victory');
       sub.textContent = 'Match complete — all ranks revealed.';
     }
 
@@ -216,40 +215,30 @@
 
   function aliveCount(owner) {
     let n = 0;
-    for (let r = 0; r < g.state.rows; r++) {
-      for (let c = 0; c < g.state.cols; c++) {
-        const u = g.state.board[r][c];
-        if (u && u.owner === owner) n++;
-      }
-    }
+    E.forEachUnit(g.state, function (u) { if (u.owner === owner) n++; });
     return n;
   }
 
   function renderStrips() {
     const st = g.state;
-    const topOwner = 2;
-    const botOwner = 1;
-    const topLabel = st.config.mode === 'ai' ? 'Void Cabal · Astral AI' : 'Void Cabal · Commander 2';
+    const topLabel = st.config.mode === 'ai' ? 'Chandravansh · Astral AI' : 'Chandravansh · Commander 2';
     const botLabel = st.config.mode === 'ai'
-      ? 'Solaris Order · ' + (AC.app.profile ? AC.app.profile.name : 'You')
-      : 'Solaris Order · Commander 1';
+      ? 'Suryavansh · ' + (AC.app.profile ? AC.app.profile.name : 'You')
+      : 'Suryavansh · Commander 1';
 
-    $('#strip-top').className = 'player-strip' + (st.phase === 'battle' && st.owner === topOwner ? ' active-void' : '');
-    $('#strip-bottom').className = 'player-strip' + (st.phase === 'battle' && st.owner === botOwner ? ' active-solar' : '') +
+    $('#strip-top').className = 'player-strip' + (st.phase === 'battle' && st.owner === 2 ? ' active-void' : '');
+    $('#strip-bottom').className = 'player-strip' + (st.phase === 'battle' && st.owner === 1 ? ' active-solar' : '') +
       (st.phase === 'deploy1' ? ' active-solar' : '');
 
     $('#strip-top').innerHTML =
       '<span class="strip-name" style="color:var(--void)">' + esc(topLabel) + '</span>' +
-      '<span class="strip-count">' + aliveCount(2) + '/12</span>' +
-      captureTray(2);
+      '<span class="strip-count">' + aliveCount(2) + '/12</span>' + captureTray(2);
     $('#strip-bottom').innerHTML =
       '<span class="strip-name" style="color:var(--solar)">' + esc(botLabel) + '</span>' +
-      '<span class="strip-count">' + aliveCount(1) + '/12</span>' +
-      captureTray(1);
+      '<span class="strip-count">' + aliveCount(1) + '/12</span>' + captureTray(1);
   }
 
   function captureTray(victimOwner) {
-    // pieces this side has lost (captured by the other side)
     const byOther = victimOwner === 2 ? 1 : 2;
     const dead = g.state.captured[byOther] || [];
     if (!dead.length) return '<span class="capture-tray"><span class="tray-empty">no losses</span></span>';
@@ -260,7 +249,7 @@
     }).join('') + '</span>';
   }
 
-  /* ── board ─────────────────────────────────────────────────── */
+  /* ── the board ─────────────────────────────────────────────── */
 
   function visibleToViewer(u) {
     if (!u) return false;
@@ -268,176 +257,109 @@
     return st.viewer === 3 || u.owner === st.viewer || u.revealed;
   }
 
-  function tokenHTML(u, isSel) {
-    const st = g.state;
-    const canSee = visibleToViewer(u);
-    const cls = u.owner === 1 ? 'solar' : 'void';
-    if (!canSee) {
-      return '<div class="token hidden-unit ' + cls + '" data-uid="' + u.id + '" aria-hidden="true">' +
-        '<span class="unknown-mark">?</span>' +
-        (u.hasMoved ? '<span class="moved-dot"></span>' : '') +
-        '</div>';
-    }
-    const eye = (u.revealed && u.owner === st.viewer && st.phase !== 'over')
-      ? '<span class="reveal-eye" title="Revealed to the enemy">◉</span>' : '';
-    return '<div class="token ' + cls + (isSel ? ' selected-token' : '') + (u.shieldBroken ? ' shield-broken' : '') +
-      '" data-uid="' + u.id + '">' +
-      '<span class="token-owner"></span>' +
-      A.emblem(u.key) +
-      '<span class="token-rank">' + esc(u.badge) + '</span>' +
-      (u.hasMoved ? '<span class="moved-dot" title="This piece has moved"></span>' : '') +
-      eye +
-      '</div>';
+  function shapeSvg(cell) {
+    if (cell.shape === 'hub') return '<circle class="cell-fill" cx="0" cy="0" r="' + cell.r + '"/>';
+    if (cell.shape === 'sector') return '<path class="cell-fill" d="' + cell.path + '"/>';
+    return '<polygon class="cell-fill" points="' + cell.points.map(function (p) {
+      return p[0].toFixed(2) + ',' + p[1].toFixed(2);
+    }).join(' ') + '"/>';
   }
 
-  function captureRects() {
-    const map = {};
-    Array.prototype.forEach.call(document.querySelectorAll('.token[data-uid]'), function (el) {
-      map[el.getAttribute('data-uid')] = el.getBoundingClientRect();
-    });
-    return map;
+  function tokenSvg(u, cell, isSel) {
+    const R = cell.tr;
+    const cls = u.owner === 1 ? 'solar' : 'void';
+    const moved = u.hasMoved ? '<circle class="tok-moved" cx="' + (-R * 0.62) + '" cy="' + (R * 0.62) + '" r="' + (R * 0.14) + '"/>' : '';
+    if (!visibleToViewer(u)) {
+      return '<g class="token hidden-unit ' + cls + '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
+        '<circle class="tok-disc" r="' + R + '"/>' +
+        '<text class="tok-q" y="' + (R * 0.33) + '" font-size="' + (R * 0.92) + '" text-anchor="middle">?</text>' +
+        moved + '</g>';
+    }
+    const sel = isSel ? '<circle class="sel-ring" r="' + (R * 1.14) + '"/>' : '';
+    const eye = (u.revealed && u.owner === g.state.viewer && g.state.phase !== 'over')
+      ? '<circle class="tok-eye" cx="' + (R * 0.6) + '" cy="' + (-R * 0.6) + '" r="' + (R * 0.15) + '"/>' : '';
+    const scale = (R * 1.3) / 32;
+    return '<g class="token ' + cls + (isSel ? ' selected-token' : '') + (u.shieldBroken ? ' shield-broken' : '') +
+      '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
+      '<circle class="tok-disc" r="' + R + '"/>' +
+      sel +
+      '<g class="tok-emblem" transform="translate(' + (-R * 0.65) + ',' + (-R * 0.65) + ') scale(' + scale + ')">' +
+      (A.EMBLEMS[u.key] || '') + '</g>' +
+      '<text class="tok-rank" x="' + (R * 0.46) + '" y="' + (R * 0.74) + '" font-size="' + (R * 0.52) + '" text-anchor="middle">' +
+      esc(u.badge) + '</text>' +
+      moved + eye + '</g>';
+  }
+
+  function targetMarker(type, R) {
+    if (type === 'move') return '<circle class="target-dot" r="' + (R * 0.3) + '"/>';
+    const glyph = type === 'attack' ? '×' : type === 'scan' ? '◉' : '⌖';
+    return '<circle class="target-ring" r="' + (R * 1.0) + '"/>' +
+      '<text class="target-glyph" y="' + (R * 0.34) + '" font-size="' + (R * 1.05) + '" text-anchor="middle">' + glyph + '</text>';
   }
 
   function renderBoard() {
     const st = g.state;
-    const board = $('#board');
-    if (!board) return;
-    const before = g.lastRects;
-
-    board.style.setProperty('--cols', st.cols);
-    board.style.setProperty('--rows', st.rows);
-    board.style.gridTemplateColumns = 'repeat(' + st.cols + ', 1fr)';
-    board.style.gridTemplateRows = 'repeat(' + st.rows + ', 1fr)';
+    const svg = $('#board');
+    if (!svg) return;
+    const b = board();
+    const bounds = b.bounds;
+    svg.setAttribute('viewBox', bounds.x + ' ' + bounds.y + ' ' + bounds.w + ' ' + bounds.h);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
     const targets = {};
     if (g.sel && st.phase === 'battle' && !g.thinking) {
-      E.computeValidTargets(st, g.sel.r, g.sel.c, g.mode).forEach(function (t) {
-        targets[t.r + ',' + t.c] = t.type;
-      });
+      E.computeValidTargets(st, g.sel, g.mode).forEach(function (t) { targets[t.id] = t.type; });
     }
 
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
-    let html = '';
+    const last = st.lastMove;
+    let out = '';
 
-    for (let r = 0; r < st.rows; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        const u = st.board[r][c];
-        const rift = E.isRift(st, r, c);
-        const isSel = g.sel && g.sel.r === r && g.sel.c === c;
-        const isFocus = g.focus && g.focus.r === r && g.focus.c === c;
-        const target = targets[r + ',' + c];
-        const inZone = deployOwner && E.inDeployZone(st, deployOwner, r);
-        const isLast = st.lastMove && ((st.lastMove.from.r === r && st.lastMove.from.c === c) || (st.lastMove.to.r === r && st.lastMove.to.c === c));
+    b.cells.forEach(function (cell) {
+      const id = cell.id;
+      const u = st.board[id] || null;
+      const rift = E.isRift(st, id);
+      const isSel = g.sel === id;
+      const isFocus = g.focus === id;
+      const target = targets[id];
+      const inZone = deployOwner && cell.zone === deployOwner;
+      const isLast = last && (last.from === id || last.to === id);
 
-        let cls = 'tile';
-        if (rift) cls += ' rift';
-        if (inZone) cls += deployOwner === 1 ? ' zone-p1' : ' zone-p2';
-        if (isSel) cls += ' selected';
-        if (isFocus && !isSel) cls += ' hint';
-        if (isLast) cls += ' last-move';
-        if (target) cls += ' target-' + target;
+      let cls = 'cell';
+      if (cell.shape === 'hub') cls += ' hub';
+      if (rift) cls += ' rift';
+      if (inZone) cls += ' zone-' + deployOwner;
+      if (isSel) cls += ' selected';
+      if (isFocus && !isSel) cls += ' hint';
+      if (isLast) cls += ' last-move';
+      if (target) cls += ' target-' + target;
 
-        let inner = '';
-        if (rift) {
-          inner = '';
-        } else if (u) {
-          inner = tokenHTML(u, isSel);
-        } else if (target === 'move') {
-          inner = '<span class="target-dot"></span>';
-        }
-        if (target === 'attack') inner += '<span class="target-ring" style="color:var(--void)"></span><span class="target-glyph">×</span>';
-        if (target === 'scan') inner += '<span class="target-ring" style="color:#a855f7"></span><span class="target-glyph">◉</span>';
-        if (target === 'barrage') inner += '<span class="target-ring" style="color:var(--gold)"></span><span class="target-glyph">⌖</span>';
+      const label = rift ? 'rift'
+        : u ? (visibleToViewer(u) ? u.name + ', rank ' + u.badge : 'unknown enemy piece')
+          : 'empty cell';
 
-        const label = rift
-          ? 'Astral rift, impassable'
-          : u
-            ? (visibleToViewer(u) ? u.name + ', rank ' + u.badge : 'Unknown enemy piece')
-            : 'Empty square, row ' + (r + 1) + ' column ' + (c + 1);
+      out += '<g class="' + cls + '" data-id="' + id + '" tabindex="0" role="gridcell" aria-label="' + esc(label) + '">' +
+        shapeSvg(cell) +
+        (u ? tokenSvg(u, cell, isSel)
+          : (target ? '<g transform="translate(' + cell.x + ',' + cell.y + ')">' + targetMarker(target, cell.tr) + '</g>' : '')) +
+        '</g>';
+    });
 
-        html += '<button class="' + cls + '" data-r="' + r + '" data-c="' + c + '" role="gridcell" aria-label="' + esc(label) + '">' + inner + '</button>';
-      }
-    }
-    board.innerHTML = html;
+    (b.labels || []).forEach(function (l) {
+      if (settings().coordinates === false) return;
+      out += '<text class="coord" x="' + l.x + '" y="' + l.y + '" font-size="0.3" text-anchor="' + (l.anchor || 'middle') +
+        '" dominant-baseline="' + (l.baseline || 'auto') + '">' + l.text + '</text>';
+    });
 
-    // coordinate rails
-    const coords = settings().coordinates !== false;
-    const cTop = $('#coords-top');
-    const cLeft = $('#coords-left');
-    cTop.innerHTML = coords ? Array.from({ length: st.cols }, function (_, i) {
-      return '<span>' + String.fromCharCode(65 + i) + '</span>';
-    }).join('') : '';
-    cLeft.innerHTML = coords ? Array.from({ length: st.rows }, function (_, i) {
-      return '<span>' + (i + 1) + '</span>';
-    }).join('') : '';
-    cTop.style.gridTemplateColumns = 'repeat(' + st.cols + ', 1fr)';
-    cLeft.style.gridTemplateRows = 'repeat(' + st.rows + ', 1fr)';
-    cTop.hidden = !coords;
-    cLeft.hidden = !coords;
-
-    // FLIP animation for moved pieces
-    if (!settings().reducedMotion) {
-      Array.prototype.forEach.call(board.querySelectorAll('.token[data-uid]'), function (el) {
-        const id = el.getAttribute('data-uid');
-        const prev = before[id];
-        if (!prev) return;
-        const now = el.getBoundingClientRect();
-        const dx = prev.left - now.left;
-        const dy = prev.top - now.top;
-        if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
-        if (typeof el.animate === 'function') {
-          el.animate([
-            { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.96)' },
-            { transform: 'translate(0,0) scale(1)' }
-          ], { duration: 190, easing: 'cubic-bezier(.2,.8,.2,1)' });
-        }
-      });
-    }
-    g.lastRects = captureRects();
-  }
-
-  function layoutBoard() {
-    const st = g.state;
-    if (!st) return;
-    const shell = $('#board-shell');
-    const board = $('#board');
-    if (!shell || !board) return;
-    const gap = st.cols > 7 ? 2.5 : 3;
-    const rect = shell.getBoundingClientRect();
-    if (rect.width < 10 || rect.height < 10) return;
-    const availW = rect.width - 4;
-    const availH = rect.height - 4;
-    const k = Math.min(
-      (availW - gap * (st.cols - 1)) / st.cols,
-      (availH - gap * (st.rows - 1)) / st.rows
-    );
-    if (!isFinite(k) || k <= 0) return;
-    const w = k * st.cols + gap * (st.cols - 1);
-    const h = k * st.rows + gap * (st.rows - 1);
-    board.style.width = Math.floor(w) + 'px';
-    board.style.height = Math.floor(h) + 'px';
-    board.style.gap = gap + 'px';
-    board.style.fontSize = Math.max(9, Math.floor(k * 0.42)) + 'px';
-    g.tileSize = k;
-
-    // align the coordinate rails to the actual board box
-    const br = board.getBoundingClientRect();
-    const sr = shell.getBoundingClientRect();
-    const offX = br.left - sr.left;
-    const offY = br.top - sr.top;
-    const cTop = $('#coords-top');
-    const cLeft = $('#coords-left');
-    if (cTop) {
-      cTop.style.left = offX + 'px';
-      cTop.style.top = Math.max(0, offY - 13) + 'px';
-      cTop.style.width = br.width + 'px';
-      cTop.style.height = '12px';
-    }
-    if (cLeft) {
-      cLeft.style.left = Math.max(0, offX - 13) + 'px';
-      cLeft.style.top = offY + 'px';
-      cLeft.style.height = br.height + 'px';
-      cLeft.style.width = '12px';
+    // Parse through an HTML <template>: the HTML parser understands SVG
+    // foreign content, creates the right namespace, and tolerates the repeated
+    // presentation attributes our emblem art uses.
+    const tpl = document.createElement('template');
+    tpl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg">' + out + '</svg>';
+    const parsed = tpl.content.firstElementChild;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    if (parsed) {
+      while (parsed.firstChild) svg.appendChild(parsed.firstChild);
     }
   }
 
@@ -450,12 +372,12 @@
 
     if (st.phase === 'deploy1' || st.phase === 'deploy2') {
       const owner = st.phase === 'deploy1' ? 1 : 2;
-      const formations = S.listFormations().filter(function (f) { return f.board === st.config.board; });
+      const formations = S.listFormations().filter(function (f) { return f.board === st.boardKey; });
       bar.innerHTML =
         '<div class="action-info">' +
           '<span class="sel-badge ' + (owner === 1 ? 'solar' : 'void') + '">' + A.icon('grid') + '</span>' +
           '<span class="sel-text"><span class="sel-name">' + U.FACTIONS[owner].name + ' deployment</span>' +
-          '<span class="sel-desc">Tap two squares in your zone to swap them. Presets are a starting point.</span></span>' +
+          '<span class="sel-desc">Tap two cells in your zone to swap them. Presets are a starting point.</span></span>' +
         '</div>' +
         '<div class="action-buttons">' +
           presetBtn('citadel', 'Citadel') + presetBtn('blitz', 'Blitz') + presetBtn('lattice', 'Lattice') + presetBtn('shuffle', 'Shuffle') +
@@ -478,8 +400,7 @@
       return;
     }
 
-    // battle
-    const selUnit = g.sel ? st.board[g.sel.r][g.sel.c] : null;
+    const selUnit = g.sel ? st.board[g.sel] : null;
     const isHumanTurn = !g.thinking && (isPass() || st.owner === 1);
     let info;
     if (selUnit) {
@@ -491,8 +412,8 @@
       info = '<span class="sel-badge">' + A.icon('sword') + '</span>' +
         '<span class="sel-text"><span class="sel-name">' + (isHumanTurn ? 'Select a unit' : 'Waiting') + '</span>' +
         '<span class="sel-desc">' + (isHumanTurn
-          ? 'Tap one of your pieces, then tap a highlighted square to move or strike.'
-          : 'The Void Cabal is choosing its move.') + '</span></span>';
+          ? 'Tap one of your pieces, then tap a highlighted cell to move or strike.'
+          : 'The Chandravansh is choosing its move.') + '</span></span>';
     }
 
     let buttons = '';
@@ -501,7 +422,7 @@
         buttons += '<button class="mode-btn' + (g.mode === 'move' ? ' on' : '') + '" data-mode="move">' + A.icon('sword') + 'Move / Strike</button>';
         const def = U.UNIT_DEFS[selUnit.key];
         if (def.hasScan) buttons += '<button class="mode-btn special' + (g.mode === 'special' ? ' on' : '') + '" data-mode="special">' + A.icon('eye') + 'Scan</button>';
-        if (def.hasRanged) buttons += '<button class="mode-btn special' + (g.mode === 'special' ? ' on' : '') + '" data-mode="special">' + A.icon('bolt') + 'Barrage</button>';
+        if (def.hasRanged) buttons += '<button class="mode-btn special' + (g.mode === 'special' ? ' on' : '') + '" data-mode="special">' + A.icon('bolt') + 'Volley</button>';
         buttons += '<button class="mode-btn" data-act="deselect">' + A.icon('close') + '</button>';
       }
       buttons += '<button class="mode-btn" data-act="advisor">' + A.icon('brain') + 'Advisor</button>';
@@ -519,90 +440,79 @@
     const host = $('#intel-panel');
     if (!host) return;
     const st = g.state;
-    if (settings().showIntel === false || st.phase === 'over') {
-      host.innerHTML = '<div class="intel-head"><span class="intel-title">Intel ledger</span></div>' +
-        '<p class="intel-note">Intel panel is hidden in settings.</p>';
-      return;
-    }
     if (st.viewer === 0) {
       host.innerHTML = '<div class="intel-head"><span class="intel-title">Intel ledger</span></div>' +
         '<p class="intel-note">Sealed by the privacy curtain.</p>';
       return;
     }
+    if (settings().showIntel === false || st.phase === 'over') {
+      host.innerHTML = '<div class="intel-head"><span class="intel-title">Intel ledger</span></div>' +
+        '<p class="intel-note">Intel panel is hidden in settings.</p>';
+      return;
+    }
+
     const viewer = st.viewer === 3 ? 1 : st.viewer;
     const foe = viewer === 1 ? 2 : 1;
     const pool = E.unknownPool(st, viewer);
     const unknowns = Object.keys(pool).filter(function (k) { return pool[k] > 0; });
 
-    const knownOnBoard = [];
-    const spent = [];
-    for (let r = 0; r < st.rows; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        const u = st.board[r][c];
-        if (!u || u.owner !== foe) continue;
-        if (u.revealed) knownOnBoard.push(u);
-      }
-    }
-    (st.captured[viewer] || []).forEach(function (d) { spent.push(d); });
+    const known = [];
+    const exposed = [];
+    E.forEachUnit(st, function (u) {
+      if (u.owner === foe && u.revealed) known.push(u);
+      if (u.owner === viewer && u.revealed) exposed.push(u);
+    });
 
     let html = '<div class="intel-head"><span class="intel-title">Intel ledger</span>' +
       '<span class="chip chip-' + (viewer === 1 ? 'solar' : 'void') + '">' + U.FACTIONS[foe].short + '</span></div>';
 
-    html += '<div class="intel-section"><div class="intel-label">Still hidden (' + unknowns.reduce(function (a, k) { return a + pool[k]; }, 0) + ' pieces)</div>' +
+    html += '<div class="intel-section"><div class="intel-label">Still hidden (' +
+      unknowns.reduce(function (a, k) { return a + pool[k]; }, 0) + ' pieces)</div>' +
       '<div class="intel-chips">' +
       (unknowns.length
         ? unknowns.map(function (k) {
-          return '<span class="intel-chip unknown" title="' + esc(U.UNIT_DEFS[k].name) + '">' + A.emblem(k) + esc(U.UNIT_DEFS[k].badge) + (pool[k] > 1 ? '×' + pool[k] : '') + '</span>';
+          return '<span class="intel-chip unknown" title="' + esc(U.UNIT_DEFS[k].name) + '">' + A.emblem(k) +
+            esc(U.UNIT_DEFS[k].badge) + (pool[k] > 1 ? '×' + pool[k] : '') + '</span>';
         }).join('')
         : '<span class="intel-note">Every enemy piece is accounted for.</span>') +
       '</div></div>';
 
-    if (knownOnBoard.length) {
+    if (known.length) {
       html += '<div class="intel-section"><div class="intel-label">Identified on the field</div><div class="intel-chips">' +
-        knownOnBoard.map(function (u) {
-          return '<span class="intel-chip" title="' + esc(U.UNIT_DEFS[u.key].name) + '">' + A.emblem(u.key) + esc(U.UNIT_DEFS[u.key].badge) + '</span>';
+        known.map(function (u) {
+          return '<span class="intel-chip" title="' + esc(U.UNIT_DEFS[u.key].name) + '">' + A.emblem(u.key) + esc(u.badge) + '</span>';
         }).join('') + '</div></div>';
-    }
-    if (spent.length) {
-      html += '<div class="intel-section"><div class="intel-label">Destroyed</div><div class="intel-chips">' +
-        spent.map(function (d) {
-          return '<span class="intel-chip spent">' + A.emblem(d.key) + esc(d.badge) + '</span>';
-        }).join('') + '</div></div>';
-    }
-
-    // odds block
-    const odds = oddsBlock();
-    if (odds) html += odds;
-
-    // what the enemy can see of you
-    const exposed = [];
-    for (let r = 0; r < st.rows; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        const u = st.board[r][c];
-        if (u && u.owner === viewer && u.revealed) exposed.push(u);
-      }
     }
     if (exposed.length) {
       html += '<div class="intel-section"><div class="intel-label">Your exposed pieces</div><div class="intel-chips">' +
         exposed.map(function (u) {
           return '<span class="intel-chip" title="' + esc(U.UNIT_DEFS[u.key].name) + '">' + A.emblem(u.key) + esc(u.badge) + '</span>';
-        }).join('') + '</div>' +
-        '<p class="intel-note">These ranks are known to the enemy.</p></div>';
+        }).join('') + '</div><p class="intel-note">These ranks are known to the enemy.</p></div>';
     }
+
+    const odds = oddsBlock();
+    if (odds) html += odds;
 
     if (st.phase === 'battle') {
       const left = E.drawCountdown(st);
+      const limit = st.config.drawAfter || 100;
       html += '<div class="intel-section"><div class="intel-label">No-capture clock</div>' +
         '<div class="odds-row"><span style="color:var(--dim)">Draw in</span>' +
-        '<span class="odds-bar"><span style="width:' + Math.round((left / (st.config.drawAfter || 60)) * 100) + '%;background:' +
+        '<span class="odds-bar"><span style="width:' + Math.round((left / limit) * 100) + '%;background:' +
         (left <= 10 ? 'var(--void)' : 'linear-gradient(90deg,var(--solar),var(--green))') + '"></span></span>' +
-        '<span class="odds-val">' + left + '</span></div>' +
-        '<p class="intel-note">If neither side captures for the full count, the match is a draw.</p></div>';
+        '<span class="odds-val">' + left + '</span></div></div>';
+
+      if (st.boardKey === 'wheel') {
+        const until = E.turnsUntilRotation(st);
+        html += '<div class="intel-section"><div class="intel-label">The chakra</div>' +
+          '<p class="intel-note">Rings 1 and 2 turn one spoke every 5 rounds, carrying whatever stands on them — and exposing it. Turns until the wheel moves: <b style="color:var(--gold)">' +
+          until + '</b>.</p></div>';
+      }
     }
 
     html += '<div class="intel-section">' +
       '<button class="mode-btn" data-act="advisor" style="width:100%;justify-content:center">' + A.icon('brain') + 'Ask the advisor</button>' +
-      '<p class="intel-note">Odds are averaged over every rank the enemy could still be hiding. A piece that has moved can no longer be a Core or a Mine.</p>' +
+      '<p class="intel-note">Odds are averaged over every rank the enemy could still be hiding. A piece that has moved can no longer be a fort or a trap.</p>' +
       '</div>';
 
     host.innerHTML = html;
@@ -611,20 +521,17 @@
   function oddsBlock() {
     const st = g.state;
     const viewer = st.viewer === 3 ? 1 : st.viewer;
-    const selUnit = g.sel ? st.board[g.sel.r][g.sel.c] : null;
-    const focus = g.focus ? st.board[g.focus.r][g.focus.c] : null;
-
+    const selUnit = g.sel ? st.board[g.sel] : null;
+    const focus = g.focus ? st.board[g.focus] : null;
     if (!focus || focus.owner === viewer) return '';
+
     if (selUnit && selUnit.owner === viewer) {
       const isBarrage = g.mode === 'special' && U.UNIT_DEFS[selUnit.key].hasRanged;
       const dist = focus.revealed
         ? (function () { const o = {}; o[focus.key] = 1; return o; })()
-        : E.beliefFor(st, viewer, g.focus.r, g.focus.c);
+        : E.beliefFor(st, viewer, g.focus);
       if (!dist) return '';
-      let win = 0;
-      let lose = 0;
-      let both = 0;
-      let core = 0;
+      let win = 0, lose = 0, both = 0, core = 0;
       Object.keys(dist).forEach(function (k) {
         const p = dist[k];
         const res = AI.predict(selUnit.key, k, st.config.tie, isBarrage);
@@ -638,48 +545,40 @@
       if (win > 0.001) rows.push(['You win', win, 'var(--green)']);
       if (both > 0.001) rows.push(['Both fall', both, 'var(--gold)']);
       if (lose > 0.001) rows.push(['You lose', lose, 'var(--void)']);
-      const title = isBarrage ? 'Barrage odds' : 'Clash odds';
-      return '<div class="intel-section"><div class="intel-label">' + title + ' · ' + esc(selUnit.short) + ' → unknown</div>' +
-        '<div class="intel-odds">' + rows.map(function (r) {
+      return '<div class="intel-section"><div class="intel-label">' + (isBarrage ? 'Volley odds' : 'Clash odds') +
+        ' · ' + esc(selUnit.short) + ' → unknown</div><div class="intel-odds">' +
+        rows.map(function (r) {
           return '<div class="odds-row"><span style="color:' + r[2] + '">' + r[0] + '</span>' +
             '<span class="odds-bar"><span style="width:' + Math.round(r[1] * 100) + '%"></span></span>' +
             '<span class="odds-val">' + Math.round(r[1] * 100) + '%</span></div>';
         }).join('') + '</div>' +
-        (focus.revealed ? '' : '<div class="intel-note">Identity odds: ' + topBeliefs(st, viewer, focus) + '</div>') +
+        (focus.revealed ? '' : '<div class="intel-note">Identity odds: ' + topBeliefs(st, viewer, g.focus) + '</div>') +
         '</div>';
     }
 
     if (!focus.revealed) {
-      const dist = E.beliefFor(st, viewer, g.focus.r, g.focus.c);
+      const dist = E.beliefFor(st, viewer, g.focus);
       if (!dist) return '';
       return '<div class="intel-section"><div class="intel-label">Tapped piece — identity odds</div>' +
-        '<div class="intel-note">' + topBeliefs(st, viewer, focus) + '</div>' +
-        '<div class="intel-odds">' + Object.keys(dist).sort(function (a, b) { return dist[b] - dist[a]; }).slice(0, 4).map(function (k) {
-          return '<div class="odds-row"><span>' + esc(U.UNIT_DEFS[k].badge) + '</span>' +
-            '<span class="odds-bar"><span style="width:' + Math.round(dist[k] * 100) + '%"></span></span>' +
-            '<span class="odds-val">' + Math.round(dist[k] * 100) + '%</span></div>';
-        }).join('') + '</div></div>';
+        '<div class="intel-note">' + topBeliefs(st, viewer, g.focus) + '</div>' +
+        '<div class="intel-odds">' + Object.keys(dist).sort(function (a, b) { return dist[b] - dist[a]; })
+          .slice(0, 4).map(function (k) {
+            return '<div class="odds-row"><span>' + esc(U.UNIT_DEFS[k].badge) + '</span>' +
+              '<span class="odds-bar"><span style="width:' + Math.round(dist[k] * 100) + '%"></span></span>' +
+              '<span class="odds-val">' + Math.round(dist[k] * 100) + '%</span></div>';
+          }).join('') + '</div></div>';
     }
     return '';
   }
 
-  function topBeliefs(st, viewer, unit) {
-    let pos = null;
-    for (let r = 0; r < st.rows && !pos; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        if (st.board[r][c] === unit) { pos = { r: r, c: c }; break; }
-      }
-    }
-    if (!pos) return '';
-    const dist = E.beliefFor(st, viewer, pos.r, pos.c) || {};
+  function topBeliefs(st, viewer, id) {
+    const dist = E.beliefFor(st, viewer, id) || {};
     const ranked = Object.keys(dist).sort(function (a, b) { return dist[b] - dist[a]; }).slice(0, 3);
     if (!ranked.length) return '';
     return ranked.map(function (k) {
       return U.UNIT_DEFS[k].short + ' ' + Math.round(dist[k] * 100) + '%';
     }).join(' · ');
   }
-
-  /* ── log ───────────────────────────────────────────────────── */
 
   function renderLog() {
     const host = $('#battle-log');
@@ -696,59 +595,51 @@
 
   /* ══ interaction ═══════════════════════════════════════════════ */
 
-  function onTile(r, c) {
+  function onCell(id) {
     const st = g.state;
     if (!st || g.busy) return;
-    if (st.phase === 'over') { g.focus = { r: r, c: c }; renderIntel(); return; }
+    if (st.phase === 'over') { g.focus = id; renderIntel(); return; }
 
     if (st.phase === 'deploy1' || st.phase === 'deploy2') {
       const owner = st.phase === 'deploy1' ? 1 : 2;
-      if (!E.inDeployZone(st, owner, r)) {
-        FX.toast('Deploy inside your own three rows.', 'warn');
+      if (!E.inDeployZone(st, owner, id)) {
+        FX.toast('Deploy inside your own zone.', 'warn');
         sfx('error');
         return;
       }
-      const unit = st.board[r][c];
+      const unit = st.board[id];
       if (unit && unit.owner !== owner) return;
       if (!g.sel) {
-        g.sel = { r: r, c: c };
+        g.sel = id;
         sfx('select');
-      } else if (g.sel.r === r && g.sel.c === c) {
+      } else if (g.sel === id) {
         g.sel = null;
         sfx('deselect');
-      } else {
-        const a = g.sel;
-        if (E.swapSlots(st, owner, a, { r: r, c: c })) {
-          sfx('swap');
-          buzz(10);
-          g.sel = null;
-        }
+      } else if (E.swapSlots(st, owner, g.sel, id)) {
+        sfx('swap');
+        buzz(10);
+        g.sel = null;
       }
       render();
       return;
     }
 
-    // battle
     if (g.thinking) return;
     const humanTurn = isPass() || st.owner === 1;
-    const unit = st.board[r][c];
-
     if (!humanTurn) return;
 
-    // clicking a highlighted target? (must come before the inspect branch,
-    // because an attack target is itself an enemy piece)
+    // a highlighted target wins over everything else
     if (g.sel) {
-      const targets = E.computeValidTargets(st, g.sel.r, g.sel.c, g.mode);
-      const hit = targets.filter(function (t) { return t.r === r && t.c === c; })[0];
+      const hit = E.computeValidTargets(st, g.sel, g.mode).filter(function (t) { return t.id === id; })[0];
       if (hit) {
-        commitAction(g.sel, { r: r, c: c }, hit.type);
+        commitAction(g.sel, id, hit.type);
         return;
       }
     }
 
-    // tapping an enemy that is out of reach: inspect it, don't clear selection
+    const unit = st.board[id];
     if (unit && unit.owner !== st.owner) {
-      g.focus = { r: r, c: c };
+      g.focus = id;
       renderIntel();
       sfx('ui');
       return;
@@ -756,25 +647,25 @@
 
     if (unit && unit.owner === st.owner) {
       if (!E.isMovable(unit)) {
-        FX.toast(unit.name + ' is immovable — it can never leave that square.', 'warn');
+        FX.toast(unit.name + ' is immovable — it can never leave that cell.', 'warn');
         sfx('error');
         g.sel = null;
         render();
         return;
       }
-      if (g.sel && g.sel.r === r && g.sel.c === c) {
+      if (g.sel === id) {
         g.sel = null;
         sfx('deselect');
         render();
         return;
       }
-      g.sel = { r: r, c: c };
+      g.sel = id;
       g.mode = 'move';
       sfx('select');
       buzz(8);
       if (!g.hinted) {
         g.hinted = true;
-        FX.toast('Cyan dot = move. Red ring = attack. Tap the square to commit.', 'info');
+        FX.toast('Cyan dot = move. Red ring = attack. Tap the cell to commit.', 'info');
       }
       render();
       return;
@@ -787,28 +678,19 @@
 
   function commitAction(from, to, type) {
     const st = g.state;
-    const attacker = st.board[from.r][from.c];
-    const target = st.board[to.r][to.c];
-
-    // Confirm unknown attacks so nobody loses a commander to a stray tap.
+    const target = st.board[to];
     const risky = type === 'attack' && target && !target.revealed && settings().confirmActions !== false;
-    if (risky) {
-      showOddsConfirm(from, to, type);
-      return;
-    }
+    if (risky) { showOddsConfirm(from, to, type); return; }
     performAction({ from: from, to: to, type: type });
   }
 
   function showOddsConfirm(from, to, type) {
     const st = g.state;
-    const attacker = st.board[from.r][from.c];
-    const target = st.board[to.r][to.c];
+    const attacker = st.board[from];
+    const target = st.board[to];
     const viewer = st.viewer === 3 ? 1 : st.viewer;
-    const dist = E.beliefFor(st, viewer, to.r, to.c) || { '2': 1 };
-    let win = 0;
-    let lose = 0;
-    let both = 0;
-    let core = 0;
+    const dist = E.beliefFor(st, viewer, to) || { '2': 1 };
+    let win = 0, lose = 0, both = 0, core = 0;
     Object.keys(dist).forEach(function (k) {
       const p = dist[k];
       const res = AI.predict(attacker.key, k, st.config.tie, false);
@@ -817,14 +699,12 @@
       else if (res.out === 'def' || res.out === 'mine') lose += p;
       else if (res.out === 'both') both += p;
     });
-
-    const row = function (label, p, cls) {
-      return '<div class="odds-row"><span style="color:' + cls + '">' + label + '</span>' +
+    const row = function (label, p, color) {
+      return '<div class="odds-row"><span style="color:' + color + '">' + label + '</span>' +
         '<span class="odds-bar"><span style="width:' + Math.round(p * 100) + '%"></span></span>' +
         '<span class="odds-val">' + Math.round(p * 100) + '%</span></div>';
     };
-
-    const m = AC.ui.modal({
+    AC.ui.modal({
       kicker: 'Commit attack',
       title: 'Strike an unknown piece?',
       sub: 'You are attacking blind. These odds are averaged over every rank this piece could still be.',
@@ -834,15 +714,13 @@
             '<div class="combat-emblem">' + A.emblem(attacker.key) + '</div>' +
             '<div class="combat-faction">' + U.FACTIONS[attacker.owner].short + '</div>' +
             '<div class="combat-name">' + esc(attacker.name) + '</div>' +
-            '<div class="combat-rank">rank ' + esc(attacker.badge) + '</div>' +
-          '</div>' +
+            '<div class="combat-rank">rank ' + esc(attacker.badge) + '</div></div>' +
           '<div class="combat-vs">VS</div>' +
           '<div class="combat-card void">' +
             '<div class="combat-emblem">' + A.emblem('F') + '</div>' +
             '<div class="combat-faction">unknown</div>' +
             '<div class="combat-name">Hidden piece</div>' +
-            '<div class="combat-rank">rank ?</div>' +
-          '</div>' +
+            '<div class="combat-rank">rank ?</div></div>' +
         '</div>' +
         '<div class="intel-odds">' +
           (core > 0.001 ? row('Objective', core, 'var(--gold)') : '') +
@@ -856,7 +734,11 @@
       ],
       onClose: function () { g.sel = null; render(); }
     });
-    void m;
+  }
+
+  function cellCenter(id) {
+    const el = document.querySelector('.cell[data-id="' + id + '"]');
+    return FX.centerOf(el);
   }
 
   function performAction(action) {
@@ -874,15 +756,19 @@
     g.focus = null;
     stopClock();
 
-    const toTile = document.querySelector('.tile[data-r="' + action.to.r + '"][data-c="' + action.to.c + '"]');
-    const at = FX.centerOf(toTile);
-
+    const at = cellCenter(action.to);
     let dramatic = null;
+    let rotated = false;
+
     res.events.forEach(function (ev) {
       if (ev.sfx) sfx(ev.sfx);
+      if (ev.kind === 'rotate') {
+        rotated = true;
+        FX.burst(FX.centerOf($('#board')).x, FX.centerOf($('#board')).y, { count: 40, color: '#f2cf8b', speed: 6, size: 3 });
+        FX.shake(8);
+        FX.float('THE CHAKRA TURNS', FX.centerOf($('#board')).x, FX.centerOf($('#board')).y - 40, '#f2cf8b');
+      }
       if (ev.kind === 'clash' || ev.kind === 'barrage' || ev.kind === 'scan' || ev.kind === 'core') {
-        dramatic = ev;
-      } else if (ev.kind === 'end' && !dramatic) {
         dramatic = ev;
       }
       if (ev.kind === 'clash') {
@@ -895,60 +781,42 @@
       } else if (ev.kind === 'barrage') {
         FX.burst(at.x, at.y, { count: 22, color: ev.kill ? '#fbbf24' : '#a855f7', speed: 5 });
         FX.shake(4);
-        if (ev.kill) FX.float('VAPORISED', at.x, at.y - 16, '#fbbf24');
+        if (ev.kill) FX.float('CUT DOWN', at.x, at.y - 16, '#fbbf24');
       } else if (ev.kind === 'scan') {
         FX.spawn(at.x, at.y, { count: 26, color: '#a855f7', speed: 2.4, size: 3 });
-        FX.float('SCANNED', at.x, at.y - 16, '#c4b5fd');
+        FX.float('REVEALED', at.x, at.y - 16, '#c4b5fd');
       } else if (ev.kind === 'move') {
         FX.spawn(at.x, at.y, { count: 8, color: '#22d3ee', speed: 1.4, size: 1.8, gravity: 0.02 });
       }
     });
 
     render();
+    if (rotated) FX.toast('The inner rings turned — everything they carried is exposed.', 'warn');
 
     const finish = function () {
       g.busy = false;
       autosave();
       render();
-      if (st.phase === 'over') {
-        handleGameOver();
-        return;
-      }
-      if (isAi() && st.owner === 2) {
-        scheduleAi();
-      } else if (isPass()) {
-        showCurtain(st.owner, 'battle');
-      }
+      if (st.phase === 'over') { handleGameOver(); return; }
+      if (isAi() && st.owner === 2) scheduleAi();
+      else if (isPass()) showCurtain(st.owner, 'battle');
       startClockIfNeeded();
     };
 
-    if (dramatic && dramatic.kind !== 'end') {
-      showCombatModal(dramatic, finish);
-    } else if (dramatic && dramatic.kind === 'end') {
-      showCombatModal(dramatic, finish);
-    } else {
-      finish();
-    }
+    if (dramatic) showCombatModal(dramatic, finish);
+    else finish();
   }
 
   /* ── combat modal ──────────────────────────────────────────── */
 
   function showCombatModal(ev, done) {
-    if (ev.kind === 'end') { if (done) done(); return; }
     const st = g.state;
+    const viewer = st.viewer === 3 ? 1 : st.viewer;
     const att = ev.unit;
     const def = ev.target;
-    const viewer = st.viewer === 3 ? 1 : st.viewer;
 
-    const card = function (u, dead, unknown) {
-      if (unknown) {
-        return '<div class="combat-card ' + (u.owner === 1 ? 'solar' : 'void') + (dead ? ' dead' : '') + '">' +
-          '<div class="combat-emblem">' + A.emblem('F') + '</div>' +
-          '<div class="combat-faction">' + U.FACTIONS[u.owner].short + '</div>' +
-          '<div class="combat-name">Hidden piece</div>' +
-          '<div class="combat-rank">rank ?</div></div>';
-      }
-      const show = u.owner === viewer || u.revealed || st.phase === 'over' || u.owner === (viewer === 1 ? 2 : 1);
+    const card = function (u, dead) {
+      const show = u.owner === viewer || u.revealed || st.phase === 'over' || u.owner !== viewer;
       return '<div class="combat-card ' + (u.owner === 1 ? 'solar' : 'void') + (dead ? ' dead' : '') + '">' +
         '<div class="combat-emblem">' + A.emblem(show ? u.key : 'F') + '</div>' +
         '<div class="combat-faction">' + U.FACTIONS[u.owner].short + '</div>' +
@@ -963,41 +831,30 @@
     let defDead = false;
 
     if (ev.kind === 'clash') {
-      if (ev.outcome === 'att') { title = ev.core ? 'Nexus Core captured' : 'Attacker prevails'; outcomeCls = 'win'; defDead = true; }
+      if (ev.core) { title = 'The fort is taken'; outcomeCls = 'win'; defDead = true; }
+      else if (ev.outcome === 'att') { title = 'Attacker prevails'; outcomeCls = 'win'; defDead = true; }
       else if (ev.outcome === 'def') { title = 'Defender holds'; outcomeCls = 'lose'; attDead = true; }
       else { title = 'Mutual destruction'; outcomeCls = 'both'; attDead = true; defDead = true; }
-      if (ev.core) { title = 'Nexus Core captured'; outcomeCls = 'win'; defDead = true; }
     } else if (ev.kind === 'barrage') {
-      kicker = 'Arc Barrage · 2 tiles';
-      if (ev.kill) { title = 'Target vaporised'; outcomeCls = 'win'; defDead = true; }
-      else if (ev.deflect) { title = 'Bolt deflected'; outcomeCls = 'lose'; }
-      else { title = 'Singularity shield absorbed the bolt'; outcomeCls = 'both'; }
+      kicker = 'Shara-varsha · two cells';
+      if (ev.kill) { title = 'Target cut down'; outcomeCls = 'win'; defDead = true; }
+      else if (ev.deflect) { title = 'Volley turned'; outcomeCls = 'lose'; }
+      else { title = 'The trap absorbed it'; outcomeCls = 'both'; }
     } else if (ev.kind === 'scan') {
-      kicker = 'Psionic Scan';
+      kicker = 'Divya-drishti';
       title = 'Identity revealed';
       outcomeCls = 'win';
     }
 
-    const unknownDef = ev.kind !== 'scan' && def && !def.revealed && st.phase !== 'over' && def.owner !== viewer;
-    const body =
-      '<div class="combat-arena">' +
-        card(att, attDead, false) +
-        '<div class="combat-vs">' + (ev.kind === 'scan' ? '◎' : 'VS') + '</div>' +
-        card(def, defDead, unknownDef && false) +
-      '</div>' +
-      '<div class="combat-outcome ' + outcomeCls + '">' + esc(ev.text) + '</div>';
-
     let fired = false;
-    const fire = function () {
-      if (fired) return;
-      fired = true;
-      if (done) done();
-    };
+    const fire = function () { if (!fired) { fired = true; if (done) done(); } };
 
     AC.ui.modal({
       kicker: kicker,
       title: title,
-      body: body,
+      body: '<div class="combat-arena">' + card(att, attDead) + '<div class="combat-vs">' +
+        (ev.kind === 'scan' ? '◎' : 'VS') + '</div>' + card(def, defDead) + '</div>' +
+        '<div class="combat-outcome ' + outcomeCls + '">' + esc(ev.text) + '</div>',
       dismissible: false,
       actions: [{ label: 'Continue', cls: 'btn-primary', onClick: fire }],
       onClose: fire
@@ -1021,7 +878,7 @@
       if (!act) {
         render();
         if (st.phase === 'battle') {
-          E.endGame(st, 1, 'Void Cabal has no legal action left.', []);
+          E.endGame(st, 1, 'Chandravansh has no legal action left.', []);
           handleGameOver();
         }
         return;
@@ -1036,10 +893,7 @@
   function startClockIfNeeded() {
     const st = g.state;
     if (!st) return;
-    if (!st.config.timer || st.phase !== 'battle' || g.thinking) {
-      stopClock();
-      return;
-    }
+    if (!st.config.timer || st.phase !== 'battle' || g.thinking) { stopClock(); return; }
     const humanTurn = isPass() || st.owner === 1;
     if (!humanTurn) { stopClock(); return; }
     if (g.timerId) return;
@@ -1052,10 +906,7 @@
         clock.classList.toggle('warn', g.timeLeft <= 10);
       }
       if (g.timeLeft <= 5 && g.timeLeft > 0) sfx('tick');
-      if (g.timeLeft <= 0) {
-        stopClock();
-        autoMoveOnTimeout();
-      }
+      if (g.timeLeft <= 0) { stopClock(); autoMoveOnTimeout(); }
     }, 1000);
   }
 
@@ -1081,9 +932,7 @@
     st.viewer = 0;
     render();
     const isDeploy = kind === 'deploy';
-    const title = isDeploy
-      ? 'Pass to ' + U.FACTIONS[nextOwner].name
-      : 'Pass to ' + U.FACTIONS[nextOwner].short + ' — turn ' + st.turn;
+    const title = isDeploy ? 'Pass to ' + U.FACTIONS[nextOwner].name : 'Pass to ' + U.FACTIONS[nextOwner].short + ' — turn ' + st.turn;
     const sub = isDeploy
       ? 'The previous commander has locked their formation. Hand the device over before continuing.'
       : 'Hide the screen from your opponent, then hand over the device.';
@@ -1100,7 +949,6 @@
       '</div>';
     document.body.appendChild(overlay);
     sfx('curtain');
-
     const reveal = function () {
       overlay.remove();
       st.viewer = nextOwner;
@@ -1109,9 +957,7 @@
       sfx('unlock');
     };
     overlay.querySelector('#curtain-go').addEventListener('click', reveal);
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) reveal();
-    });
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) reveal(); });
   }
 
   /* ── deployment actions ──────────────────────────────────── */
@@ -1158,19 +1004,15 @@
   function keepFormation() {
     const st = g.state;
     const owner = st.phase === 'deploy1' ? 1 : 2;
-    const layout = [];
-    for (let r = 0; r < st.rows; r++) {
-      const row = [];
-      for (let c = 0; c < st.cols; c++) {
-        const u = st.board[r][c];
-        row.push(u && u.owner === owner ? u.key : null);
-      }
-      layout.push(row);
-    }
+    const map = {};
+    board().zones[owner].forEach(function (id) {
+      const u = st.board[id];
+      if (u && u.owner === owner) map[id] = u.key;
+    });
     AC.ui.promptText({ kicker: 'Formation', title: 'Save this formation', label: 'Formation name', value: 'My formation' })
       .then(function (name) {
         if (!name) return;
-        S.saveFormation(name, layout, st.config.board);
+        S.saveFormation(name, map, st.boardKey);
         FX.toast('Formation saved.', 'success');
         sfx('save');
         render();
@@ -1180,14 +1022,14 @@
   function applySavedFormation() {
     const st = g.state;
     const owner = st.phase === 'deploy1' ? 1 : 2;
-    const list = S.listFormations().filter(function (f) { return f.board === st.config.board; });
+    const list = S.listFormations().filter(function (f) { return f.board === st.boardKey; });
     if (!list.length) { FX.toast('No saved formations for this board.', 'warn'); return; }
     const m = AC.ui.modal({
       kicker: 'Formations',
       title: 'Load a formation',
       body: '<div class="save-list">' + list.map(function (f, i) {
         return '<div class="save-card"><div class="save-info"><div class="save-title">' + esc(f.name) + '</div>' +
-          '<div class="save-meta">' + U.BOARDS[f.board].label + ' · saved ' + AC.ui.timeAgo(f.createdAt) + '</div></div>' +
+          '<div class="save-meta">' + (U.BOARDS[f.board] || U.BOARDS.small).label + ' · saved ' + AC.ui.timeAgo(f.createdAt) + '</div></div>' +
           '<div class="save-actions"><button class="btn btn-primary btn-xs" data-use="' + i + '">Use</button>' +
           '<button class="btn btn-danger btn-xs" data-drop="' + i + '">' + A.icon('trash') + '</button></div></div>';
       }).join('') + '</div>',
@@ -1198,10 +1040,7 @@
       const drop = e.target.closest('[data-drop]');
       if (use) {
         const f = list[Number(use.getAttribute('data-use'))];
-        if (f) {
-          applyLayout(f.layout, owner);
-          m.close();
-        }
+        if (f) { applyLayout(f.layout, owner); m.close(); }
       } else if (drop) {
         const f = list[Number(drop.getAttribute('data-drop'))];
         if (f) { S.deleteFormation(f.id); m.close(); FX.toast('Formation deleted.', 'success'); render(); }
@@ -1209,38 +1048,26 @@
     });
   }
 
-  function applyLayout(layout, owner) {
+  function applyLayout(map, owner) {
     const st = g.state;
     const army = [];
-    for (let r = 0; r < st.rows; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        const u = st.board[r][c];
-        if (u && u.owner === owner) army.push(u);
-      }
-    }
-    // clear zone
-    for (let r = 0; r < st.rows; r++) {
-      if (!E.inDeployZone(st, owner, r)) continue;
-      for (let c = 0; c < st.cols; c++) st.board[r][c] = null;
-    }
+    E.forEachUnit(st, function (u) { if (u.owner === owner) army.push(u); });
+    board().zones[owner].forEach(function (id) { st.board[id] = null; });
+
     const byKey = {};
     army.forEach(function (u) { (byKey[u.key] = byKey[u.key] || []).push(u); });
-    for (let r = 0; r < st.rows; r++) {
-      for (let c = 0; c < st.cols; c++) {
-        const k = layout[r] && layout[r][c];
-        if (!k || !E.inDeployZone(st, owner, r)) continue;
-        const pool = byKey[k];
-        if (pool && pool.length) st.board[r][c] = pool.pop();
-      }
-    }
-    // anything left goes to any free square
-    const leftovers = army.filter(function (u) { return !st.board.some(function (row) { return row.indexOf(u) !== -1; }); });
-    for (let r = 0; r < st.rows && leftovers.length; r++) {
-      if (!E.inDeployZone(st, owner, r)) continue;
-      for (let c = 0; c < st.cols && leftovers.length; c++) {
-        if (!st.board[r][c]) st.board[r][c] = leftovers.shift();
-      }
-    }
+    Object.keys(map || {}).forEach(function (id) {
+      if (!E.inDeployZone(st, owner, id)) return;
+      const pool = byKey[map[id]];
+      if (pool && pool.length) st.board[id] = pool.pop();
+    });
+    // anything unplaced goes to a free zone cell
+    const placed = {};
+    E.forEachUnit(st, function (u, id) { placed[u.id] = id; });
+    const leftovers = army.filter(function (u) { return !placed[u.id]; });
+    const free = board().zones[owner].filter(function (id) { return !st.board[id]; });
+    leftovers.forEach(function (u, i) { if (free[i]) st.board[free[i]] = u; });
+
     sfx('deploy');
     render();
   }
@@ -1251,12 +1078,11 @@
     const st = g.state;
     if (!st || st.phase !== 'battle') { FX.toast('The advisor only speaks during battle.', 'warn'); return; }
     if (g.thinking) return;
-    const humanTurn = isPass() || st.owner === 1;
-    if (!humanTurn) return;
+    if (!(isPass() || st.owner === 1)) return;
     const advice = AI.advise(st, st.owner, 3);
     if (!advice.length) { FX.toast('No legal moves available.', 'warn'); return; }
     const m = AC.ui.modal({
-      kicker: 'Advisor · ' + (st.owner === 1 ? 'Solaris' : 'Void'),
+      kicker: 'Advisor · ' + U.FACTIONS[st.owner].short,
       title: 'Recommended orders',
       sub: 'Ranked by the same belief model the AI uses. Tap one to see it on the board.',
       body: '<div class="advice-list">' + advice.map(function (a, i) {
@@ -1268,19 +1094,16 @@
       actions: [{ label: 'Close', cls: 'btn-ghost' }]
     });
     m.el.addEventListener('click', function (e) {
-      const b = e.target.closest('[data-adv]');
-      if (!b) return;
-      const a = advice[Number(b.getAttribute('data-adv'))];
+      const btn = e.target.closest('[data-adv]');
+      if (!btn) return;
+      const a = advice[Number(btn.getAttribute('data-adv'))];
       if (!a) return;
-      g.sel = { r: a.action.from.r, c: a.action.from.c };
-      g.mode = a.action.type === 'scan' || a.action.type === 'barrage' ? 'special' : 'move';
+      g.sel = a.action.from;
+      g.mode = (a.action.type === 'scan' || a.action.type === 'barrage') ? 'special' : 'move';
       m.close();
       render();
-      const tile = document.querySelector('.tile[data-r="' + a.action.to.r + '"][data-c="' + a.action.to.c + '"]');
-      if (tile) {
-        const at = FX.centerOf(tile);
-        FX.spawn(at.x, at.y, { count: 14, color: '#34d399', speed: 2 });
-      }
+      const at = cellCenter(a.action.to);
+      FX.spawn(at.x, at.y, { count: 14, color: '#34d399', speed: 2 });
     });
   }
 
@@ -1304,7 +1127,6 @@
 
     const winner = st.winner;
     const isAiGame = isAi();
-    const meIsP1 = true;
     let outcome = 'draw';
     if (winner === 1) outcome = 'win';
     else if (winner === 2) outcome = 'loss';
@@ -1318,26 +1140,21 @@
       });
       AC.app.profile = S.getProfile(AC.app.profile.id);
     }
-
     S.deleteSave('auto');
 
-    const title = winner === 0 ? 'Stalemate' : (winner === 1 ? 'Solaris Order triumphs' : 'Void Cabal conquers');
+    const title = winner === 0 ? 'Stalemate' : (winner === 1 ? 'Suryavansh triumphs' : 'Chandravansh conquers');
     const cls = winner === 0 ? 'draw' : winner === 1 ? 'win' : 'lose';
-    const myOutcome = isAiGame
-      ? (outcome === 'win' ? 'Victory — the Void Cabal line is broken.' : outcome === 'loss' ? 'Defeat — your Nexus Core is lost.' : 'Draw — the field is exhausted.')
-      : title + '.';
-
     sfx(winner === 0 ? 'draw' : isAiGame ? (outcome === 'win' ? 'win' : 'lose') : 'win');
     if (winner !== 0) FX.shake(9);
 
-    const m = AC.ui.modal({
+    AC.ui.modal({
       kicker: 'Engagement complete',
       title: '',
       dismissible: false,
       body:
         '<div class="result-hero">' +
           '<div class="result-title ' + cls + '">' + esc(title) + '</div>' +
-          '<div class="result-reason">' + esc(st.reason || myOutcome) + '</div>' +
+          '<div class="result-reason">' + esc(st.reason || '') + '</div>' +
         '</div>' +
         '<div class="result-stats">' +
           '<div class="result-stat"><b>' + st.turn + '</b><span>turns</span></div>' +
@@ -1350,7 +1167,6 @@
         { label: 'Rematch', cls: 'btn-primary', onClick: function () { g.start(st.config); } }
       ]
     });
-    void m;
   }
 
   g.resign = function () {
@@ -1363,42 +1179,59 @@
   /* ── wiring ───────────────────────────────────────────────── */
 
   function wire() {
-    const board = document.getElementById('board');
-    board.addEventListener('click', function (e) {
-      const tile = e.target.closest('.tile');
-      if (!tile) return;
-      onTile(Number(tile.getAttribute('data-r')), Number(tile.getAttribute('data-c')));
+    const svg = document.getElementById('board');
+    svg.addEventListener('click', function (e) {
+      const cell = e.target.closest('[data-id]');
+      if (!cell) return;
+      onCell(cell.getAttribute('data-id'));
     });
-    board.addEventListener('pointerover', function (e) {
-      const tile = e.target.closest('.tile');
-      if (!tile || !g.state || g.state.phase !== 'battle') return;
-      const r = Number(tile.getAttribute('data-r'));
-      const c = Number(tile.getAttribute('data-c'));
-      const u = g.state.board[r][c];
+    svg.addEventListener('pointerover', function (e) {
+      const cell = e.target.closest('[data-id]');
+      if (!cell || !g.state || g.state.phase !== 'battle') return;
+      const id = cell.getAttribute('data-id');
+      const u = g.state.board[id];
       const viewer = g.state.viewer === 3 ? 1 : g.state.viewer;
-      if (u && u.owner !== viewer && !u.revealed) {
-        if (!g.focus || g.focus.r !== r || g.focus.c !== c) {
-          g.focus = { r: r, c: c };
-          renderIntel();
-        }
+      if (u && u.owner !== viewer && !u.revealed && g.focus !== id) {
+        g.focus = id;
+        renderIntel();
       }
     });
-
-    board.addEventListener('keydown', function (e) {
-      const tile = e.target.closest('.tile');
-      if (!tile) return;
-      const r = Number(tile.getAttribute('data-r'));
-      const c = Number(tile.getAttribute('data-c'));
-      let nr = r;
-      let nc = c;
-      if (e.key === 'ArrowUp') nr = Math.max(0, r - 1);
-      else if (e.key === 'ArrowDown') nr = Math.min(g.state.rows - 1, r + 1);
-      else if (e.key === 'ArrowLeft') nc = Math.max(0, c - 1);
-      else if (e.key === 'ArrowRight') nc = Math.min(g.state.cols - 1, c + 1);
-      else return;
+    svg.addEventListener('keydown', function (e) {
+      const cell = e.target.closest('[data-id]');
+      if (!cell) return;
+      const id = cell.getAttribute('data-id');
+      const b = board();
+      const c = b.byId[id];
+      if (!c) return;
+      let nextId = null;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+        const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+        let best = null;
+        let bestScore = 1e9;
+        b.cells.forEach(function (other) {
+          if (other.id === id) return;
+          const vx = other.x - c.x;
+          const vy = other.y - c.y;
+          const along = vx * dx + vy * dy;
+          if (along <= 0.05) return;
+          const off = Math.abs(vx * dy - vy * dx);
+          const score = off * 2 + along;
+          if (score < bestScore) { bestScore = score; best = other.id; }
+        });
+        nextId = best;
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onCell(id);
+        return;
+      } else {
+        return;
+      }
       e.preventDefault();
-      const next = document.querySelector('.tile[data-r="' + nr + '"][data-c="' + nc + '"]');
-      if (next) next.focus();
+      if (nextId) {
+        const el = svg.querySelector('[data-id="' + nextId + '"]');
+        if (el) el.focus();
+      }
     });
 
     const bar = document.getElementById('action-bar');
@@ -1414,12 +1247,7 @@
       }
       if (e.target.closest('[data-formation]')) { applySavedFormation(); return; }
       const mode = e.target.closest('[data-mode]');
-      if (mode) {
-        g.mode = mode.getAttribute('data-mode');
-        sfx('ui');
-        render();
-        return;
-      }
+      if (mode) { g.mode = mode.getAttribute('data-mode'); sfx('ui'); render(); return; }
       const act = e.target.closest('[data-act]');
       if (act) {
         const what = act.getAttribute('data-act');
@@ -1462,23 +1290,11 @@
       document.getElementById('intel-panel').classList.remove('open');
       document.getElementById('scrim').classList.remove('on');
     });
-
-    let resizeRaf = null;
-    window.addEventListener('resize', function () {
-      if (resizeRaf) cancelAnimationFrame(resizeRaf);
-      resizeRaf = requestAnimationFrame(function () {
-        layoutBoard();
-        g.lastRects = captureRects();
-      });
-    });
-    window.addEventListener('orientationchange', function () {
-      setTimeout(layoutBoard, 250);
-    });
   }
 
   g.wire = wire;
   g.render = render;
-  g.tile = onTile;
+  g.tile = onCell;
   g.advisor = openAdvisor;
   g.autosave = autosave;
 

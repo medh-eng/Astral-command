@@ -250,6 +250,14 @@
     },
     keypad: function () { tone({ freq: 900, to: 1100, dur: 0.05, type: 'square', gain: 0.05 }); },
     tick: function () { tone({ freq: 1500, dur: 0.03, type: 'square', gain: 0.04 }); },
+    rotate: function () {
+      // stone grinding on stone, with a rising shimmer as the wheel settles
+      noise({ freq: 220, to: 90, dur: 1.1, gain: 0.14, filter: 'lowpass', q: 0.8 });
+      [110, 165, 220, 330].forEach(function (f, i) {
+        tone({ freq: f, dur: 0.9, type: 'sine', gain: 0.05, delay: i * 0.09 });
+      });
+      tone({ freq: 440, to: 660, dur: 0.7, type: 'triangle', gain: 0.05, delay: 0.35 });
+    },
     save: function () {
       tone({ freq: 880, dur: 0.12, type: 'sine', gain: 0.08 });
       tone({ freq: 1174, dur: 0.16, type: 'sine', gain: 0.07, delay: 0.08 });

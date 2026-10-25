@@ -11,11 +11,11 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, '..');
-['js/units.js', 'js/engine.js', 'js/ai.js'].forEach((f) => {
+['js/units.js', 'js/geometry.js', 'js/engine.js', 'js/ai.js'].forEach((f) => {
   vm.runInThisContext(fs.readFileSync(path.join(root, f), 'utf8'), { filename: f });
 });
 
-const { engine: E, ai, units: U } = globalThis.AC;
+const { engine: E, ai, units: U, geometry: G } = globalThis.AC;
 const games = Number(process.argv[2] || 40);
 
 let failures = 0;
@@ -32,7 +32,7 @@ function check(cond, msg) {
 }
 
 for (let g = 0; g < games; g++) {
-  const board = g % 2 === 0 ? 'small' : 'large';
+  const board = ['small', 'large', 'wheel'][g % 3];
   const tie = g % 3 === 0 ? 'mutual' : 'attacker';
   const d1 = ['recruit', 'veteran', 'archon'][g % 3];
   const d2 = ['archon', 'veteran', 'recruit'][(g + 1) % 3];
@@ -46,8 +46,8 @@ for (let g = 0; g < games; g++) {
     check(E.armyComplete(t, 1), `preset ${style} p1 count (${board})`);
     check(E.armyComplete(t, 2), `preset ${style} p2 count (${board})`);
     let cores = 0;
-    t.board.forEach((row) => row.forEach((u) => { if (u && u.key === 'F') cores++; }));
-    check(cores === 2, `preset ${style} must keep both cores on the board`);
+    Object.values(t.board).forEach((u) => { if (u && u.key === 'F') cores++; });
+    check(cores === 2, `preset ${style} must keep both forts on the board (${board})`);
   });
 
   E.beginBattle(s);
@@ -65,14 +65,16 @@ for (let g = 0; g < games; g++) {
 
     // invariants
     let counts = { 1: 0, 2: 0, F: 0 };
-    s.board.forEach((row) => row.forEach((u) => {
+    Object.keys(s.board).forEach((id) => {
+      const u = s.board[id];
       if (!u) return;
       counts[u.owner]++;
       if (u.key === 'F') counts.F++;
       check(u.owner === 1 || u.owner === 2, 'unit owner valid');
-    }));
-    check(counts.F <= 2, 'never more than two cores');
-    check(s.board.every((row) => row.length === s.cols), 'row width stable');
+      check(!!G.build(s.boardKey).byId[id], 'every piece sits on a real cell');
+    });
+    check(counts.F <= 2, 'never more than two forts');
+    check(counts[1] + counts[2] <= 24, 'piece count stays sane');
   }
   check(s.phase === 'over', `game ${g} terminated (phase=${s.phase}, plies=${plies})`);
   results[s.winner === null ? 0 : s.winner]++;

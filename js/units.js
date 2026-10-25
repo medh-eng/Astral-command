@@ -9,9 +9,9 @@
   const FACTIONS = {
     1: {
       id: 1,
-      name: 'Solaris Order',
-      short: 'Solaris',
-      motto: 'Light holds the line',
+      name: 'Suryavansh',
+      short: 'Surya',
+      motto: 'The sun holds the line',
       color: '#22d3ee',
       color2: '#38bdf8',
       accent: '#a5f3fc',
@@ -19,9 +19,9 @@
     },
     2: {
       id: 2,
-      name: 'Void Cabal',
-      short: 'Void',
-      motto: 'Silence eats the stars',
+      name: 'Chandravansh',
+      short: 'Chandra',
+      motto: 'The moon eats the light',
       color: '#f43f5e',
       color2: '#a855f7',
       accent: '#fecdd3',
@@ -32,15 +32,15 @@
   // Complete 12-piece roster. `rank` drives combat; `power` describes the special.
   const UNIT_DEFS = {
     '10': {
-      key: '10', rank: 10, count: 1, name: 'Solar Archon', short: 'Archon',
+      key: '10', rank: 10, count: 1, name: 'Senapati', short: 'Senapati', alias: 'Senapati',
       badge: '10', movable: true, moveRange: 1, tier: 'command',
       role: 'Supreme Commander',
       power: null,
-      desc: 'Moves 1 tile. Beats every unit in melee except a Stasis Mine, or a Shadow Wraith that strikes first.',
+      desc: 'Moves 1 tile. Beats every unit in melee except a Shataghni, or a Chara that strikes first.',
       tip: 'Keep it behind a screen until the enemy Wraith is spent.'
     },
     '9': {
-      key: '9', rank: 9, count: 1, name: 'Star Paladin', short: 'Paladin',
+      key: '9', rank: 9, count: 1, name: 'Maharathi', short: 'Maharathi', alias: 'Maharathi',
       badge: '9', movable: true, moveRange: 1, tier: 'command',
       role: 'Heavy Warlord',
       power: null,
@@ -48,7 +48,7 @@
       tip: 'A bodyguard for your core: strong enough to absorb probes.'
     },
     '7': {
-      key: '7', rank: 7, count: 1, name: 'Valkyrie Vanguard', short: 'Valkyrie',
+      key: '7', rank: 7, count: 1, name: 'Ashvarohi', short: 'Ashvarohi', alias: 'Ashvarohi',
       badge: '7', movable: true, moveRange: 2, tier: 'elite',
       role: 'Phase Dasher',
       power: { id: 'dash', label: 'Phase Dash', range: 2 },
@@ -56,7 +56,7 @@
       tip: 'Reaches the second rank of a formation in one tempo.'
     },
     '6': {
-      key: '6', rank: 6, count: 1, name: 'Plasma Lancer', short: 'Lancer',
+      key: '6', rank: 6, count: 1, name: 'Dhanurdhar', short: 'Dhanurdhar', alias: 'Dhanurdhar',
       badge: '6', movable: true, moveRange: 1, tier: 'elite', hasRanged: true,
       role: 'Arc Artillery',
       power: { id: 'barrage', label: 'Arc Barrage', range: 2 },
@@ -64,7 +64,7 @@
       tip: 'The only unit that kills without moving — and it cannot be hurt by the reply.'
     },
     '5': {
-      key: '5', rank: 5, count: 1, name: 'Chrono Seer', short: 'Seer',
+      key: '5', rank: 5, count: 1, name: 'Divyadrishti', short: 'Divyadrishti', alias: 'Divyadrishti',
       badge: '5', movable: true, moveRange: 1, tier: 'elite', hasScan: true,
       role: 'Psionic Scanner',
       power: { id: 'scan', label: 'Psionic Scan', range: 2 },
@@ -72,15 +72,15 @@
       tip: 'Information is tempo. Scan before you commit an attack.'
     },
     '3': {
-      key: '3', rank: 3, count: 2, name: 'Warp Sapper', short: 'Sapper',
+      key: '3', rank: 3, count: 2, name: 'Yantrik', short: 'Yantrik', alias: 'Yantrik',
       badge: '3', movable: true, moveRange: 1, tier: 'line', defusesMines: true,
       role: 'Mine Specialist ×2',
       power: null,
-      desc: 'Moves 1 tile. The only unit that can defuse and capture an immovable Stasis Mine.',
+      desc: 'Moves 1 tile. The only unit that can defuse and capture an immovable Shataghni.',
       tip: 'Your mine-clearer is also your best cheap probe.'
     },
     '2': {
-      key: '2', rank: 2, count: 2, name: 'Astral Strider', short: 'Strider',
+      key: '2', rank: 2, count: 2, name: 'Rath', short: 'Rath', alias: 'Rath',
       badge: '2', movable: true, moveRange: 99, tier: 'line',
       role: 'Long-Range Scout ×2',
       power: null,
@@ -88,7 +88,7 @@
       tip: 'Crossing the board reveals you — run late, not early.'
     },
     '1': {
-      key: '1', rank: 1, count: 1, name: 'Shadow Wraith', short: 'Wraith',
+      key: '1', rank: 1, count: 1, name: 'Chara', short: 'Chara', alias: 'Chara',
       badge: 'S', movable: true, moveRange: 1, tier: 'line', assassin: true,
       role: 'Cloaked Assassin',
       power: null,
@@ -96,15 +96,15 @@
       tip: 'Hold it for the endgame, then trade it for a commander.'
     },
     'B': {
-      key: 'B', rank: 0, count: 1, name: 'Stasis Mine', short: 'Mine',
+      key: 'B', rank: 0, count: 1, name: 'Shataghni', short: 'Shataghni', alias: 'Shataghni',
       badge: 'B', movable: false, moveRange: 0, tier: 'trap',
       role: 'Singularity Trap',
       power: null,
-      desc: 'Immovable. Destroys any unit that attacks it, and survives — unless that unit is a Warp Sapper.',
+      desc: 'Immovable. Destroys any unit that attacks it, and survives — unless that unit is a Yantrik.',
       tip: 'A mine only works once. Hide it where a probe must pass.'
     },
     'F': {
-      key: 'F', rank: -1, count: 1, name: 'Nexus Core', short: 'Nexus',
+      key: 'F', rank: -1, count: 1, name: 'Durg', short: 'Durg', alias: 'Durg',
       badge: 'F', movable: false, moveRange: 0, tier: 'trap',
       role: 'Primary Objective',
       power: null,
@@ -121,6 +121,10 @@
   // Board geometry. Rifts are impassable, but the Lancer may fire across them.
   const BOARDS = {
     small: { key: 'small', cols: 6, rows: 8, deployRows: 3, label: 'Small Arena', blurb: '6 × 8 · fast and brutal', rifts: ['3,1', '4,1', '3,4', '4,4'] },
+    wheel: {
+      key: 'wheel', cols: 0, rows: 0, deployRows: 0, cells: 33,
+      label: 'Chakravyuha', blurb: 'the wheel · rings turn every 5 turns', rifts: []
+    },
     large: {
       key: 'large', cols: 8, rows: 10, deployRows: 3, label: 'Large Expanse', blurb: '8 × 10 · room to flank', rifts: (function () {
         const out = [];

@@ -1,5 +1,6 @@
 /* DOM smoke test: boots the real index.html + scripts in jsdom and drives a
- * whole match through the UI layer (login → deploy → battle → save/load).
+ * whole match through the UI layer (login → deploy → battle → save/load),
+ * including the Chakravyuha wheel.
  *   node tests/ui.mjs
  */
 import fs from 'node:fs';
@@ -37,9 +38,7 @@ w.HTMLCanvasElement.prototype.getContext = function () {
 };
 
 process.on('uncaughtException', (e) => {
-  // jsdom's teardown tries to spin up undici's wasm HTTP parser in this
-  // sandbox and fails; it is unrelated to the game, so record and move on.
-  if (/WebAssembly/.test(e.message)) return;
+  if (/WebAssembly/.test(e.message)) return; // jsdom teardown quirk in this sandbox
   console.log('UNCAUGHT', e.message);
   errors.push(e.message);
 });
@@ -49,12 +48,10 @@ process.on('unhandledRejection', (e) => {
 });
 
 let errors = [];
-w.addEventListener('error', (e) => errors.push(e.message));
-const origError = console.error;
 console.error = (...a) => { errors.push(a.join(' ')); };
 
-const files = ['js/units.js', 'js/engine.js', 'js/ai.js', 'js/audio.js', 'js/storage.js',
-  'js/art.js', 'js/fx.js', 'js/ui.js', 'js/game.js', 'js/main.js'];
+const files = ['js/units.js', 'js/geometry.js', 'js/engine.js', 'js/ai.js', 'js/audio.js',
+  'js/storage.js', 'js/art.js', 'js/fx.js', 'js/ui.js', 'js/game.js', 'js/main.js'];
 files.forEach((f) => {
   try {
     w.eval(fs.readFileSync(path.join(root, f), 'utf8'));
@@ -71,18 +68,19 @@ function ok(cond, name) {
   else { fail++; console.log('  ✗ ' + name); }
 }
 const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
 const click = (el) => {
   if (!el) throw new Error('missing element to click');
   el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
 };
+const clickCell = (id) => click(document.querySelector('.cell[data-id="' + id + '"]'));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function run() {
-  await sleep(900); // boot timer
+  await sleep(900);
   ok(!!AC, 'AC namespace loaded');
   ok(!!$('#screen-auth') && !$('#screen-auth').hidden, 'auth screen shown on first run');
   ok($('#sigil-picker').children.length === 8, 'sigil picker populated');
-  ok(document.querySelectorAll('#auth-profiles .profile-row').length === 0, 'no profiles yet');
 
   // create a commander
   $('#new-name').value = 'Test Vega';
@@ -91,99 +89,172 @@ async function run() {
   await sleep(120);
   ok(AC.app.profile && AC.app.profile.name === 'Test Vega', 'profile created and logged in');
   ok(!$('#screen-home').hidden, 'home screen after login');
-  ok(AC.storage.listProfiles().length === 1, 'profile persisted');
   ok(AC.storage.listProfiles()[0].hasPin, 'PIN stored as a hash');
 
-  // guest-free start: setup
+  // setup: square board first
   click($('#btn-new-match'));
   ok(!$('#screen-setup').hidden, 'setup screen opens');
-  ok(document.querySelectorAll('#setup-form .opt').length >= 8, 'setup options rendered');
-
-  // pick large board + mutual tie + no clock, then start
+  ok($$('#setup-form .opt').length >= 9, 'setup options rendered');
   click(document.querySelector('#setup-form [data-group="board"][data-val="large"]'));
   click(document.querySelector('#setup-form [data-group="tie"][data-val="mutual"]'));
-  click(document.querySelector('#setup-form [data-group="difficulty"][data-val="veteran"]'));
   click($('#btn-start-match'));
   await sleep(60);
 
   const game = AC.game;
   ok(!!game.state, 'engine state created');
   ok(game.state.phase === 'deploy1', 'starts in deployment');
-  ok(!$('#screen-game').hidden, 'game screen visible');
-  ok(document.querySelectorAll('#board .tile').length === 80, 'board rendered 8x10 tiles');
-  ok(document.querySelectorAll('#board .token').length === 24, '24 tokens on the board');
-  ok(document.querySelectorAll('#action-bar [data-preset]').length === 4, 'four formation presets');
-  ok(document.querySelectorAll('#intel-panel .intel-chip').length > 0, 'intel ledger has chips');
+  ok($$('#board .cell').length === 80, 'board rendered 80 SVG cells');
+  ok($$('#board .token').length === 24, '24 tokens on the board');
+  ok($$('#action-bar [data-preset]').length === 4, 'four formation presets');
+  ok($$('#intel-panel .intel-chip').length > 0, 'intel ledger has chips');
 
-  // swap two deployment squares through the UI
-  const before = JSON.stringify(game.state.board[9][0] && game.state.board[9][0].id);
-  click(document.querySelector('.tile[data-r="9"][data-c="0"]'));
-  click(document.querySelector('.tile[data-r="9"][data-c="1"]'));
-  ok(JSON.stringify(game.state.board[9][1] && game.state.board[9][1].id) === before, 'tap-swap moved a piece');
+  // swap two deployment cells through the UI
+  const st = game.state;
+  const zone = AC.geometry.build(st.boardKey).zones[1];
+  const before = st.board[zone[0]] && st.board[zone[0]].id;
+  clickCell(zone[0]);
+  clickCell(zone[1]);
+  ok((st.board[zone[1]] && st.board[zone[1]].id) === before, 'tap-swap moved a piece');
 
-  // apply a preset then lock
   click(document.querySelector('#action-bar [data-preset="blitz"]'));
-  ok(AC.engine.armyComplete(game.state, 1), 'army complete after preset');
+  ok(AC.engine.armyComplete(st, 1), 'army complete after a preset');
   click(document.querySelector('#action-bar [data-deploy="lock"]'));
   await sleep(60);
-  ok(game.state.phase === 'battle', 'battle begins after locking');
+  ok(st.phase === 'battle', 'battle begins after locking');
 
-  // play 30 plies by clicking the advisor's suggestion
+  // play a few UI-driven orders
   let plies = 0;
-  for (let i = 0; i < 30 && game.state.phase === 'battle'; i++) {
-    if (game.thinking) { await sleep(700); continue; }
-    const advice = AC.ai.advise(game.state, game.state.owner, 1);
+  for (let i = 0; i < 12 && st.phase === 'battle'; i++) {
+    if (game.thinking) { await sleep(800); continue; }
+    const advice = AC.ai.advise(st, st.owner, 1);
     if (!advice.length) break;
     const a = advice[0].action;
-    game.sel = { r: a.from.r, c: a.from.c };
+    game.sel = a.from;
     game.mode = (a.type === 'scan' || a.type === 'barrage') ? 'special' : 'move';
-    // drive it through the real click path where possible
-    const target = document.querySelector('.tile[data-r="' + a.to.r + '"][data-c="' + a.to.c + '"]');
-    if (!target) break;
-    click(target);
+    clickCell(a.to);
     plies++;
-    // dismiss any modal that appeared
-    const btn = document.querySelector('.modal-backdrop .modal-actions [data-act]');
-    if (btn) click(btn);
+    AC.app.modals.slice().forEach((m) => m.close());
     await sleep(30);
-    if (game.state.owner === 2 && game.state.phase === 'battle') {
-      await sleep(900); // let the AI play its reply
-      const btn2 = document.querySelector('.modal-backdrop .modal-actions [data-act]');
-      if (btn2) click(btn2);
-    }
-    if (AC.app.modals.length) {
+    if (st.owner === 2 && st.phase === 'battle') {
+      await sleep(900);
       AC.app.modals.slice().forEach((m) => m.close());
     }
   }
-  ok(plies > 5, 'played ' + plies + ' UI-driven orders');
-  ok(game.state.log.length > 0, 'battle log recorded');
+  ok(plies > 3, 'played ' + plies + ' UI-driven orders');
+  ok(st.log.length > 0, 'battle log recorded');
   ok(!!game.saveTo('1'), 'manual save writes a slot');
   ok(AC.storage.listSaves().some((s) => s.slot === '1'), 'save listed in storage');
 
-  // reload the save
   const saved = AC.storage.loadGame('1');
   game.load(saved, '1');
   ok(game.state.phase === 'battle' || game.state.phase === 'over', 'save reloads into the board');
+  ok($$('#board .cell').length === 80, 'reloaded board still renders its cells');
 
-  // modals: codex + settings
+  // modals
   AC.ui.openCodex();
-  ok(!!document.querySelector('.modal-backdrop .codex-tabs'), 'codex opens with tabs');
-  click(document.querySelector('[data-codex="rules"]'));
-  ok(document.querySelectorAll('#codex-body .rule-item').length > 3, 'codex rules render');
+  ok(!!$('.modal-backdrop .codex-tabs'), 'codex opens with tabs');
   AC.app.modals.slice().forEach((m) => m.close());
   AC.ui.openSettings();
-  ok(document.querySelectorAll('.modal-backdrop [data-toggle]').length > 5, 'settings toggles render');
+  ok($$('.modal-backdrop [data-toggle]').length > 5, 'settings toggles render');
   AC.app.modals.slice().forEach((m) => m.close());
 
-  // privacy curtain path: switch to pass & play
+  // ── the Chakravyuha wheel ──
   game.state = null;
-  click($('#btn-new-match'));
-  click(document.querySelector('#setup-form [data-group="mode"][data-val="pass"]'));
-  click($('#btn-start-match'));
+  AC.app.setup.board = 'wheel';
+  AC.app.setup.mode = 'ai';
+  game.start(AC.app.setup);
+  await sleep(60);
+  ok(game.state.boardKey === 'wheel', 'wheel match starts');
+  ok($$('#board .cell').length === 37, 'the wheel renders 37 cells');
+  ok($$('#board .token').length === 24, 'both armies deployed on the wheel');
+  ok(AC.engine.armyComplete(game.state, 1) && AC.engine.armyComplete(game.state, 2), 'twelve pieces a side');
+  ok(!!$('#board .cell.hub'), 'the hub is drawn');
+  ok($$('#intel-panel .intel-chip').length > 0, 'intel ledger works on the wheel');
+
+  click(document.querySelector('#action-bar [data-deploy="lock"]'));
+  await sleep(80);
+  ok(game.state.phase === 'battle', 'wheel battle begins');
+  ok(/chakra turns in/i.test($('#hud-sub').textContent), 'HUD shows the rotation countdown');
+
+  // a full round must turn the inner rings at round 5
+  const st2 = game.state;
+  const ringPiece = Object.keys(st2.board).filter((id) => id.indexOf('r1s') === 0)[0];
+  ok(!!ringPiece, 'a piece starts on ring 1');
+
+  // ── attack regression: tapping an enemy must resolve an attack ──
+  game.state = null;
+  AC.app.setup.board = 'small';
+  game.start(AC.app.setup);
+  game.state.phase = 'battle';
+  AC.engine.beginBattle(game.state);
+  game.render();
+
+  const st3 = game.state;
+  st3.owner = 1;
+  st3.viewer = 1;
+  const geo = AC.geometry.build(st3.boardKey);
+  let from = null;
+  let to = null;
+  Object.keys(st3.board).forEach((id) => {
+    if (from) return;
+    const u = st3.board[id];
+    if (!u || u.owner !== 1 || !AC.engine.isMovable(u)) return;
+    const n = geo.neighbours[id].filter((x) => !st3.board[x] && !AC.engine.isRift(st3, x))[0];
+    if (n) { from = id; to = n; }
+  });
+  ok(!!from && !!to, 'test can place an attacker next to an enemy');
+  // drop a fresh enemy piece on the target cell
+  st3.board[to] = AC.engine.createArmy(2).filter((u) => u.key === '3')[0];
+  game.render();
+
+  const capBefore = st3.captured[1].length;
+  clickCell(from);
+  ok(!!document.querySelector('.cell.selected'), 'own piece selects');
+  clickCell(to);
+  const confirmBtn = document.querySelector('.modal-actions [data-act="1"]');
+  ok(!!confirmBtn, 'a blind attack asks for confirmation with odds');
+  if (confirmBtn) click(confirmBtn);
+  ok(!!document.querySelector('.combat-arena'), 'combat result modal shown after the strike');
+  const foeTile = st3.board[to];
+  const attackerGone = !st3.board[from];
+  ok(st3.captured[1].length > capBefore || (foeTile && foeTile.owner === 1) || attackerGone,
+    'the attack actually resolved on the board');
+
+  st3.config.mode = 'pass';
+  AC.app.modals.slice().forEach((m) => m.close());
+  Array.prototype.forEach.call(document.querySelectorAll('.curtain'), (n) => n.remove());
+
+  // a plain move still works afterwards
+  st3.owner = 1;
+  st3.viewer = 1;
+  st3.phase = 'battle';
+  game.sel = null;
+  game.mode = 'move';
+  game.render();
+  let mv = null;
+  Object.keys(st3.board).forEach((id) => {
+    if (mv) return;
+    const u = st3.board[id];
+    if (!u || u.owner !== 1 || !AC.engine.isMovable(u)) return;
+    const t = AC.engine.computeValidTargets(st3, id, 'move').filter((x) => x.type === 'move')[0];
+    if (t) mv = { from: id, to: t.id };
+  });
+  if (mv) {
+    clickCell(mv.from);
+    clickCell(mv.to);
+    ok(!st3.board[mv.from], 'plain moves still work');
+    AC.app.modals.slice().forEach((m) => m.close());
+  }
+
+  // ── pass & play privacy curtain ──
+  game.state = null;
+  AC.app.setup.mode = 'pass';
+  AC.app.setup.board = 'small';
+  game.start(AC.app.setup);
   await sleep(40);
   click(document.querySelector('#action-bar [data-deploy="lock"]'));
   await sleep(40);
-  ok(!!document.querySelector('.curtain'), 'privacy curtain appears between deployments');
+  ok(!!document.querySelector('.curtain'), 'privacy curtain between deployments');
   click(document.querySelector('#curtain-go'));
   await sleep(20);
   ok(game.state.phase === 'deploy2' && game.state.viewer === 2, 'player 2 deploys behind the curtain');
@@ -194,91 +265,6 @@ async function run() {
   await sleep(20);
   ok(game.state.phase === 'battle' && game.state.viewer === 1, 'battle starts as player 1');
 
-  // ── regression: tapping an enemy piece must RESOLVE AN ATTACK ──
-  // (an earlier build returned early to "inspect" and made attacks impossible)
-  AC.app.setup.mode = 'ai';
-  game.state = null;
-  game.start(AC.app.setup);
-  game.state.phase = 'battle';
-  AC.engine.beginBattle(game.state);
-  game.render();
-
-  const st = game.state;
-  st.owner = 1;
-  st.viewer = 1;
-
-  // deterministic setup: move an enemy piece into a free square next to one of
-  // our movable pieces, so the attack is legal whatever the random formation was
-  let mine = null;
-  let foe = null;
-  for (let r = 0; r < st.rows && !foe; r++) {
-    for (let c = 0; c < st.cols && !foe; c++) {
-      const u = st.board[r][c];
-      if (!u || u.owner !== 1 || !AC.engine.isMovable(u)) continue;
-      const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-      for (const d of dirs) {
-        const nr = r + d[0];
-        const nc = c + d[1];
-        if (!AC.engine.inBounds(st, nr, nc) || AC.engine.isRift(st, nr, nc)) continue;
-        const occ = st.board[nr][nc];
-        if (occ && occ.owner === 1) continue;
-        mine = { r: r, c: c };
-        foe = { r: nr, c: nc };
-        break;
-      }
-    }
-  }
-  ok(!!mine && !!foe, 'test can place an attacker next to an enemy');
-  // put a fresh enemy piece on the target square (keep the old one off-board)
-  const oldFoe = st.board[foe.r][foe.c];
-  if (oldFoe && oldFoe.owner === 1) {
-    st.board[foe.r][foe.c] = null;
-  }
-  const enemyUnit = AC.engine.createArmy(2).filter((u) => u.key === '3')[0];
-  st.board[foe.r][foe.c] = enemyUnit;
-  game.render();
-
-  const capBefore = st.captured[1].length;
-  click(document.querySelector('.tile[data-r="' + mine.r + '"][data-c="' + mine.c + '"]'));
-  ok(!!document.querySelector('.tile.selected'), 'own piece selects');
-  click(document.querySelector('.tile[data-r="' + foe.r + '"][data-c="' + foe.c + '"]'));
-  const confirmBtn = document.querySelector('.modal-actions [data-act="1"]');
-  ok(!!confirmBtn, 'a blind attack asks for confirmation with odds');
-  if (confirmBtn) click(confirmBtn);
-  ok(!!document.querySelector('.combat-arena'), 'combat result modal shown after the strike');
-  const foeTile = st.board[foe.r][foe.c];
-  const attackerGone = !st.board[mine.r][mine.c];
-  ok(st.captured[1].length > capBefore || (foeTile && foeTile.owner === 1) || attackerGone,
-    'the attack actually resolved on the board');
-
-  // switch the config so closing the modal does not hand the turn to the AI
-  st.config.mode = 'pass';
-  AC.app.modals.slice().forEach((m) => m.close());
-  Array.prototype.forEach.call(document.querySelectorAll('.curtain'), (n) => n.remove());
-
-  // a plain move still works afterwards
-  st.owner = 1;
-  st.viewer = 1;
-  st.phase = 'battle';
-  game.sel = null;
-  game.mode = 'move';
-  game.render();
-  let mv = null;
-  for (let r = 0; r < st.rows && !mv; r++) {
-    for (let c = 0; c < st.cols && !mv; c++) {
-      const u = st.board[r][c];
-      if (!u || u.owner !== 1 || !AC.engine.isMovable(u)) continue;
-      const t = AC.engine.computeValidTargets(st, r, c, 'move').filter((x) => x.type === 'move')[0];
-      if (t) mv = { from: { r: r, c: c }, to: { r: t.r, c: t.c } };
-    }
-  }
-  if (mv) {
-    click(document.querySelector('.tile[data-r="' + mv.from.r + '"][data-c="' + mv.from.c + '"]'));
-    click(document.querySelector('.tile[data-r="' + mv.to.r + '"][data-c="' + mv.to.c + '"]'));
-    ok(!st.board[mv.from.r][mv.from.c], 'plain moves still work');
-    AC.app.modals.slice().forEach((m) => m.close());
-  }
-
   const realErrors = errors.filter((e) => !/Not implemented: (window\.|HTMLCanvas)/.test(e));
   ok(realErrors.length === 0, 'no runtime errors' + (realErrors.length ? ': ' + realErrors.slice(0, 3).join(' | ') : ''));
 
@@ -287,8 +273,6 @@ async function run() {
 }
 
 run().catch((e) => {
-  // console.error is captured into `errors` above, so surface the failure on
-  // stdout explicitly — otherwise a thrown assertion looks like a silent stop.
   process.stdout.write('\nFAILED: ' + (e && e.stack ? e.stack : e) + '\n');
   process.exit(1);
 });

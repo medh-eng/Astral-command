@@ -1,33 +1,38 @@
-/* Aetherfront: Astral Command — pure rules engine
- * No DOM access. Everything here is deterministic given a state + action,
- * so it can be unit-tested and simulated headlessly.
+/* Aetherfront: Astral Command — pure rules engine (v3)
+ * Works on a cell graph: `state.board` maps cellId -> unit, and movement is
+ * read off each cell's "rays". No DOM, no coordinates, no assumptions about
+ * squares — the same code drives the square arenas and the Chakravyuha wheel.
  */
 (function (root) {
   'use strict';
   const AC = (root.AC = root.AC || {});
   const U = AC.units;
-  const VERSION = 2;
+  const G = AC.geometry;
+  const VERSION = 3;
 
-  function geometry(boardKey) {
-    const b = U.BOARDS[boardKey] || U.BOARDS.small;
-    return { cols: b.cols, rows: b.rows, deployRows: b.deployRows, rifts: b.rifts.slice(), boardKey: b.key };
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  /* ── board helpers ───────────────────────────────────────────── */
+
+  function board(state) { return G.build(state.boardKey); }
+
+  function isRift(state, id) { return state.rifts.indexOf(id) !== -1; }
+
+  function unitAt(state, id) {
+    if (!id) return null;
+    return state.board[id] || null;
   }
 
-  function clone(o) {
-    return JSON.parse(JSON.stringify(o));
-  }
+  function cellOf(state, id) { return board(state).byId[id] || null; }
 
-  function isRift(state, r, c) {
-    return state.rifts.indexOf(r + ',' + c) !== -1;
-  }
+  function cellIds(state) { return board(state).cellIds; }
 
-  function inBounds(state, r, c) {
-    return r >= 0 && r < state.rows && c >= 0 && c < state.cols;
-  }
-
-  function unitAt(state, r, c) {
-    if (!inBounds(state, r, c)) return null;
-    return state.board[r][c];
+  function forEachUnit(state, fn) {
+    const ids = cellIds(state);
+    for (let i = 0; i < ids.length; i++) {
+      const u = state.board[ids[i]];
+      if (u) fn(u, ids[i]);
+    }
   }
 
   function createArmy(owner) {
@@ -49,315 +54,345 @@
     });
   }
 
-  function emptyBoard(rows, cols) {
-    const b = [];
-    for (let r = 0; r < rows; r++) {
-      const row = [];
-      for (let c = 0; c < cols; c++) row.push(null);
-      b.push(row);
-    }
-    return b;
-  }
-
   function newState(config) {
-    const cfg = Object.assign(
-      { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0, drawAfter: 60, playerName: 'Commander', opponentName: 'Astral AI' },
-      config || {}
-    );
-    const g = geometry(cfg.board);
+    const cfg = Object.assign({
+      mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran',
+      timer: 0, drawAfter: 100, playerName: 'Commander', opponentName: 'Astral AI'
+    }, config || {});
+    const g = G.build(cfg.board);
     const state = {
       version: VERSION,
       config: cfg,
+      boardKey: g.key,
       phase: 'deploy1',
       owner: 1,
       turn: 1,
       viewer: 1,
-      cols: g.cols,
-      rows: g.rows,
-      deployRows: g.deployRows,
-      rifts: g.rifts,
-      board: emptyBoard(g.rows, g.cols),
+      rifts: g.rifts.slice(),
+      board: {},
+      homes: { 1: g.homes[1], 2: g.homes[2] },
       captured: { 1: [], 2: [] },
       log: [],
       replay: [],
       lastMove: null,
       winner: null,
       reason: '',
+      rotation: { count: 0, lastTurn: 0, every: g.rotateEvery || 0, rings: (g.rotateRings || []).slice() },
       stats: { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0, lastCapturePly: 0 },
-      startedAt: Date.now(),
-      preset1: 'citadel',
-      preset2: 'citadel'
+      startedAt: Date.now()
     };
     deployPreset(state, 1, 'citadel');
     deployPreset(state, 2, 'citadel');
     return state;
   }
 
-  /* ---------- deployment ---------- */
+  /* ── deployment ──────────────────────────────────────────────── */
 
-  function zoneRows(state, owner) {
-    if (owner === 1) {
-      return [state.rows - 1, state.rows - 2, state.rows - 3];
-    }
-    return [0, 1, 2];
+  function inDeployZone(state, owner, id) {
+    const cell = cellOf(state, id);
+    return !!cell && cell.zone === owner;
   }
 
-  function inDeployZone(state, owner, r) {
-    if (owner === 1) return r >= state.rows - state.deployRows && r < state.rows;
-    return r >= 0 && r < state.deployRows;
+  function armyComplete(state, owner) {
+    let n = 0;
+    forEachUnit(state, function (u) { if (u.owner === owner) n++; });
+    return n === 12;
   }
 
-  function clampCol(cols, c) {
-    return Math.max(0, Math.min(cols - 1, c));
+  function groupArmy(army) {
+    const byKey = {};
+    army.forEach(function (u) { (byKey[u.key] = byKey[u.key] || []).push(u); });
+    return {
+      pull: function (k) {
+        const arr = byKey[k];
+        return arr && arr.length ? arr.pop() : null;
+      },
+      left: function () {
+        const out = [];
+        Object.keys(byKey).forEach(function (k) { byKey[k].forEach(function (u) { out.push(u); }); });
+        return out;
+      }
+    };
   }
 
-  /* Ordered slots for a preset. Each entry is [rowOffset(0=back), col].
-   * Cols are expressed for the "left" orientation and mirrored by `flip`. */
-  function presetSlots(style, cols, flip) {
+  /* Square arenas keep their hand-tuned formations. */
+  function squarePresetSlots(style, cols, flip) {
     const M = function (c) { return flip ? cols - 1 - c : c; };
     const mid = Math.floor(cols / 2);
-    let slots;
     if (style === 'citadel') {
-      slots = [
+      return [
         [0, M(1)], [1, M(1)], [0, M(0)], [1, M(2)],
         [1, M(0)], [2, M(2)], [2, M(3)], [2, M(0)],
         [2, M(cols - 1)], [1, M(3)], [1, M(mid + 1)], [2, M(cols - 2)]
       ];
-    } else if (style === 'blitz') {
-      slots = [
+    }
+    if (style === 'blitz') {
+      return [
         [0, mid], [0, mid - 1], [0, mid + 1], [1, mid],
         [2, M(0)], [2, M(cols - 1)], [2, M(1)], [2, M(cols - 2)],
         [2, M(2)], [1, M(1)], [1, M(cols - 2)], [1, M(2)]
       ];
-    } else if (style === 'lattice') {
-      slots = [
+    }
+    if (style === 'lattice') {
+      return [
         [0, M(1)], [0, M(cols - 2)], [1, M(2)], [1, M(cols - 3)],
         [0, mid], [2, M(0)], [2, M(cols - 1)], [1, mid],
         [2, M(1)], [2, M(cols - 2)], [2, M(mid - 1)], [2, M(mid + 1)]
       ];
-    } else {
-      slots = [];
     }
-    return slots;
+    return [];
   }
 
-  // Which roster piece goes to which preset slot (same order as presetSlots)
-  const PRESET_ORDER = {
+  const SQUARE_ORDER = {
     citadel: ['F', 'B', '3', '3', '1', '9', '10', '2', '2', '5', '6', '7'],
     blitz: ['F', 'B', '3', '3', '7', '10', '2', '2', '6', '5', '9', '1'],
     lattice: ['F', 'B', '3', '3', '2', '2', '10', '5', '6', '9', '1', '7']
   };
 
-  function deployPreset(state, owner, style) {
-    // clear zone
-    for (let r = 0; r < state.rows; r++) {
-      if (!inDeployZone(state, owner, r)) continue;
-      for (let c = 0; c < state.cols; c++) state.board[r][c] = null;
-    }
+  function clearZone(state, owner) {
+    board(state).zones[owner].forEach(function (id) { state.board[id] = null; });
+  }
+
+  function deploySquare(state, owner, style) {
+    const g = board(state);
+    clearZone(state, owner);
     const army = createArmy(owner);
-    const byKey = {};
-    army.forEach(function (u) { (byKey[u.key] = byKey[u.key] || []).push(u); });
-    const pull = function (k) {
-      const arr = byKey[k];
-      return arr && arr.length ? arr.pop() : null;
-    };
-    const rows = zoneRows(state, owner);
+    const grp = groupArmy(army);
 
     if (style === 'shuffle' || style === 'random') {
-      const slots = [];
-      for (let i = 0; i < state.deployRows; i++) {
-        for (let c = 0; c < state.cols; c++) slots.push({ r: rows[i], c: c });
-      }
+      const slots = g.zones[owner].slice();
       for (let i = slots.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         const t = slots[i]; slots[i] = slots[j]; slots[j] = t;
       }
-      // Core always ends up in the back row so a shuffle never self-destructs
-      const back = slots.filter(function (s) { return s.r === rows[0]; });
-      const core = pull('F');
-      const coreSlot = back[Math.floor(Math.random() * back.length)];
-      state.board[coreSlot.r][coreSlot.c] = core;
-      const rest = slots.filter(function (s) { return !(s.r === coreSlot.r && s.c === coreSlot.c); });
-      const others = army.filter(function (u) { return u !== core; });
-      // Mine stays in the back two rows
-      const mine = others.filter(function (u) { return u.key === 'B'; })[0];
-      const mineIdx = rest.findIndex(function (s) { return s.r === rows[0] || s.r === rows[1]; });
-      if (mine && mineIdx !== -1) {
-        state.board[rest[mineIdx].r][rest[mineIdx].c] = mine;
-        rest.splice(mineIdx, 1);
-      }
-      const pool = others.filter(function (u) { return u !== mine; });
-      pool.forEach(function (u, i) {
-        const s = rest[i];
-        if (s) state.board[s.r][s.c] = u;
+      const core = grp.pull('F');
+      state.board[slots[0]] = core;
+      const rest = slots.slice(1);
+      const mine = grp.pull('B');
+      // the mine goes somewhere in the back half of the zone
+      const home = state.homes[owner];
+      const dist = G.distances(state.boardKey, home);
+      rest.sort(function (a, b) { return dist[a] - dist[b]; });
+      state.board[rest[0]] = mine;
+      const free = rest.slice(1);
+      grp.left().forEach(function (u, i) {
+        if (free[i]) state.board[free[i]] = u;
       });
       return;
     }
 
     const flip = Math.random() < 0.5;
-    const slots = presetSlots(style, state.cols, flip);
-    const order = PRESET_ORDER[style] || PRESET_ORDER.citadel;
+    const slots = squarePresetSlots(style, g.cols, flip);
+    const order = SQUARE_ORDER[style] || SQUARE_ORDER.citadel;
+    const rows = owner === 1
+      ? [g.rows - 1, g.rows - 2, g.rows - 3]
+      : [0, 1, 2];
     const used = {};
-    const placed = [];
     slots.forEach(function (slot, i) {
-      const key = order[i];
-      const u = pull(key);
+      const id = rows[slot[0]] + ',' + Math.max(0, Math.min(g.cols - 1, slot[1]));
+      if (state.board[id]) return;          // occupied: never pull a piece we cannot place
+      const u = grp.pull(order[i]);
       if (!u) return;
-      const r = rows[slot[0]];
-      const c = clampCol(state.cols, slot[1]);
-      if (state.board[r][c]) return; // collision — leave for the filler pass
-      state.board[r][c] = u;
+      state.board[id] = u;
       used[u.id] = true;
-      placed.push(r + ',' + c);
     });
-    // filler: any piece not placed goes to any free zone square
-    const leftovers = army.filter(function (u) { return !used[u.id]; });
+    const leftovers = grp.left();
     if (leftovers.length) {
-      const free = [];
-      for (let i = 0; i < state.deployRows; i++) {
-        for (let c = 0; c < state.cols; c++) {
-          if (!state.board[rows[i]][c]) free.push({ r: rows[i], c: c });
-        }
-      }
+      const free = g.zones[owner].filter(function (id) { return !state.board[id]; });
       for (let i = free.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         const t = free[i]; free[i] = free[j]; free[j] = t;
       }
-      leftovers.forEach(function (u, i) {
-        if (free[i]) state.board[free[i].r][free[i].c] = u;
-      });
+      leftovers.forEach(function (u, i) { if (free[i]) state.board[free[i]] = u; });
     }
+  }
+
+  /* The wheel deploys by distance from home: core and mine sit deep, scouts
+   * reach out toward the rim of your own half. */
+  function deployWheel(state, owner, style) {
+    const g = board(state);
+    clearZone(state, owner);
+    const army = createArmy(owner);
+    const grp = groupArmy(army);
+    const home = state.homes[owner];
+    const dist = G.distances(state.boardKey, home);
+    const zone = g.zones[owner].slice().sort(function (a, b) {
+      if (dist[a] !== dist[b]) return dist[a] - dist[b];
+      return a < b ? -1 : 1;
+    });
+
+    if (style === 'shuffle' || style === 'random') {
+      const order = ['F', 'B', '3', '3', '2', '2', '5', '6', '7', '9', '10', '1'];
+      order.forEach(function (k, i) {
+        const u = grp.pull(k);
+        if (u && zone[i]) state.board[zone[i]] = u;
+      });
+      return;
+    }
+
+    const order = style === 'blitz'
+      ? ['F', 'B', '3', '3', '7', '10', '2', '2', '6', '5', '9', '1']
+      : style === 'lattice'
+        ? ['F', 'B', '3', '3', '2', '2', '10', '5', '6', '9', '1', '7']
+        : ['F', 'B', '3', '3', '5', '6', '9', '10', '7', '2', '2', '1'];
+
+    if (style === 'blitz') {
+      // heavies on the rim, the fort tucked at the back
+      const back = zone.slice(0, 4);
+      const front = zone.slice(4).reverse();
+      const placed = back.concat(front);
+      order.forEach(function (k, i) {
+        const u = grp.pull(k);
+        if (u && placed[i]) state.board[placed[i]] = u;
+      });
+      return;
+    }
+
+    order.forEach(function (k, i) {
+      const u = grp.pull(k);
+      if (u && zone[i]) state.board[zone[i]] = u;
+    });
+  }
+
+  function deployPreset(state, owner, style) {
+    if (state.boardKey === 'wheel') deployWheel(state, owner, style);
+    else deploySquare(state, owner, style);
   }
 
   function swapSlots(state, owner, a, b) {
-    if (!inDeployZone(state, owner, a.r) || !inDeployZone(state, owner, b.r)) return false;
-    const ua = state.board[a.r][a.c];
-    const ub = state.board[b.r][b.c];
+    if (!inDeployZone(state, owner, a) || !inDeployZone(state, owner, b)) return false;
+    const ua = state.board[a];
+    const ub = state.board[b];
     if (ua && ua.owner !== owner) return false;
     if (ub && ub.owner !== owner) return false;
-    state.board[a.r][a.c] = ub;
-    state.board[b.r][b.c] = ua;
+    state.board[a] = ub || null;
+    state.board[b] = ua || null;
     return true;
   }
 
-  function armyComplete(state, owner) {
-    let n = 0;
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (u && u.owner === owner) n++;
-      }
-    }
-    return n === 12;
-  }
+  /* ── legality ────────────────────────────────────────────────── */
 
-  /* ---------- legality ---------- */
-
-  function violatesTwoSquare(unit, fromR, fromC, toR, toC) {
+  function violatesTwoSquare(unit, fromId, toId) {
     const h = unit.moveHistory;
     if (!h || h.length < 3) return false;
-    const a = fromR + ',' + fromC;
-    const b = toR + ',' + toC;
     const l1 = h[h.length - 1];
     const l2 = h[h.length - 2];
     const l3 = h[h.length - 3];
-    return l1.from === b && l1.to === a && l2.from === a && l2.to === b && l3.from === b && l3.to === a;
+    return l1.from === toId && l1.to === fromId &&
+      l2.from === fromId && l2.to === toId &&
+      l3.from === toId && l3.to === fromId;
   }
-
-  const DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
   function isMovable(unit) {
     const def = unit && U.UNIT_DEFS[unit.key];
     return !!(def && def.movable);
   }
 
-  function computeValidTargets(state, r, c, mode) {
-    const unit = unitAt(state, r, c);
-    if (!isMovable(unit)) return [];
-    const def = U.UNIT_DEFS[unit.key];
-    const targets = [];
-
-    if (mode === 'special') {
-      if (def.hasScan) {
-        for (let tr = 0; tr < state.rows; tr++) {
-          for (let tc = 0; tc < state.cols; tc++) {
-            const d = Math.abs(tr - r) + Math.abs(tc - c);
-            const occ = state.board[tr][tc];
-            if (d >= 1 && d <= 2 && occ && occ.owner !== unit.owner && !occ.revealed) {
-              targets.push({ r: tr, c: tc, type: 'scan' });
-            }
-          }
-        }
-      }
-      if (def.hasRanged) {
-        DIRS.forEach(function (d) {
-          const tr = r + d[0] * 2;
-          const tc = c + d[1] * 2;
-          if (!inBounds(state, tr, tc) || isRift(state, tr, tc)) return;
-          const occ = state.board[tr][tc];
-          if (occ && occ.owner !== unit.owner) targets.push({ r: tr, c: tc, type: 'barrage' });
-        });
-      }
-      return targets;
-    }
-
-    const maxSteps = def.moveRange;
-    DIRS.forEach(function (d) {
-      for (let step = 1; step <= maxSteps; step++) {
-        const tr = r + d[0] * step;
-        const tc = c + d[1] * step;
-        if (!inBounds(state, tr, tc)) break;
-        if (isRift(state, tr, tc)) break;
-        const occ = state.board[tr][tc];
+  /* Walk the rays out from a cell. Stops at a rift, at an occupied cell, and
+   * at the unit's own range. */
+  function rayTargets(state, id, range, unit) {
+    const g = board(state);
+    const out = [];
+    (g.rays[id] || []).forEach(function (line) {
+      for (let i = 0; i < line.length && i < range; i++) {
+        const to = line[i];
+        if (isRift(state, to)) break;
+        const occ = state.board[to];
         if (!occ) {
-          if (!violatesTwoSquare(unit, r, c, tr, tc)) targets.push({ r: tr, c: tc, type: 'move' });
+          if (!violatesTwoSquare(unit, id, to)) out.push({ id: to, type: 'move' });
         } else {
-          if (occ.owner !== unit.owner && !violatesTwoSquare(unit, r, c, tr, tc)) {
-            targets.push({ r: tr, c: tc, type: 'attack' });
+          if (occ.owner !== unit.owner && !violatesTwoSquare(unit, id, to)) {
+            out.push({ id: to, type: 'attack' });
           }
           break;
         }
       }
     });
-    return targets;
+    return out;
   }
 
-  function canAct(state, r, c) {
-    const u = unitAt(state, r, c);
-    if (!isMovable(u)) return false;
-    return computeValidTargets(state, r, c, 'move').length > 0 || computeValidTargets(state, r, c, 'special').length > 0;
+  function scanTargets(state, id, unit) {
+    const g = board(state);
+    const out = [];
+    const seen = {};
+    seen[id] = 1;
+    let frontier = [id];
+    for (let step = 0; step < 2; step++) {
+      const next = [];
+      frontier.forEach(function (from) {
+        (g.neighbours[from] || []).forEach(function (n) {
+          if (seen[n] || isRift(state, n)) return;
+          seen[n] = 1;
+          next.push(n);
+          const occ = state.board[n];
+          if (occ && occ.owner !== unit.owner && !occ.revealed) out.push({ id: n, type: 'scan' });
+        });
+      });
+      frontier = next;
+    }
+    return out;
+  }
+
+  function barrageTargets(state, id, unit) {
+    const g = board(state);
+    const out = [];
+    (g.rays[id] || []).forEach(function (line) {
+      const to = line[1]; // exactly two cells away
+      if (!to) return;
+      if (isRift(state, to)) return;
+      const occ = state.board[to];
+      if (occ && occ.owner !== unit.owner) out.push({ id: to, type: 'barrage' });
+    });
+    return out;
+  }
+
+  function computeValidTargets(state, id, mode) {
+    const unit = unitAt(state, id);
+    if (!isMovable(unit)) return [];
+    const def = U.UNIT_DEFS[unit.key];
+    if (mode === 'special') {
+      let out = [];
+      if (def.hasScan) out = out.concat(scanTargets(state, id, unit));
+      if (def.hasRanged) out = out.concat(barrageTargets(state, id, unit));
+      return out;
+    }
+    return rayTargets(state, id, def.moveRange, unit);
+  }
+
+  function canAct(state, id) {
+    if (!isMovable(unitAt(state, id))) return false;
+    return computeValidTargets(state, id, 'move').length > 0 ||
+      computeValidTargets(state, id, 'special').length > 0;
   }
 
   function hasAnyLegalMoves(state, player) {
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (!u || u.owner !== player || !isMovable(u)) continue;
-        if (computeValidTargets(state, r, c, 'move').length) return true;
-        if (computeValidTargets(state, r, c, 'special').length) return true;
-      }
+    const ids = cellIds(state);
+    for (let i = 0; i < ids.length; i++) {
+      const u = state.board[ids[i]];
+      if (!u || u.owner !== player || !isMovable(u)) continue;
+      if (computeValidTargets(state, ids[i], 'move').length) return true;
+      if (computeValidTargets(state, ids[i], 'special').length) return true;
     }
     return false;
   }
 
   function allLegalActions(state, player) {
     const out = [];
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (!u || u.owner !== player || !isMovable(u)) continue;
-        computeValidTargets(state, r, c, 'move').forEach(function (t) {
-          out.push({ type: t.type, from: { r: r, c: c }, to: { r: t.r, c: t.c } });
-        });
-        computeValidTargets(state, r, c, 'special').forEach(function (t) {
-          out.push({ type: t.type, from: { r: r, c: c }, to: { r: t.r, c: t.c } });
-        });
-      }
-    }
+    const ids = cellIds(state);
+    ids.forEach(function (id) {
+      const u = state.board[id];
+      if (!u || u.owner !== player || !isMovable(u)) return;
+      computeValidTargets(state, id, 'move').forEach(function (t) {
+        out.push({ type: t.type, from: id, to: t.id });
+      });
+      computeValidTargets(state, id, 'special').forEach(function (t) {
+        out.push({ type: t.type, from: id, to: t.id });
+      });
+    });
     return out;
   }
 
-  /* ---------- state log helpers ---------- */
+  /* ── log / replay ────────────────────────────────────────────── */
 
   function log(state, kind, text, at) {
     state.log.push({ turn: state.turn, kind: kind, text: text, at: at || null, t: Date.now() });
@@ -365,11 +400,11 @@
   }
 
   function compactBoard(state) {
-    return state.board.map(function (row) {
-      return row.map(function (u) {
-        return u ? [u.owner, u.key, u.revealed ? 1 : 0, u.hasMoved ? 1 : 0, u.rank, u.shieldBroken ? 1 : 0] : 0;
-      });
+    const out = { boardKey: state.boardKey, cells: {} };
+    forEachUnit(state, function (u, id) {
+      out.cells[id] = [u.owner, u.key, u.revealed ? 1 : 0, u.hasMoved ? 1 : 0, u.rank, u.shieldBroken ? 1 : 0];
     });
+    return out;
   }
 
   function snapshot(state, label) {
@@ -383,15 +418,7 @@
     if (state.replay.length > 500) state.replay.shift();
   }
 
-  function faction(owner) {
-    return U.FACTIONS[owner] ? U.FACTIONS[owner].name : 'Neutral';
-  }
-
-  function removeUnit(state, r, c) {
-    const u = state.board[r][c];
-    state.board[r][c] = null;
-    return u;
-  }
+  function faction(owner) { return U.FACTIONS[owner] ? U.FACTIONS[owner].name : 'Neutral'; }
 
   function recordCapture(state, byOwner, dead) {
     dead.revealed = true;
@@ -401,22 +428,20 @@
     });
   }
 
-  /* ---------- combat ---------- */
+  /* ── combat ──────────────────────────────────────────────────── */
 
   function resolveMelee(state, attacker, defender) {
-    // returns { winner:'att'|'def'|'both', text, kind }
     if (defender.key === 'F') {
-      return { winner: 'att', core: true, text: attacker.name + ' [' + attacker.badge + '] seized the ' + faction(defender.owner) + ' Nexus Core!' };
+      return { winner: 'att', core: true, text: attacker.name + ' [' + attacker.badge + '] seized the ' + faction(defender.owner) + ' fort!' };
     }
     if (defender.key === 'B') {
-      const sapper = U.UNIT_DEFS[attacker.key].defusesMines;
-      if (sapper) {
-        return { winner: 'att', mine: true, text: 'Warp Sapper [3] safely dismantled the Stasis Mine — the lane is open.' };
+      if (U.UNIT_DEFS[attacker.key].defusesMines) {
+        return { winner: 'att', mine: true, text: 'The Yantrik safely dismantled the Shataghni — the lane is open.' };
       }
-      return { winner: 'def', mine: true, text: attacker.name + ' [' + attacker.badge + '] struck a Stasis Mine and was annihilated. The mine holds.' };
+      return { winner: 'def', mine: true, text: attacker.name + ' [' + attacker.badge + '] struck a Shataghni and was annihilated. The trap holds.' };
     }
     if (U.UNIT_DEFS[attacker.key].assassin && (defender.key === '10' || defender.key === '9')) {
-      return { winner: 'att', assassinate: true, text: 'Assassination — the Shadow Wraith slipped past the guard and slew the ' + defender.name + ' [' + defender.badge + '].' };
+      return { winner: 'att', assassinate: true, text: 'Assassination — the spy slipped past the guard and slew the ' + defender.name + ' [' + defender.badge + '].' };
     }
     if (attacker.rank > defender.rank) {
       return { winner: 'att', text: attacker.name + ' [' + attacker.badge + '] overpowered the ' + defender.name + ' [' + defender.badge + '].' };
@@ -437,38 +462,90 @@
     return { winner: 'both', text: 'Mutual destruction — both Rank ' + attacker.rank + ' units were destroyed.' };
   }
 
-  /* ---------- main action ---------- */
+  /* ── the chakra turns ────────────────────────────────────────── */
+
+  function rotate(state, events) {
+    if (state.boardKey !== 'wheel') return false;
+    const g = board(state);
+    const rings = state.rotation.rings.length ? state.rotation.rings : [1, 2];
+    let moved = 0;
+    rings.forEach(function (ring) {
+      const held = {};
+      for (let s = 0; s < g.sectors; s++) {
+        const id = 'r' + ring + 's' + s;
+        if (state.board[id]) held[s] = state.board[id];
+        state.board[id] = null;
+      }
+      Object.keys(held).forEach(function (s) {
+        const ns = (Number(s) + 1) % g.sectors;
+        const u = held[s];
+        state.board['r' + ring + 's' + ns] = u;
+        u.revealed = true; // riding the wheel exposes you
+        moved++;
+      });
+    });
+    state.rotation.count++;
+    state.rotation.lastTurn = state.turn;
+    if (moved) {
+      log(state, 'rotate', 'The chakra turns: the inner two rings shift one spoke clockwise. Anything on them is exposed.');
+      if (events) {
+        events.push({
+          kind: 'rotate', sfx: 'rotate',
+          text: 'The chakra turns — rings 1 and 2 shifted one spoke. Everything they carried is now revealed.'
+        });
+      }
+    }
+    return moved > 0;
+  }
+
+  function turnsUntilRotation(state) {
+    if (state.boardKey !== 'wheel') return null;
+    const every = state.rotation.every || 5;
+    const next = Math.ceil(state.turn / every) * every;
+    const gap = next - state.turn;
+    return gap === 0 ? every : gap;
+  }
+
+  /* ── main action ─────────────────────────────────────────────── */
 
   function applyAction(state, action) {
     const events = [];
     if (state.phase !== 'battle') return { ok: false, error: 'Not in battle phase', events: events };
     const from = action.from;
     const to = action.to;
-    const unit = unitAt(state, from.r, from.c);
+    const unit = unitAt(state, from);
     if (!unit) return { ok: false, error: 'No unit there', events: events };
     if (unit.owner !== state.owner) return { ok: false, error: 'Not your unit', events: events };
-    const legal = computeValidTargets(state, from.r, from.c, action.type === 'move' || action.type === 'attack' ? 'move' : 'special');
-    const match = legal.filter(function (t) { return t.r === to.r && t.c === to.c; })[0];
-    if (!match) return { ok: false, error: 'Illegal action', events: events };
-    const type = match.type; // authoritative
-    const target = state.board[to.r][to.c];
-    const dist = Math.abs(to.r - from.r) + Math.abs(to.c - from.c);
-    state.stats.actions++;
 
+    const mode = (action.type === 'move' || action.type === 'attack') ? 'move' : 'special';
+    const legal = computeValidTargets(state, from, mode);
+    const match = legal.filter(function (t) { return t.id === to; })[0];
+    if (!match) return { ok: false, error: 'Illegal action', events: events };
+    const type = match.type;
+    const target = state.board[to] || null;
+    const dist = (function () {
+      const d = G.distances(state.boardKey, from);
+      return d[to] === undefined ? 1 : d[to];
+    })();
+    state.stats.actions++;
     state.lastMove = { from: from, to: to, type: type };
 
-    /* --- plain move --- */
+    /* ── plain move ── */
     if (type === 'move') {
       unit.hasMoved = true;
-      unit.moveHistory.push({ from: from.r + ',' + from.c, to: to.r + ',' + to.c });
-      state.board[to.r][to.c] = unit;
-      state.board[from.r][from.c] = null;
+      unit.moveHistory.push({ from: from, to: to });
+      state.board[to] = unit;
+      state.board[from] = null;
       if (unit.key === '2' && dist >= 2) {
         unit.revealed = true;
-        events.push({ kind: 'reveal', text: 'Astral Strider ran ' + dist + ' tiles — its position is now exposed.' });
+        events.push({ kind: 'reveal', text: 'The chariot ran ' + dist + ' cells — its position is now exposed.' });
       } else if (unit.key === '7' && dist === 2) {
         unit.revealed = true;
-        events.push({ kind: 'reveal', text: 'Valkyrie Vanguard phase-dashed 2 tiles.' });
+        events.push({ kind: 'reveal', text: 'The cavalry dashed two cells.' });
+      }
+      if (to === 'h') {
+        unit.revealed = true;
+        events.push({ kind: 'reveal', text: 'Standing on the hub of the chakra exposes a piece to every spoke.' });
       }
       events.push({ kind: 'move', sfx: 'move', from: from, to: to, unit: unit });
       log(state, 'move', faction(unit.owner) + ' advanced a ' + (unit.revealed ? unit.name : 'unit') + '.', to);
@@ -477,67 +554,67 @@
       return { ok: true, type: type, events: events };
     }
 
-    /* --- psionic scan --- */
+    /* ── psionic scan ── */
     if (type === 'scan') {
       unit.revealed = true;
       target.revealed = true;
       events.push({
         kind: 'scan', sfx: 'scan', at: to, unit: unit, target: target,
-        text: 'Psionic Scan: ' + target.name + ' [' + target.badge + '] revealed at no cost.'
+        text: 'Divya-drishti: ' + target.name + ' [' + target.badge + '] revealed at no cost.'
       });
-      log(state, 'scan', 'Chrono Seer scanned the ' + target.name + ' [' + target.badge + '].', to);
+      log(state, 'scan', 'The Divyadrishti scanned the ' + target.name + ' [' + target.badge + '].', to);
       snapshot(state, 'scan');
       finishTurn(state, events);
       return { ok: true, type: type, events: events };
     }
 
-    /* --- arc barrage --- */
+    /* ── arc barrage ── */
     if (type === 'barrage') {
       unit.revealed = true;
       target.revealed = true;
       state.stats.attacks++;
       if (target.key === 'F') {
-        removeUnit(state, to.r, to.c);
+        state.board[to] = null;
         recordCapture(state, unit.owner, target);
         events.push({
           kind: 'core', sfx: 'core', at: to, unit: unit, target: target, win: true,
-          text: 'Arc Barrage punched through the Nexus Core from 2 tiles out. The enemy objective is gone.'
+          text: 'Shara-varsha punched through the fort from two cells out. The enemy objective is gone.'
         });
-        log(state, 'core', faction(unit.owner) + ' shattered the enemy Nexus Core with an Arc Barrage!', to);
+        log(state, 'core', faction(unit.owner) + ' shattered the enemy fort with a volley!', to);
         snapshot(state, 'barrage-core');
-        endGame(state, unit.owner, faction(unit.owner) + ' broke the enemy Nexus Core with an Arc Barrage on turn ' + state.turn + '.', events);
+        endGame(state, unit.owner, faction(unit.owner) + ' broke the enemy fort with a volley on turn ' + state.turn + '.', events);
         return { ok: true, type: type, events: events };
       }
       if (target.key === 'B') {
         events.push({
           kind: 'barrage', sfx: 'mine', at: to, unit: unit, target: target, noKill: true,
-          text: 'The bolt washed over a Stasis Mine — singularity shielding absorbed it. Mine revealed, nothing lost.'
+          text: 'The volley washed over a Shataghni — its shield absorbed the arrows. Trap revealed, nothing lost.'
         });
-        log(state, 'barrage', 'Arc Barrage splashed off a Stasis Mine (no damage).', to);
+        log(state, 'barrage', 'The volley splashed off a Shataghni (no damage).', to);
       } else if (target.rank >= 0 && target.rank <= 5) {
-        removeUnit(state, to.r, to.c);
+        state.board[to] = null;
         recordCapture(state, unit.owner, target);
         state.stats.wins++;
         events.push({
           kind: 'barrage', sfx: 'laser', at: to, unit: unit, target: target, kill: true,
-          text: 'Arc Barrage vaporised the ' + target.name + ' [' + target.badge + '] at range. The Lancer never left its square.'
+          text: 'The volley cut down the ' + target.name + ' [' + target.badge + '] at range. The archer never left its cell.'
         });
-        log(state, 'barrage', 'Arc Barrage vaporised the ' + target.name + ' [' + target.badge + '].', to);
+        log(state, 'barrage', 'The volley cut down the ' + target.name + ' [' + target.badge + '].', to);
       } else {
         events.push({
           kind: 'barrage', sfx: 'clash', at: to, unit: unit, target: target, deflect: true,
-          text: 'Heavy Rank ' + target.badge + ' shielding deflected the bolt. Both units are now revealed.'
+          text: 'Heavy Rank ' + target.badge + ' armour turned the volley. Both pieces are now revealed.'
         });
-        log(state, 'barrage', 'Arc Barrage was deflected by the ' + target.name + ' [' + target.badge + '].', to);
+        log(state, 'barrage', 'The volley was turned by the ' + target.name + ' [' + target.badge + '].', to);
       }
       snapshot(state, 'barrage');
       finishTurn(state, events);
       return { ok: true, type: type, events: events };
     }
 
-    /* --- melee attack --- */
+    /* ── melee ── */
     unit.hasMoved = true;
-    unit.moveHistory.push({ from: from.r + ',' + from.c, to: to.r + ',' + to.c });
+    unit.moveHistory.push({ from: from, to: to });
     unit.revealed = true;
     target.revealed = true;
     state.stats.attacks++;
@@ -545,23 +622,18 @@
     const res = resolveMelee(state, unit, target);
 
     if (res.winner === 'att') {
-      state.board[to.r][to.c] = unit;
-      state.board[from.r][from.c] = null;
+      state.board[to] = unit;
+      state.board[from] = null;
       recordCapture(state, unit.owner, target);
       state.stats.wins++;
     } else if (res.winner === 'def') {
-      state.board[from.r][from.c] = null;
-      if (res.mine) {
-        // mine survives, stays put; attacker removed from board
-        state.board[to.r][to.c] = target;
-      } else {
-        recordCapture(state, target.owner, unit);
-      }
-      if (res.mine) recordCapture(state, target.owner, unit);
+      state.board[from] = null;
+      if (res.mine) state.board[to] = target;
+      recordCapture(state, target.owner, unit);
       state.stats.losses++;
     } else {
-      state.board[to.r][to.c] = null;
-      state.board[from.r][from.c] = null;
+      state.board[to] = null;
+      state.board[from] = null;
       recordCapture(state, unit.owner, target);
       recordCapture(state, target.owner, unit);
       state.stats.wins++;
@@ -572,7 +644,7 @@
       state.stats.firstBlood = state.turn;
     }
 
-    const ev = {
+    events.push({
       kind: 'clash',
       sfx: res.winner === 'att' ? 'clash-win' : res.winner === 'def' ? 'clash-lose' : 'clash-both',
       at: to,
@@ -581,13 +653,12 @@
       outcome: res.winner,
       core: !!res.core,
       text: res.text
-    };
-    events.push(ev);
+    });
     log(state, 'clash', res.text, to);
     snapshot(state, 'clash');
 
     if (res.core) {
-      endGame(state, unit.owner, faction(unit.owner) + ' captured the enemy Nexus Core on turn ' + state.turn + '.', events);
+      endGame(state, unit.owner, faction(unit.owner) + ' captured the enemy fort on turn ' + state.turn + '.', events);
       return { ok: true, type: type, events: events };
     }
     finishTurn(state, events);
@@ -606,9 +677,7 @@
 
   function finishTurn(state, events) {
     if (state.phase === 'over') return;
-    // anti-stall: a long run of orders with nothing captured is a draw, so a
-    // match can never loop forever (mirrors the tabletop no-capture rule).
-    const limit = state.config.drawAfter || 60;
+    const limit = state.config.drawAfter || 100;
     if (state.stats.actions - state.stats.lastCapturePly >= limit) {
       endGame(state, 0, 'No piece captured in ' + limit + ' orders — the engagement is declared a draw.', events);
       return;
@@ -625,13 +694,14 @@
       return;
     }
     state.owner = next;
-    if (next === 1) state.turn++;
+    if (next === 1) {
+      state.turn++;
+      // the wheel turns at the start of every fifth round
+      if (state.boardKey === 'wheel' && state.turn % (state.rotation.every || 5) === 0) {
+        rotate(state, events);
+      }
+    }
     events.push({ kind: 'turn', owner: next, turn: state.turn });
-  }
-
-  function drawCountdown(state) {
-    const limit = state.config.drawAfter || 60;
-    return Math.max(0, limit - (state.stats.actions - (state.stats.lastCapturePly || 0)));
   }
 
   function beginBattle(state) {
@@ -643,36 +713,26 @@
     snapshot(state, 'battle-start');
   }
 
-  /* ---------- intel helpers (used by AI and by the UI intel panel) ---------- */
+  /* ── intel ───────────────────────────────────────────────────── */
 
-  // Which enemy roster keys are still unaccounted for (not visible/revealed, not captured)
   function unknownPool(state, viewer) {
     const foe = viewer === 1 ? 2 : 1;
     const remaining = {};
     U.ROSTER_ORDER.forEach(function (k) { remaining[k] = (remaining[k] || 0) + 1; });
-    // captured by the viewer's opponent (i.e. our own losses) are irrelevant
-    // remove pieces of the foe that we can see on the board (revealed or otherwise visible)
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const u = state.board[r][c];
-        if (!u || u.owner !== foe) continue;
-        if (u.revealed) remaining[u.key] = Math.max(0, (remaining[u.key] || 0) - 1);
-      }
-    }
-    // remove foe pieces captured by the viewer
+    forEachUnit(state, function (u) {
+      if (u.owner !== foe) return;
+      if (u.revealed) remaining[u.key] = Math.max(0, (remaining[u.key] || 0) - 1);
+    });
     (state.captured[viewer] || []).forEach(function (d) {
       remaining[d.key] = Math.max(0, (remaining[d.key] || 0) - 1);
     });
     return remaining;
   }
 
-  /* Probability distribution over what an unknown enemy unit could be.
-   * Immovable pieces (Nexus, Mine) can only be candidates while the unit has
-   * never moved; that single constraint is what makes probing worthwhile. */
-  function beliefFor(state, viewer, r, c) {
-    const u = state.board[r][c];
-    const pool = unknownPool(state, viewer);
+  function beliefFor(state, viewer, id) {
+    const u = state.board[id];
     if (!u || u.owner === viewer || u.revealed) return null;
+    const pool = unknownPool(state, viewer);
     const out = {};
     let total = 0;
     Object.keys(pool).forEach(function (k) {
@@ -682,15 +742,17 @@
       out[k] = n;
       total += n;
     });
-    if (!total) {
-      // fall back: everything already seen — treat as generic line unit
-      return { '2': 1 };
-    }
+    if (!total) return { '2': 1 };
     Object.keys(out).forEach(function (k) { out[k] = out[k] / total; });
     return out;
   }
 
-  /* ---------- serialisation ---------- */
+  function drawCountdown(state) {
+    const limit = state.config.drawAfter || 100;
+    return Math.max(0, limit - (state.stats.actions - (state.stats.lastCapturePly || 0)));
+  }
+
+  /* ── serialisation ───────────────────────────────────────────── */
 
   function serialize(state) {
     const copy = clone(state);
@@ -700,31 +762,55 @@
 
   function deserialize(raw) {
     let s = typeof raw === 'string' ? JSON.parse(raw) : clone(raw);
-    if (!s || !s.board) throw new Error('Corrupt save');
-    // migrate older saves defensively
+    if (!s) throw new Error('Corrupt save');
+
+    // v2 saves stored board as a 2-D array of rows and columns
+    if (Array.isArray(s.board)) {
+      const map = {};
+      s.board.forEach(function (row, r) {
+        row.forEach(function (u, c) { if (u) map[r + ',' + c] = u; });
+      });
+      s.board = map;
+      s.boardKey = s.config && s.config.board === 'large' ? 'large' : 'small';
+      s.version = VERSION;
+      s.homes = { 1: (s.rows - 1) + ',' + Math.floor(s.cols / 2), 2: '0,' + Math.floor(s.cols / 2) };
+      s.rotation = { count: 0, lastTurn: 0, every: 0, rings: [] };
+      delete s.rows;
+      delete s.cols;
+      delete s.deployRows;
+    }
+
+    if (!s.boardKey) s.boardKey = (s.config && s.config.board) || 'small';
+    if (!s.board) s.board = {};
+    if (!s.homes) {
+      const g = G.build(s.boardKey);
+      s.homes = { 1: g.homes[1], 2: g.homes[2] };
+    }
+    if (!s.rotation) s.rotation = { count: 0, lastTurn: 0, every: 0, rings: [] };
     if (!s.captured) s.captured = { 1: [], 2: [] };
     if (!s.log) s.log = [];
     if (!s.replay) s.replay = [];
-    if (!s.stats) s.stats = { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0 };
+    if (!s.stats) s.stats = { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0, lastCapturePly: 0 };
+    if (s.stats.lastCapturePly == null) s.stats.lastCapturePly = 0;
     if (!s.config) s.config = { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran' };
+    if (!s.rifts) s.rifts = G.build(s.boardKey).rifts.slice();
     return s;
   }
 
-  function thumbnailBoard(state) {
-    return compactBoard(state);
-  }
+  function thumbnailBoard(state) { return compactBoard(state); }
 
   AC.engine = {
     VERSION: VERSION,
-    geometry: geometry,
     newState: newState,
     createArmy: createArmy,
     clone: clone,
+    board: board,
+    cellIds: cellIds,
+    cellOf: cellOf,
     isRift: isRift,
-    inBounds: inBounds,
     unitAt: unitAt,
+    forEachUnit: forEachUnit,
     inDeployZone: inDeployZone,
-    zoneRows: zoneRows,
     deployPreset: deployPreset,
     swapSlots: swapSlots,
     armyComplete: armyComplete,
@@ -732,16 +818,19 @@
     canAct: canAct,
     isMovable: isMovable,
     hasAnyLegalMoves: hasAnyLegalMoves,
-    drawCountdown: drawCountdown,
     allLegalActions: allLegalActions,
     applyAction: applyAction,
     beginBattle: beginBattle,
     endGame: endGame,
+    rotate: rotate,
+    turnsUntilRotation: turnsUntilRotation,
     unknownPool: unknownPool,
     beliefFor: beliefFor,
+    drawCountdown: drawCountdown,
     serialize: serialize,
     deserialize: deserialize,
     thumbnailBoard: thumbnailBoard,
+    compactBoard: compactBoard,
     faction: faction,
     log: log
   };

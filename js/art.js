@@ -133,25 +133,28 @@
     return '<svg class="ico ' + (cls || '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + body + '</svg>';
   }
 
-  /* Tiny board preview used by the save-slot cards. */
-  function boardPreview(compact, opts) {
-    if (!compact || !compact.length) return '';
-    const rows = compact.length;
-    const cols = compact[0].length;
-    const cell = 6;
-    let out = '<svg class="board-preview" viewBox="0 0 ' + (cols * cell) + ' ' + (rows * cell) + '" preserveAspectRatio="xMidYMid meet">';
-    out += '<rect x="0" y="0" width="' + cols * cell + '" height="' + rows * cell + '" fill="rgba(8,12,24,.85)"/>';
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const v = compact[r][c];
-        if (!v) continue;
-        const owner = v[0];
-        const revealed = v[2];
-        const fill = owner === 1 ? '#22d3ee' : '#f43f5e';
-        out += '<rect x="' + (c * cell + 0.6) + '" y="' + (r * cell + 0.6) + '" width="' + (cell - 1.2) + '" height="' + (cell - 1.2) +
-          '" rx="1.2" fill="' + fill + '" fill-opacity="' + (revealed ? 0.95 : 0.55) + '"/>';
+  /* Tiny board preview used by the save-slot cards. Works for any geometry. */
+  function boardPreview(compact) {
+    if (!compact || !compact.cells) return '';
+    const geo = AC.geometry.build(compact.boardKey || 'small');
+    const b = geo.bounds;
+    let out = '<svg class="board-preview" viewBox="' + b.x + ' ' + b.y + ' ' + b.w + ' ' + b.h +
+      '" preserveAspectRatio="xMidYMid meet">';
+    out += '<rect x="' + b.x + '" y="' + b.y + '" width="' + b.w + '" height="' + b.h + '" fill="rgba(8,12,24,.9)"/>';
+    geo.cells.forEach(function (cell) {
+      const v = compact.cells[cell.id];
+      if (!v) return;
+      const fill = v[0] === 1 ? '#22d3ee' : '#f43f5e';
+      const op = v[2] ? 0.95 : 0.5;
+      if (cell.shape === 'sector') {
+        out += '<path d="' + cell.path + '" fill="' + fill + '" fill-opacity="' + op + '"/>';
+      } else if (cell.shape === 'hub') {
+        out += '<circle cx="0" cy="0" r="' + cell.r + '" fill="' + fill + '" fill-opacity="' + op + '"/>';
+      } else {
+        out += '<rect x="' + cell.points[0][0] + '" y="' + cell.points[0][1] +
+          '" width="1" height="1" fill="' + fill + '" fill-opacity="' + op + '"/>';
       }
-    }
+    });
     out += '</svg>';
     return out;
   }

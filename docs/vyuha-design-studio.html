@@ -406,10 +406,10 @@ function buildTri() {
 
 /* ── 3. CHAKRAVYUHA — 4 rings x 8 sectors + centre = 33 cells ── */
 function buildWheel() {
-  const SECT = 8;
-  const RINGS = 4;
-  const r0 = 26;
-  const step = 30;
+  const SECT = 12;
+  const RINGS = 3;
+  const r0 = 22;
+  const step = 27;
   const cells = [];
   cells.push({ id: 'hub', ring: 0, sector: 0, x: 0, y: 0, hub: true });
   for (let ring = 1; ring <= RINGS; ring++) {
@@ -600,18 +600,18 @@ const BOARDS = [
     name: 'Chakravyuha',
     en: 'The wheel',
     geo: 'Concentric rings',
-    cells: '33 cells · 4 rings × 8 spokes + hub',
-    rule: 'Rotation — every five turns the two inner rings turn one spoke clockwise, carrying whatever stands on them. Pieces that ride a rotation are revealed.',
-    feel: 'A siege that breathes. The fort sits at the hub, so the defender is always inside; the attacker must spiral in while the board itself keeps shifting.',
+    cells: '37 cells · 3 rings × 12 spokes + hub',
+    rule: 'Rotation — every fifth round the two inner rings turn one spoke clockwise, carrying whatever stands on them. Pieces that ride a rotation are revealed. Arcs are one cell at a time; only the spokes are long lanes.',
+    feel: 'A siege that breathes. Each dynasty holds a half of the wheel and its fort sits on the rim, three spokes from enemy ground; the inner rings keep turning under the fight.',
     why: 'This is the formation the epics are famous for, and the only one where the board can move: a wheel that turns is a different game every five turns.',
     build: buildWheel,
     pieces: [
-      { cell: 'hub', side: 2, glyph: 'fort' },
-      { cell: 'r1s0', side: 2, glyph: 'mace' },
-      { cell: 'r1s4', side: 2, glyph: 'bow' },
-      { cell: 'r4s2', side: 1, glyph: 'chakra' },
-      { cell: 'r4s6', side: 1, glyph: 'horse' },
-      { cell: 'r3s7', side: 1, glyph: 'dagger' }
+      { cell: 'r3s6', side: 2, glyph: 'fort' },
+      { cell: 'r2s6', side: 2, glyph: 'mace' },
+      { cell: 'r1s6', side: 2, glyph: 'bow' },
+      { cell: 'r3s0', side: 1, glyph: 'chakra' },
+      { cell: 'r2s0', side: 1, glyph: 'horse' },
+      { cell: 'r3s2', side: 1, glyph: 'dagger' }
     ]
   }
 ];
