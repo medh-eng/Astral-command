@@ -1,1 +1,285 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#05070f" />
+<meta name="description" content="Aetherfront: Astral Command — a hidden-rank sci-fi tactical duel for two commanders on one device, or against the Astral AI." />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Aetherfront: Astral Command</title>
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="assets/icon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+<div id="app" class="app">
+
+  <!-- ══ boot ══════════════════════════════════════════════════════ -->
+  <div id="boot" class="boot">
+    <div class="boot-mark">
+      <svg viewBox="0 0 32 32" class="boot-crystal" aria-hidden="true">
+        <path d="M16 2.5 L26 9.5 L23.5 24 L16 30 L8.5 24 L6 9.5 Z" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M16 2.5 V30 M6 9.5 L16 14 L26 9.5" fill="none" stroke="currentColor" stroke-width="0.9" opacity="0.6"/>
+      </svg>
+    </div>
+    <h1 class="boot-title">AETHERFRONT</h1>
+    <p class="boot-sub">ASTRAL COMMAND</p>
+    <div class="boot-bar"><span></span></div>
+  </div>
+
+  <!-- ══ auth ══════════════════════════════════════════════════════ -->
+  <section id="screen-auth" class="screen auth-screen" hidden>
+    <div class="auth-grid">
+      <div class="auth-hero">
+        <div class="hero-kicker">HIDDEN-RANK TACTICAL DUEL</div>
+        <h1 class="hero-title">Aetherfront<span>Astral Command</span></h1>
+        <p class="hero-lede">
+          Twelve pieces. Ten hidden ranks. One Nexus Core.
+          Read the silence, probe the dark, and break the enemy line.
+        </p>
+        <ul class="hero-points">
+          <li><b>Blind ranks</b> — you never see what you are attacking until you commit.</li>
+          <li><b>Intel over luck</b> — scans, beliefs and odds replace guesswork.</li>
+          <li><b>Two commanders, one slate</b> — pass-and-play with a privacy curtain.</li>
+        </ul>
+      </div>
+
+      <div class="auth-card glass">
+        <div class="auth-card-head">
+          <div class="auth-card-title">Commander access</div>
+          <div class="auth-card-sub" id="auth-sub">Select a profile, or commission a new one.</div>
+        </div>
+
+        <div id="auth-profiles" class="profile-list"></div>
+
+        <div id="auth-pin-panel" class="pin-panel" hidden>
+          <div class="pin-who">
+            <span id="pin-sigil" class="pin-sigil"></span>
+            <span id="pin-name">Commander</span>
+          </div>
+          <div class="pin-dots" id="pin-dots"></div>
+          <div class="pin-pad" id="pin-pad"></div>
+          <div class="pin-hint" id="pin-hint">Enter your access code</div>
+          <button class="btn btn-ghost btn-sm" id="pin-cancel" type="button">Choose another profile</button>
+        </div>
+
+        <form id="form-new" class="new-profile" autocomplete="off" hidden>
+          <div class="field">
+            <label for="new-name">Callsign</label>
+            <input id="new-name" name="name" maxlength="18" placeholder="e.g. Commander Vega" required />
+          </div>
+          <div class="field">
+            <label>Sigil</label>
+            <div class="sigil-picker" id="sigil-picker"></div>
+          </div>
+          <div class="field">
+            <label for="new-pin">Access code <span class="muted">(4–8 digits, optional)</span></label>
+            <input id="new-pin" name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="Leave blank for no lock" />
+          </div>
+          <div class="new-actions">
+            <button class="btn btn-primary" type="submit">Commission commander</button>
+            <button class="btn btn-ghost" type="button" id="btn-cancel-new">Back</button>
+          </div>
+        </form>
+
+        <div class="auth-foot">
+          <button class="btn btn-ghost btn-sm" id="btn-new-profile" type="button">+ New commander</button>
+          <button class="btn btn-ghost btn-sm" id="btn-guest" type="button">Play as guest</button>
+        </div>
+        <p class="fineprint" id="auth-fineprint">
+          Profiles and saved games stay on this device — no account, no server, nothing uploaded.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ home ══════════════════════════════════════════════════════ -->
+  <section id="screen-home" class="screen home-screen" hidden>
+    <header class="top-bar">
+      <div class="top-id">
+        <span id="home-sigil" class="avatar"></span>
+        <div>
+          <div class="top-name" id="home-name">Commander</div>
+          <div class="top-rank" id="home-rank">Unranked · 0 matches</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="btn-home-settings" title="Settings" aria-label="Settings"></button>
+        <button class="icon-btn" id="btn-home-codex" title="Codex" aria-label="Codex"></button>
+        <button class="icon-btn" id="btn-signout" title="Sign out" aria-label="Sign out"></button>
+      </div>
+    </header>
+
+    <div class="home-wrap">
+      <div class="home-main">
+        <div class="home-headline">
+          <div class="kicker" id="home-greeting">Welcome back</div>
+          <h2>Command deck</h2>
+        </div>
+
+        <div class="action-grid">
+          <button class="card-action card-primary" id="btn-new-match">
+            <span class="card-icon" id="ci-new"></span>
+            <span class="card-title">New engagement</span>
+            <span class="card-sub">Choose board, mode and difficulty</span>
+          </button>
+          <button class="card-action" id="btn-resume">
+            <span class="card-icon" id="ci-resume"></span>
+            <span class="card-title">Continue</span>
+            <span class="card-sub" id="resume-sub">No game in progress</span>
+          </button>
+          <button class="card-action" id="btn-saves">
+            <span class="card-icon" id="ci-saves"></span>
+            <span class="card-title">Saved games</span>
+            <span class="card-sub" id="saves-sub">0 of 3 slots used</span>
+          </button>
+          <button class="card-action" id="btn-codex">
+            <span class="card-icon" id="ci-codex"></span>
+            <span class="card-title">Codex &amp; rules</span>
+            <span class="card-sub">Every rank, power and edge case</span>
+          </button>
+        </div>
+
+        <div class="panel manual-panel">
+          <div class="panel-head"><span>Field manual</span></div>
+          <ol class="manual-list">
+            <li><b>Deploy</b> — twelve pieces in your back three rows. Swap any two squares; presets are starting points.</li>
+            <li><b>Probe</b> — cheap pieces learn. Immovable enemy pieces are a Mine or the Core.</li>
+            <li><b>Reveal</b> — fights, scans and long Strider runs expose ranks permanently.</li>
+            <li><b>Break the core</b> — capture it, or leave the enemy with no legal move.</li>
+          </ol>
+        </div>
+
+        <div class="panel stat-panel">
+          <div class="panel-head">
+            <span>Service record</span>
+            <button class="link-btn" id="btn-reset-stats">reset</button>
+          </div>
+          <div class="stat-grid" id="stat-grid"></div>
+          <div class="winrate">
+            <div class="winrate-bar"><span id="winrate-fill"></span></div>
+            <div class="winrate-label" id="winrate-label">No matches yet</div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="home-side">
+        <div class="panel">
+          <div class="panel-head"><span>Intel briefing</span></div>
+          <p class="briefing" id="home-briefing">The Astral Rifts split the field into lanes. Anything immovable is either a Mine or the Core — probe with cheap pieces first.</p>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span>Quick settings</span></div>
+          <div class="quick-settings" id="quick-settings"></div>
+        </div>
+        <div class="panel panel-quiet">
+          <div class="panel-head"><span>Data</span></div>
+          <div class="data-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-export">Export backup</button>
+            <button class="btn btn-ghost btn-sm" id="btn-import">Import backup</button>
+            <input type="file" id="file-import" accept="application/json,.json" hidden />
+          </div>
+          <p class="fineprint">Backups contain profiles (with hashed codes), saved games and settings.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ══ setup ════════════════════════════════════════════════════ -->
+  <section id="screen-setup" class="screen setup-screen" hidden>
+    <header class="top-bar">
+      <button class="icon-btn" id="btn-setup-back" aria-label="Back"></button>
+      <div class="top-name">New engagement</div>
+      <div class="top-actions"></div>
+    </header>
+    <div class="setup-wrap">
+      <div class="setup-form" id="setup-form"></div>
+      <aside class="setup-side">
+        <div class="panel">
+          <div class="panel-head"><span>Match summary</span></div>
+          <div id="setup-summary" class="setup-summary"></div>
+          <button class="btn btn-primary btn-block" id="btn-start-match">Deploy army</button>
+        </div>
+        <div class="panel panel-quiet">
+          <div class="panel-head"><span>Rules quick reference</span></div>
+          <ul class="rules-list">
+            <li>Move orthogonally. Rifts block movement, never the Lancer's shot.</li>
+            <li>Attacker resolves first: ties depend on the tie rule you pick.</li>
+            <li>Immovable pieces are a Mine or the Core — probe them cheaply.</li>
+            <li>Capture the enemy Nexus Core, or leave them with no legal move.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ══ game ═════════════════════════════════════════════════════ -->
+  <section id="screen-game" class="screen game-screen" hidden>
+    <header class="game-hud">
+      <button class="icon-btn" id="btn-game-menu" aria-label="Menu"></button>
+      <div class="hud-centre">
+        <div class="turn-pill" id="hud-turn">Deployment</div>
+        <div class="hud-sub" id="hud-sub">Arrange your army</div>
+      </div>
+      <div class="hud-right">
+        <div class="clock hidden" id="hud-clock">1:00</div>
+        <button class="icon-btn" id="btn-hud-intel" aria-label="Intel"></button>
+        <button class="icon-btn" id="btn-hud-log" aria-label="Battle log"></button>
+        <button class="icon-btn" id="btn-hud-settings" aria-label="Settings"></button>
+      </div>
+    </header>
+
+    <div class="game-body">
+      <aside class="intel-panel" id="intel-panel" aria-label="Intel ledger"></aside>
+
+      <main class="board-column">
+        <div class="player-strip" id="strip-top"></div>
+        <div class="board-shell" id="board-shell">
+          <div class="board-coords board-coords-top" id="coords-top"></div>
+          <div class="board" id="board" role="grid" aria-label="Battlefield"></div>
+          <div class="board-coords board-coords-left" id="coords-left"></div>
+        </div>
+        <div class="player-strip" id="strip-bottom"></div>
+      </main>
+
+      <aside class="log-panel" id="log-panel" aria-label="Battle log">
+        <div class="log-head">
+          <span>Battle log</span>
+          <button class="icon-btn icon-btn-xs" id="btn-log-close" aria-label="Close log"></button>
+        </div>
+        <div class="battle-log" id="battle-log"></div>
+      </aside>
+    </div>
+
+    <footer class="action-bar" id="action-bar"></footer>
+    <div class="scrim" id="scrim"></div>
+  </section>
+
+  <canvas id="fx" class="fx-canvas" aria-hidden="true"></canvas>
+  <div id="modal-root" class="modal-root"></div>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+</div>
+
+<noscript>
+  <div style="padding:2rem;font-family:system-ui;color:#e2e8f0">
+    Aetherfront needs JavaScript to run the battle simulation.
+  </div>
+</noscript>
+
+<script src="js/units.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/art.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

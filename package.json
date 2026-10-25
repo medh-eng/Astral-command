@@ -1,0 +1,34 @@
+{
+  "name": "aetherfront-astral-command",
+  "version": "2.0.0",
+  "main": "sw.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node tests/rules.mjs && node tests/selfplay.mjs 40",
+    "test:ui": "node tests/ui.mjs",
+    "shots": "node tools/shots.mjs",
+    "build": "node tools/build-standalone.mjs"
+  },
+  "keywords": [
+    "game",
+    "stratego",
+    "tactics",
+    "hidden-information",
+    "pwa"
+  ],
+  "author": "",
+  "license": "MIT",
+  "description": "Aetherfront: Astral Command \u2014 a hidden-rank sci-fi tactical duel (static web app).",
+  "dependencies": {
+    "jsdom": "^29.1.1"
+  },
+  "private": true,
+  "homepage": "https://medh-eng.github.io/Astral-command/",
+  "devDependencies": {
+    "jsdom": "^26.0.0",
+    "puppeteer-core": "^24.0.0"
+  }
+}
