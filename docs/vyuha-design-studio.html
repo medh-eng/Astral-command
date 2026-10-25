@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYUHA — three new battlefields for Aetherfront</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#08060f;
+    --ink-2:#0e0b1a;
+    --panel:rgba(23,18,38,.72);
+    --line:rgba(217,164,65,.22);
+    --line-soft:rgba(217,164,65,.12);
+    --gold:#d9a441;
+    --gold-soft:#f2cf8b;
+    --saffron:#e8863a;
+    --vermilion:#c8452b;
+    --indigo:#3a3f8f;
+    --indigo-soft:#8f96e8;
+    --peacock:#1f8a83;
+    --parch:#efe3cf;
+    --txt:#ece5d8;
+    --dim:#a89f92;
+    --faint:#6f665c;
+    --display:'Cormorant Garamond', Georgia, serif;
+    --body:'Inter', system-ui, sans-serif;
+    --dev:'Tiro Devanagari Hindi', 'Noto Sans Devanagari', serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ink);color:var(--txt);font-family:var(--body);-webkit-font-smoothing:antialiased}
+  body{
+    background:
+      radial-gradient(1200px 800px at 15% -10%, rgba(58,63,143,.35), transparent 60%),
+      radial-gradient(900px 700px at 90% 0%, rgba(200,69,43,.18), transparent 55%),
+      radial-gradient(900px 900px at 50% 110%, rgba(217,164,65,.12), transparent 60%),
+      linear-gradient(180deg,#0a0814,#08060f 60%,#0b0812);
+    min-height:100vh;
+    line-height:1.6;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:
+      radial-gradient(1px 1px at 18% 22%, rgba(242,207,139,.55), transparent),
+      radial-gradient(1px 1px at 72% 14%, rgba(242,207,139,.4), transparent),
+      radial-gradient(1.4px 1.4px at 44% 64%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 88% 58%, rgba(242,207,139,.35), transparent),
+      radial-gradient(1px 1px at 12% 82%, rgba(255,255,255,.25), transparent),
+      radial-gradient(1px 1px at 62% 92%, rgba(242,207,139,.3), transparent);
+    opacity:.6;
+  }
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:clamp(20px,4vw,54px) clamp(16px,4vw,40px) 90px}
+  h1,h2,h3,h4{margin:0;font-weight:600}
+  p{margin:0}
+  a{color:var(--gold-soft)}
+  .deva{font-family:var(--dev);font-weight:400}
+
+  /* ── hero ── */
+  .hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.85fr);gap:clamp(18px,4vw,48px);align-items:center;padding:clamp(10px,3vw,36px) 0 clamp(26px,5vw,54px)}
+  .kicker{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
+  .hero h1{font-family:var(--display);font-size:clamp(44px,7.4vw,92px);line-height:.94;letter-spacing:.02em;
+    background:linear-gradient(120deg,#f7ecd7 10%,#f2cf8b 45%,#e8863a 78%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero h1 small{display:block;font-family:var(--body);font-size:clamp(11px,1.4vw,13px);letter-spacing:.4em;text-transform:uppercase;color:var(--dim);-webkit-text-fill-color:var(--dim);margin-top:16px}
+  .hero-lede{margin-top:22px;color:#cfc6b8;font-size:clamp(14px,1.6vw,16.5px);max-width:52ch}
+  .hero-lede b{color:var(--parch)}
+  .hero-mark{display:grid;place-items:center}
+  .hero-mark svg{width:min(100%,340px);height:auto;filter:drop-shadow(0 0 40px rgba(217,164,65,.25))}
+
+  /* ── sections ── */
+  section{padding:clamp(26px,4vw,52px) 0;border-top:1px solid var(--line-soft)}
+  .sec-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+  .sec-num{font-family:var(--display);font-size:13px;color:var(--gold);letter-spacing:.3em}
+  .sec-head h2{font-family:var(--display);font-size:clamp(24px,3.4vw,38px);letter-spacing:.01em}
+  .sec-sub{color:var(--dim);max-width:70ch;font-size:14.5px;margin-bottom:26px}
+
+  .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);backdrop-filter:blur(10px)}
+  .card h3{font-family:var(--display);font-size:21px;letter-spacing:.02em}
+  .card .sub{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+  .muted{color:var(--dim);font-size:13.5px}
+
+  /* ── board cards ── */
+  .board-card{display:grid;gap:12px}
+  .board-stage{display:grid;place-items:center;padding:10px 0 4px;min-height:300px}
+  .board-stage svg{width:100%;height:auto;max-height:340px;overflow:visible}
+  .tile{fill:rgba(58,63,143,.18);stroke:rgba(217,164,65,.35);stroke-width:1.2;transition:fill .18s,stroke .18s;cursor:pointer}
+  .tile:hover{fill:rgba(217,164,65,.22);stroke:var(--gold)}
+  .tile.on{fill:rgba(217,164,65,.32);stroke:var(--gold-soft);stroke-width:1.8}
+  .tile.nb{fill:rgba(232,134,58,.26);stroke:var(--saffron)}
+  .tile.void{fill:rgba(0,0,0,.55);stroke:rgba(143,150,232,.35)}
+  .tile.core{fill:rgba(200,69,43,.3);stroke:var(--vermilion)}
+  .glyph{fill:var(--gold-soft);font-family:var(--body);font-size:11px;font-weight:700;text-anchor:middle;pointer-events:none}
+  .piece-dot{pointer-events:none}
+  .axis{stroke:rgba(217,164,65,.16);stroke-width:1;stroke-dasharray:3 5}
+  .stage-note{font-size:11.5px;color:var(--faint);text-align:center}
+  .spec{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px;margin-top:2px}
+  .spec dt{color:var(--faint);letter-spacing:.08em;text-transform:uppercase;font-size:10px;padding-top:3px}
+  .spec dd{margin:0;color:#d8cfc0}
+  .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    border:1px solid var(--line);color:var(--gold-soft);background:rgba(217,164,65,.08)}
+
+  /* ── tables ── */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  td.rank{font-family:var(--display);font-size:16px;color:var(--gold);width:52px}
+  td .deva{font-size:15px;color:var(--parch);display:block;line-height:1.3}
+  td .rom{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+
+  /* ── swatches ── */
+  .swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .sw{width:56px;height:56px;border-radius:12px;border:1px solid rgba(255,255,255,.1);position:relative}
+  .sw span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:9px;color:var(--faint);letter-spacing:.06em}
+
+  .list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+  .list li{display:grid;grid-template-columns:26px 1fr;gap:10px;font-size:13.5px;color:#d8cfc0}
+  .list b{color:var(--parch)}
+  .list .n{font-family:var(--display);color:var(--gold);font-size:16px;line-height:1.2}
+
+  .callout{border-left:2px solid var(--gold);padding:10px 0 10px 16px;color:var(--dim);font-size:13.5px;margin-top:16px}
+  .callout b{color:var(--parch)}
+
+  code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:5px;color:var(--gold-soft)}
+
+  footer{padding-top:26px;border-top:1px solid var(--line-soft);color:var(--faint);font-size:12px}
+
+  @media (max-width:900px){
+    .hero{grid-template-columns:1fr;gap:10px}
+    .hero-mark{order:-1}
+    .hero-mark svg{width:min(58%,200px)}
+    .grid-3,.grid-2{grid-template-columns:1fr}
+    .board-stage{min-height:0}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ══ hero ══ -->
+  <header class="hero">
+    <div>
+      <div class="kicker">Design studio · Aetherfront chapter II</div>
+      <h1>VYUHA<small>व्यूह — the formation</small></h1>
+      <p class="hero-lede">
+        A battlefield is a shape before it is a game. The epics knew this: an army was a
+        <b>vyūha</b> — a lotus, a needle, a wheel — and the whole battle was about which shape
+        answered which. Three new boards, each with a rule only that shape can carry.
+      </p>
+      <p class="hero-lede" style="margin-top:14px">
+        Tap any tile on the boards below to see how movement changes when the square is gone.
+      </p>
+    </div>
+    <div class="hero-mark">
+      <svg viewBox="0 0 240 240" aria-hidden="true">
+        <defs>
+          <radialGradient id="g1" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#f2cf8b" stop-opacity=".9"/>
+            <stop offset="70%" stop-color="#d9a441" stop-opacity=".25"/>
+            <stop offset="100%" stop-color="#d9a441" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="120" cy="120" r="112" fill="none" stroke="rgba(217,164,65,.22)" stroke-width="1"/>
+        <circle cx="120" cy="120" r="88" fill="none" stroke="rgba(217,164,65,.35)" stroke-width="1"/>
+        <circle cx="120" cy="120" r="34" fill="url(#g1)"/>
+        <g stroke="#d9a441" stroke-width="1.2" fill="none" opacity=".85">
+          <g id="petals"></g>
+        </g>
+        <circle cx="120" cy="120" r="6" fill="#f2cf8b"/>
+      </svg>
+    </div>
+  </header>
+
+  <!-- ══ why ══ -->
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>Why geometry, and why Indian</h2></div>
+    <p class="sec-sub">
+      A reskin changes how a game looks. A new lattice changes how it thinks. Every board here
+      earns its place by adding exactly one rule that is impossible on a square grid — and each
+      one is drawn from a formation that already had a name in Indian military literature.
+    </p>
+    <div class="grid-3">
+      <div class="card">
+        <div class="sub">Lineage</div>
+        <h3>Chaturanga &amp; ashtapada</h3>
+        <p class="muted" style="margin-top:8px">Four limbs of an army — elephants, chariots, cavalry, infantry — on an eight-by-eight grid. The square board is not foreign to India; it is the ancestor. Keep it, and call it <b>Sarvatobhadra</b>: "auspicious on every side".</p>
+      </div>
+      <div class="card">
+        <div class="sub">Vocabulary</div>
+        <h3>Vyūha, not "map"</h3>
+        <p class="muted" style="margin-top:8px">Chakravyuha (wheel), Padmavyuha (lotus), Suchivyuha (needle), Kraunchavyuha (crane). These are battle formations from the epics — tactical, not devotional. Naming a board after a formation is naming it after a <b>plan</b>, which is what a board is.</p>
+      </div>
+      <div class="card">
+        <div class="sub">Respect</div>
+        <h3>Classes, not deities</h3>
+        <p class="muted" style="margin-top:8px">Pieces are army classes — <span class="deva">रथ</span> chariot, <span class="deva">गज</span> elephant, <span class="deva">चर</span> spy, <span class="deva">दुर्ग</span> fort. No god is a playing piece, no deity is "captured". The mythology enters through formations and motifs, which is where it belongs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ boards ══ -->
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>Three battlefields</h2></div>
+    <p class="sec-sub">Each board is playable at 12 pieces a side. Cell counts are deliberately close to the current 48, so match length stays in the 6–12 minute band.</p>
+    <div class="grid-3" id="boards"></div>
+    <p class="stage-note" style="margin-top:18px">Tap a tile: gold = selected, saffron = legal step. On the wheel, the centre is one cell.</p>
+  </section>
+
+  <!-- ══ names ══ -->
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>Naming the war</h2></div>
+    <p class="sec-sub">The two factions were already solar and void. That duality has an older name.</p>
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="sub">Faction I</div>
+        <h3><span class="deva">सूर्यवंश</span> Suryavansh</h3>
+        <p class="muted" style="margin-top:8px">The solar line. Saffron, gold leaf, brass, dawn. Direct, heavy, honourable — wins by holding a line and breaking it. Was <i>Solaris Order</i>.</p>
+        <div class="swatches">
+          <div class="sw" style="background:linear-gradient(140deg,#f2cf8b,#d9a441)"><span>gold</span></div>
+          <div class="sw" style="background:linear-gradient(140deg,#e8863a,#c8452b)"><span>saffron</span></div>
+          <div class="sw" style="background:linear-gradient(140deg,#8a4b1f,#3b1d0c)"><span>brass</span></div>
+          <div class="sw" style="background:linear-gradient(140deg,#efe3cf,#c9b99c)"><span>parchment</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sub">Faction II</div>
+        <h3><span class="deva">चंद्रवंश</span> Chandravansh</h3>
+        <p class="muted" style="margin-top:8px">The lunar line. Indigo, silver, moonstone, night. Patient, deceptive, information-hungry — wins by making you wrong. Was <i>Void Cabal</i>.</p>
+        <div class="swatches">
+          <div class="sw" style="background:linear-gradient(140deg,#8f96e8,#3a3f8f)"><span>indigo</span></div>
+          <div class="sw" style="background:linear-gradient(140deg,#cfd6f5,#8f96e8)"><span>silver</span></div>
+          <div class="sw" style="background:linear-gradient(140deg,#1f8a83,#0d3b39)"><span>peacock</span></div>
+          <div class="sw" style="background:linear-gradient(140deg,#241f3a,#0c0a18)"><span>night</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:6px 10px">
+      <table>
+        <thead><tr><th>Rank</th><th>Piece</th><th>Meaning</th><th>Carries the old role of</th><th>Power</th></tr></thead>
+        <tbody id="unit-rows"></tbody>
+      </table>
+    </div>
+    <p class="callout"><b>Read-aloud rule:</b> the two names are dynastic, not divine — the same way "Solaris" and "Void" were. Nobody is fighting a god; two armies are fighting over a <span class="deva">दुर्ग</span> (fort).</p>
+  </section>
+
+  <!-- ══ art ══ -->
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>Two art directions</h2></div>
+    <p class="sec-sub">Both keep the hidden-rank clarity: a piece must read at 24&nbsp;px on a phone. Both replace emoji with etched vector marks.</p>
+    <div class="grid-2">
+      <div class="card">
+        <div class="sub">Direction A · recommended</div>
+        <h3>Temple-punk <span class="muted" style="font-size:13px">— brass &amp; obsidian</span></h3>
+        <p class="muted" style="margin-top:8px">
+          Carved stone and inlaid brass, lit like a lamp-lit mandapa. Boards are drawn as yantra linework:
+          concentric rings, petal arcs, kolam dot-grids. Pieces are engraved discs with a single glyph and
+          a rank notch cut into the rim — the physicality of an old chaturanga set, rendered in vectors.
+        </p>
+        <p class="muted" style="margin-top:8px">Rifts become <b>māyā</b> — a cut of starfield through the stone. Selection glows like a lamp wick.</p>
+        <div style="display:flex;gap:14px;margin-top:16px;align-items:center" id="tokens-a"></div>
+      </div>
+      <div class="card">
+        <div class="sub">Direction B · alternate</div>
+        <h3>Astral yantra <span class="muted" style="font-size:13px">— nebula &amp; filigree</span></h3>
+        <p class="muted" style="margin-top:8px">
+          Keep the current sci-fi glass, but hang gold filigree over it: the mandala becomes an orbital
+          diagram, the lotus becomes a star-chart, the wheel becomes a gyroscope. Bridges this chapter to
+          the existing Aetherfront look without throwing away the art you already have.
+        </p>
+        <p class="muted" style="margin-top:8px">Best if you want <b>one</b> universe across chapters rather than a new skin per board.</p>
+        <div style="display:flex;gap:14px;margin-top:16px;align-items:center" id="tokens-b"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ modes ══ -->
+  <section>
+    <div class="sec-head"><span class="sec-num">05</span><h2>Five new ways to play</h2></div>
+    <p class="sec-sub">Geometry gives you boards; these give you reasons to come back. Ordered by how cheap they are to build on the existing engine.</p>
+    <ul class="list">
+      <li><span class="n">01</span><div><b>Abhimanyu — the breach.</b> Asymmetric scenario: you have six pieces and twenty turns to break into a rotating chakravyuha and take the fort; the defender has twelve. A story every Indian child knows, turned into a countdown. Cheapest to build: it is the existing game with a turn limit and a piece handicap.</div></li>
+      <li><span class="n">02</span><div><b>Akshauhini draft.</b> Twelve slots, a point budget, ten classes with costs — both sides build different armies before deploying. The Suryavansh can field two Paladins and no Lancer; the Chandravansh can buy a third Mine. Turns a fixed puzzle into a meta.</div></li>
+      <li><span class="n">03</span><div><b>Vyuha cards.</b> Pick one formation card before the match: <i>Padma</i> (+1 rank when you pincer), <i>Krauncha</i> (scouts +1 range), <i>Sarpa</i> (a second mine), <i>Shyena</i> (first strike reveals instead of kills). Small, draftable, replayable.</div></li>
+      <li><span class="n">04</span><div><b>Rana — the duel.</b> No fort. You win by capturing the enemy <span class="deva">सेनापति</span> (Senapati). The Core becomes an ordinary heavy piece, so the endgame is a hunt, not a raid.</div></li>
+      <li><span class="n">05</span><div><b>Andhakar — blind vyuhas.</b> After you lock your formation, the war council shuffles it. You deploy in the dark and must discover your own army as it fights. Hidden information cuts both ways.</div></li>
+    </ul>
+  </section>
+
+  <!-- ══ build ══ -->
+  <section>
+    <div class="sec-head"><span class="sec-num">06</span><h2>How it ships in your repo</h2></div>
+    <p class="sec-sub">The current engine is square-locked in three places. Fix those and every board above is data, not code.</p>
+    <ul class="list">
+      <li><span class="n">01</span><div><b>Cells, not coordinates.</b> Replace <code>board[r][c]</code> with a cell list: <code>cells: [{id, x, y, shape, neighbours:[id…]}]</code> and <code>board: {cellId: unit}</code>. The engine already talks in <code>{r,c}</code>; make it talk in <code>cellId</code> and nothing else changes.</div></li>
+      <li><span class="n">02</span><div><b>Neighbour lists, not directions.</b> <code>computeValidTargets</code> loops over four fixed directions. Loop over <code>cell.neighbours</code> instead — six on the lotus, three on the needle, eight-ish on the wheel. Range becomes "steps along a path of neighbours", which the Strider already needs.</div></li>
+      <li><span class="n">03</span><div><b>Render from geometry.</b> Each cell carries its own SVG path or polygon points, so the board renderer becomes a loop over cells. The existing tile classes (selected, target, rift, last-move) all survive untouched.</div></li>
+      <li><span class="n">04</span><div><b>Then the three rules.</b> Pincer (lotus) is a lookup of shared neighbours; rotation (wheel) is a permutation of the cell list every five turns; facing (needle) is one extra field on the unit. All three are ~40 lines each.</div></li>
+    </ul>
+    <p class="callout"><b>Effort estimate:</b> the graph refactor is the only real work — roughly a day of careful change plus re-running the 40 rule tests. After that, each new board is an afternoon, because the engine no longer knows what a square is.</p>
+  </section>
+
+  <footer>
+    <p>Design studio for <b>Aetherfront</b> · board geometry prototypes are live — tap the tiles. Sources for the formation names: the vyūha passages of the Mahabharata (Chakravyuha, Padmavyuha, Kraunchavyuha, Suchivyuha, Sarvatobhadra) and the chaturanga/ashtapada lineage of Indian board games. Motifs are martial and architectural; no deity is depicted as a playing piece.</p>
+  </footer>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   Three board prototypes. Each builds a cell graph, draws it, and
+   lets you tap a tile to see its legal steps.
+   ════════════════════════════════════════════════════════════════ */
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+/* ── tiny glyph set (etched marks, no emoji) ── */
+const GLYPH = {
+  chakra: '<circle cx="0" cy="0" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="0" cy="0" r="2" fill="currentColor"/>',
+  bow: '<path d="M-6 7 Q6 0 -6 -7 M-6 7 L-6 -7" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+  mace: '<path d="M-5 6 L3 -3" stroke="currentColor" stroke-width="1.8"/><circle cx="4" cy="-4" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+  dagger: '<path d="M0 -8 L3 2 L0 5 L-3 2 Z" fill="currentColor"/><path d="M-5 5 H5" stroke="currentColor" stroke-width="1.6"/>',
+  fort: '<path d="M-7 7 V-2 L-7 -4 L-4 -4 L-4 -2 L-2 -2 L-2 -4 L2 -4 L2 -2 L4 -2 L4 -4 L7 -4 L7 7 Z" fill="none" stroke="currentColor" stroke-width="1.5"/>',
+  lotus: '<path d="M0 -8 Q5 -3 0 0 Q-5 -3 0 -8 M0 0 Q6 -2 7 3 Q1 5 0 0 M0 0 Q-6 -2 -7 3 Q-1 5 0 0" fill="none" stroke="currentColor" stroke-width="1.4"/>',
+  horse: '<path d="M-6 7 L-4 0 L-6 -3 L-1 -8 L6 -6 L3 -2 L5 7" fill="none" stroke="currentColor" stroke-width="1.5"/>',
+  eye: '<path d="M-8 0 Q0 -7 8 0 Q0 7 -8 0 Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="0" cy="0" r="2" fill="currentColor"/>'
+};
+
+/* ── 1. PADMAVYUHA — hex, radius 3 = 37 cells ── */
+function buildHex() {
+  const N = 3;
+  const R = 27;
+  const cells = [];
+  for (let q = -N; q <= N; q++) {
+    for (let r = Math.max(-N, -q - N); r <= Math.min(N, -q + N); r++) {
+      cells.push({
+        id: q + ',' + r,
+        q, r,
+        x: R * Math.sqrt(3) * (q + r / 2),
+        y: R * 1.5 * r
+      });
+    }
+  }
+  const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+  const byId = {};
+  cells.forEach((c) => { byId[c.id] = c; });
+  cells.forEach((c) => {
+    c.neighbours = DIRS.map((d) => byId[(c.q + d[0]) + ',' + (c.r + d[1])]).filter(Boolean).map((n) => n.id);
+    c.points = Array.from({ length: 6 }, (_, i) => {
+      const a = (Math.PI / 180) * (60 * i - 30);
+      return [c.x + R * 0.97 * Math.cos(a), c.y + R * 0.97 * Math.sin(a)];
+    });
+  });
+  return { cells, type: 'polygon' };
+}
+
+/* ── 2. SUCHIVYUHA — triangular lattice, 6 rows = 36 cells ── */
+function buildTri() {
+  const ROWS = 6;
+  const U = 34;
+  const H = U * Math.sqrt(3) / 2;
+  const pts = [];
+  for (let row = 0; row <= ROWS; row++) {
+    for (let j = 0; j <= row; j++) {
+      pts.push({ row, j, x: (j - row / 2) * U, y: row * H });
+    }
+  }
+  const P = (row, j) => pts[row * (row + 1) / 2 + j];
+  const tris = [];
+  for (let k = 0; k < ROWS; k++) {
+    for (let j = 0; j <= k; j++) {
+      // apex up: one vertex on row k, two on row k+1
+      tris.push({ v: [P(k, j), P(k + 1, j), P(k + 1, j + 1)] });
+    }
+    for (let j = 0; j < k; j++) {
+      // apex down: two vertices on row k, one on row k+1
+      tris.push({ v: [P(k, j), P(k + 1, j + 1), P(k, j + 1)] });
+    }
+  }
+  // adjacency: two triangles sharing an edge (two identical vertices)
+  const key = (p) => p.row + ':' + p.j;
+  tris.forEach((t, i) => {
+    t.id = 't' + i;
+    t.edges = [key(t.v[0]) + '|' + key(t.v[1]), key(t.v[1]) + '|' + key(t.v[2]), key(t.v[0]) + '|' + key(t.v[2])]
+      .map((s) => s.split('|').sort().join('|'));
+  });
+  tris.forEach((t) => { t.neighbours = []; });
+  for (let i = 0; i < tris.length; i++) {
+    for (let j = i + 1; j < tris.length; j++) {
+      const shared = tris[i].edges.filter((e) => tris[j].edges.indexOf(e) !== -1).length;
+      if (shared === 1) {
+        tris[i].neighbours.push(tris[j].id);
+        tris[j].neighbours.push(tris[i].id);
+      }
+    }
+  }
+  tris.forEach((t) => {
+    t.x = (t.v[0].x + t.v[1].x + t.v[2].x) / 3;
+    t.y = (t.v[0].y + t.v[1].y + t.v[2].y) / 3;
+    t.points = t.v.map((p) => [p.x, p.y]);
+  });
+  return { cells: tris, type: 'polygon' };
+}
+
+/* ── 3. CHAKRAVYUHA — 4 rings x 8 sectors + centre = 33 cells ── */
+function buildWheel() {
+  const SECT = 8;
+  const RINGS = 4;
+  const r0 = 26;
+  const step = 30;
+  const cells = [];
+  cells.push({ id: 'hub', ring: 0, sector: 0, x: 0, y: 0, hub: true });
+  for (let ring = 1; ring <= RINGS; ring++) {
+    const inner = r0 + (ring - 1) * step;
+    const outer = r0 + ring * step;
+    for (let s = 0; s < SECT; s++) {
+      const a0 = (s / SECT) * Math.PI * 2 - Math.PI / 2 + 0.035;
+      const a1 = ((s + 1) / SECT) * Math.PI * 2 - Math.PI / 2 - 0.035;
+      const mid = (a0 + a1) / 2;
+      const rm = (inner + outer) / 2;
+      cells.push({
+        id: 'r' + ring + 's' + s,
+        ring, sector: s,
+        x: Math.cos(mid) * rm,
+        y: Math.sin(mid) * rm,
+        path: arcPath(inner, outer, a0, a1)
+      });
+    }
+  }
+  const idx = {};
+  cells.forEach((c) => { idx[c.id] = c; });
+  cells.forEach((c) => {
+    c.neighbours = [];
+    if (c.hub) {
+      for (let s = 0; s < SECT; s++) c.neighbours.push('r1s' + s);
+      return;
+    }
+    c.neighbours.push('r' + c.ring + 's' + ((c.sector + 1) % SECT));
+    c.neighbours.push('r' + c.ring + 's' + ((c.sector + SECT - 1) % SECT));
+    if (c.ring > 1) c.neighbours.push('r' + (c.ring - 1) + 's' + c.sector);
+    else c.neighbours.push('hub');
+    if (c.ring < RINGS) c.neighbours.push('r' + (c.ring + 1) + 's' + c.sector);
+  });
+  return { cells, type: 'path', SECT, RINGS, r0, step };
+}
+
+function arcPath(ri, ro, a0, a1) {
+  const p = (r, a) => [Math.cos(a) * r, Math.sin(a) * r];
+  const [x0, y0] = p(ro, a0);
+  const [x1, y1] = p(ro, a1);
+  const [x2, y2] = p(ri, a1);
+  const [x3, y3] = p(ri, a0);
+  return 'M' + x0 + ' ' + y0 +
+    ' A' + ro + ' ' + ro + ' 0 0 1 ' + x1 + ' ' + y1 +
+    ' L' + x2 + ' ' + y2 +
+    ' A' + ri + ' ' + ri + ' 0 0 1 ' + x3 + ' ' + y3 + ' Z';
+}
+
+/* ── drawing ── */
+function drawBoard(host, spec, opts) {
+  const svg = document.createElementNS(SVGNS, 'svg');
+  const pad = 18;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  spec.cells.forEach((c) => {
+    if (c.hub) {
+      minX = Math.min(minX, -spec.r0); maxX = Math.max(maxX, spec.r0);
+      minY = Math.min(minY, -spec.r0); maxY = Math.max(maxY, spec.r0);
+      return;
+    }
+    if (!c.points) return; // ring sectors are bounded by the wheel radius below
+    c.points.forEach((p) => {
+      minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]);
+      minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]);
+    });
+  });
+  // the wheel's cells carry no points; derive bounds from its rings
+  if (spec.type === 'path') {
+    const R = spec.r0 + spec.RINGS * spec.step;
+    minX = -R; maxX = R; minY = -R; maxY = R;
+  }
+  const w = maxX - minX + pad * 2;
+  const h = maxY - minY + pad * 2;
+  svg.setAttribute('viewBox', (minX - pad) + ' ' + (minY - pad) + ' ' + w + ' ' + h);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', opts.label);
+
+  // decorative yantra rings behind the wheel
+  if (spec.type === 'path') {
+    for (let i = 0; i <= spec.RINGS; i++) {
+      const c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', 0); c.setAttribute('cy', 0);
+      c.setAttribute('r', spec.r0 + i * spec.step);
+      c.setAttribute('fill', 'none');
+      c.setAttribute('stroke', 'rgba(217,164,65,.12)');
+      svg.appendChild(c);
+    }
+  }
+
+  const nodes = {};
+  spec.cells.forEach((c) => {
+    let el;
+    if (c.hub) {
+      el = document.createElementNS(SVGNS, 'circle');
+      el.setAttribute('cx', 0); el.setAttribute('cy', 0); el.setAttribute('r', spec.r0 - 3);
+    } else if (spec.type === 'path') {
+      el = document.createElementNS(SVGNS, 'path');
+      el.setAttribute('d', c.path);
+    } else {
+      el = document.createElementNS(SVGNS, 'polygon');
+      el.setAttribute('points', c.points.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '));
+    }
+    el.setAttribute('class', 'tile' + (c.hub ? ' core' : ''));
+    el.setAttribute('tabindex', '0');
+    el.addEventListener('click', () => select(c.id));
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(c.id); } });
+    svg.appendChild(el);
+    nodes[c.id] = el;
+  });
+
+  // sample pieces
+  const byId = {};
+  spec.cells.forEach((c) => { byId[c.id] = c; });
+  (opts.pieces || []).forEach((p) => {
+    const c = byId[p.cell];
+    if (!c) return;
+    const g = document.createElementNS(SVGNS, 'g');
+    g.setAttribute('class', 'piece-dot');
+    g.setAttribute('transform', 'translate(' + c.x + ',' + c.y + ')');
+    const disc = document.createElementNS(SVGNS, 'circle');
+    disc.setAttribute('r', opts.pieceR || 12);
+    disc.setAttribute('fill', p.side === 1 ? 'rgba(217,164,65,.9)' : 'rgba(143,150,232,.9)');
+    disc.setAttribute('stroke', p.side === 1 ? '#f2cf8b' : '#cfd6f5');
+    disc.setAttribute('stroke-width', '1.2');
+    g.appendChild(disc);
+    const glyph = document.createElementNS(SVGNS, 'g');
+    glyph.setAttribute('color', p.side === 1 ? '#2b1a06' : '#0d1030');
+    glyph.setAttribute('transform', 'scale(' + (opts.pieceR || 12) / 13 + ')');
+    glyph.innerHTML = GLYPH[p.glyph] || GLYPH.chakra;
+    g.appendChild(glyph);
+    svg.appendChild(g);
+  });
+
+  function select(id) {
+    Object.keys(nodes).forEach((k) => nodes[k].classList.remove('on', 'nb'));
+    nodes[id].classList.add('on');
+    const cell = byId[id];
+    (cell.neighbours || []).forEach((n) => nodes[n] && nodes[n].classList.add('nb'));
+  }
+
+  host.appendChild(svg);
+}
+
+/* ── board catalogue ── */
+const BOARDS = [
+  {
+    key: 'padma',
+    deva: 'पद्मव्यूह',
+    name: 'Padmavyuha',
+    en: 'The lotus',
+    geo: 'Hex lattice',
+    cells: '37 cells · 6 neighbours each',
+    rule: 'Pincer — if two of your pieces touch the same enemy on different axes, your attack counts as one rank higher (max 10).',
+    feel: 'Surround, don’t line up. A hex board has three axes, so "flanking" finally means something: you can close two sides of a piece instead of one.',
+    why: 'On a square grid, a corner piece has two approaches. Here every piece has six, and the board has no edges to hide behind — which is exactly the lotus: petals closing.',
+    build: buildHex,
+    pieces: [
+      { cell: '0,0', side: 2, glyph: 'fort' },
+      { cell: '0,-1', side: 2, glyph: 'mace' },
+      { cell: '1,0', side: 2, glyph: 'bow' },
+      { cell: '0,2', side: 1, glyph: 'chakra' },
+      { cell: '-1,2', side: 1, glyph: 'horse' },
+      { cell: '1,1', side: 1, glyph: 'dagger' }
+    ]
+  },
+  {
+    key: 'suchi',
+    deva: 'सूचीव्यूह',
+    name: 'Suchivyuha',
+    en: 'The needle',
+    geo: 'Triangular lattice',
+    cells: '36 cells · 3 neighbours each',
+    rule: 'Facing — every piece faces the way it last moved. A strike from behind ignores rank entirely; a strike from the front uses ranks as normal.',
+    feel: 'A corridor war. Three exits per cell means every move commits you to a direction, and turning your back is a real risk.',
+    why: 'The needle formation is a wedge — narrow, fast, all thrust. A triangle lattice makes corridors and turning costs, which no square board can do without special-casing.',
+    build: buildTri,
+    pieces: [
+      { cell: 't0', side: 2, glyph: 'fort' },
+      { cell: 't3', side: 2, glyph: 'bow' },
+      { cell: 't9', side: 2, glyph: 'mace' },
+      { cell: 't30', side: 1, glyph: 'chakra' },
+      { cell: 't33', side: 1, glyph: 'eye' },
+      { cell: 't25', side: 1, glyph: 'dagger' }
+    ]
+  },
+  {
+    key: 'chakra',
+    deva: 'चक्रव्यूह',
+    name: 'Chakravyuha',
+    en: 'The wheel',
+    geo: 'Concentric rings',
+    cells: '33 cells · 4 rings × 8 spokes + hub',
+    rule: 'Rotation — every five turns the two inner rings turn one spoke clockwise, carrying whatever stands on them. Pieces that ride a rotation are revealed.',
+    feel: 'A siege that breathes. The fort sits at the hub, so the defender is always inside; the attacker must spiral in while the board itself keeps shifting.',
+    why: 'This is the formation the epics are famous for, and the only one where the board can move: a wheel that turns is a different game every five turns.',
+    build: buildWheel,
+    pieces: [
+      { cell: 'hub', side: 2, glyph: 'fort' },
+      { cell: 'r1s0', side: 2, glyph: 'mace' },
+      { cell: 'r1s4', side: 2, glyph: 'bow' },
+      { cell: 'r4s2', side: 1, glyph: 'chakra' },
+      { cell: 'r4s6', side: 1, glyph: 'horse' },
+      { cell: 'r3s7', side: 1, glyph: 'dagger' }
+    ]
+  }
+];
+
+const UNITS = [
+  ['10', 'सेनापति', 'Senapati', 'Army chief — the commander on the field', 'Solar Archon', '—'],
+  ['9', 'महारथी', 'Maharathi', 'Great chariot-warrior', 'Star Paladin', '—'],
+  ['7', 'अश्वारोही', 'Ashvarohi', 'Cavalry', 'Valkyrie Vanguard', 'Dvi-pada — dash two cells and strike'],
+  ['6', 'धनुर्धर', 'Dhanurdhar', 'Archer', 'Plasma Lancer', 'Shara-varsha — arrow rain at two cells'],
+  ['5', 'दिव्यदृष्टि', 'Divyadrishti', 'The far-seeing one', 'Chrono Seer', 'Divya-drishti — reveal within two cells'],
+  ['3', 'यंत्रिक', 'Yantrik', 'Engineer of machines', 'Warp Sapper', 'Defuses a Shataghni'],
+  ['2', 'रथ', 'Rath', 'Chariot', 'Astral Strider', 'Long slide in a straight line'],
+  ['1', 'चर', 'Chara', 'Spy', 'Shadow Wraith', 'Slays Senapati or Maharathi when attacking'],
+  ['B', 'शतघ्नी', 'Shataghni', '“Hundred-killer” — a real medieval multi-barrel gun', 'Stasis Mine', 'Immovable; destroys any attacker but a Yantrik'],
+  ['F', 'दुर्ग', 'Durg', 'Fort', 'Nexus Core', 'Immovable; lose it and the war is lost']
+];
+
+/* ── paint the page ── */
+const host = document.getElementById('boards');
+BOARDS.forEach((b) => {
+  const card = document.createElement('div');
+  card.className = 'card board-card';
+  card.innerHTML =
+    '<div><div class="sub">' + b.geo + '</div>' +
+    '<h3><span class="deva" style="font-size:22px;color:var(--parch)">' + b.deva + '</span> ' + b.name +
+    ' <span class="muted" style="font-size:13px">— ' + b.en + '</span></h3></div>' +
+    '<div class="board-stage"></div>' +
+    '<dl class="spec">' +
+      '<dt>Board</dt><dd>' + b.cells + '</dd>' +
+      '<dt>Rule</dt><dd>' + b.rule + '</dd>' +
+      '<dt>Feel</dt><dd>' + b.feel + '</dd>' +
+      '<dt>Why</dt><dd class="muted">' + b.why + '</dd>' +
+    '</dl>';
+  host.appendChild(card);
+  const stage = card.querySelector('.board-stage');
+  const spec = b.build();
+  drawBoard(stage, spec, { label: b.name + ' board prototype', pieces: b.pieces, pieceR: b.key === 'chakra' ? 11 : 12 });
+});
+
+document.getElementById('unit-rows').innerHTML = UNITS.map((u) =>
+  '<tr><td class="rank">' + u[0] + '</td>' +
+  '<td><span class="deva">' + u[1] + '</span><span class="rom">' + u[2] + '</span></td>' +
+  '<td class="muted">' + u[3] + '</td>' +
+  '<td class="muted">' + u[4] + '</td>' +
+  '<td class="muted">' + u[5] + '</td></tr>').join('');
+
+/* token samples for the two art directions */
+function tokenRow(hostEl, palette) {
+  ['chakra', 'bow', 'mace', 'dagger', 'fort', 'lotus'].forEach((g, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:grid;justify-items:center;gap:6px';
+    wrap.innerHTML =
+      '<svg viewBox="-16 -16 32 32" width="52" height="52" aria-hidden="true">' +
+        '<circle r="14.5" fill="' + palette.disc + '" stroke="' + palette.rim + '" stroke-width="1.4"/>' +
+        '<circle r="11" fill="none" stroke="' + palette.rim + '" stroke-width="0.6" opacity=".6"/>' +
+        '<g color="' + palette.ink + '">' + GLYPH[g] + '</g>' +
+        '<path d="M-14.5 0 A14.5 14.5 0 0 1 14.5 0" fill="none" stroke="' + palette.rim + '" stroke-width="1.6" opacity=".5"/>' +
+      '</svg>' +
+      '<span style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)">' + (i + 1) + '</span>';
+    hostEl.appendChild(wrap);
+  });
+}
+tokenRow(document.getElementById('tokens-a'), { disc: '#2a1c0c', rim: '#d9a441', ink: '#f2cf8b' });
+tokenRow(document.getElementById('tokens-b'), { disc: 'rgba(58,63,143,.5)', rim: '#8f96e8', ink: '#e6e9ff' });
+
+/* hero mandala petals */
+const petals = document.getElementById('petals');
+for (let i = 0; i < 8; i++) {
+  const p = document.createElementNS(SVGNS, 'path');
+  const a = (i / 8) * 360;
+  p.setAttribute('d', 'M120 34 C150 62 150 96 120 120 C90 96 90 62 120 34 Z');
+  p.setAttribute('transform', 'rotate(' + a + ' 120 120)');
+  p.setAttribute('opacity', '0.55');
+  petals.appendChild(p);
+}
+</script>
+</body>
+</html>
