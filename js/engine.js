@@ -35,8 +35,9 @@
     }
   }
 
-  function createArmy(owner) {
-    return U.ROSTER_ORDER.map(function (key, idx) {
+  function createArmy(owner, keys) {
+    const roster = keys || U.ROSTER_ORDER;
+    return roster.map(function (key, idx) {
       const def = U.UNIT_DEFS[key];
       return {
         id: 'P' + owner + '_' + key + '_' + idx,
@@ -56,9 +57,11 @@
 
   function newState(config) {
     const cfg = Object.assign({
-      mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran',
+      mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', scenario: 'duel',
       timer: 0, drawAfter: 100, playerName: 'Commander', opponentName: 'Astral AI'
     }, config || {});
+    const scenario = U.SCENARIOS[cfg.scenario] || U.SCENARIOS.duel;
+    if (scenario.boards && scenario.boards.indexOf(cfg.board) === -1) cfg.board = scenario.boards[0];
     const g = G.build(cfg.board);
     const state = {
       version: VERSION,
@@ -77,6 +80,12 @@
       lastMove: null,
       winner: null,
       reason: '',
+      scenario: scenario.key,
+      rosters: {
+        1: (scenario.rosters && scenario.rosters[1]) ? scenario.rosters[1].slice() : U.ROSTER_ORDER.slice(),
+        2: (scenario.rosters && scenario.rosters[2]) ? scenario.rosters[2].slice() : U.ROSTER_ORDER.slice()
+      },
+      turnLimit: scenario.turnLimit || 0,
       rotation: { count: 0, lastTurn: 0, every: g.rotateEvery || 0, rings: (g.rotateRings || []).slice() },
       stats: { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0, lastCapturePly: 0 },
       startedAt: Date.now()
@@ -96,7 +105,11 @@
   function armyComplete(state, owner) {
     let n = 0;
     forEachUnit(state, function (u) { if (u.owner === owner) n++; });
-    return n === 12;
+    return n === rosterOf(state, owner).length;
+  }
+
+  function rosterOf(state, owner) {
+    return (state.rosters && state.rosters[owner]) ? state.rosters[owner] : U.ROSTER_ORDER;
   }
 
   function groupArmy(army) {
@@ -156,7 +169,7 @@
   function deploySquare(state, owner, style) {
     const g = board(state);
     clearZone(state, owner);
-    const army = createArmy(owner);
+    const army = createArmy(owner, rosterOf(state, owner));
     const grp = groupArmy(army);
 
     if (style === 'shuffle' || style === 'random') {
@@ -212,10 +225,12 @@
   function deployWheel(state, owner, style) {
     const g = board(state);
     clearZone(state, owner);
-    const army = createArmy(owner);
+    const army = createArmy(owner, rosterOf(state, owner));
     const grp = groupArmy(army);
     const home = state.homes[owner];
     const dist = G.distances(state.boardKey, home);
+    // Deploy from the back of your own half outward: the raiders start on
+    // their rim, outside the wheel, and have to break in.
     const zone = g.zones[owner].slice().sort(function (a, b) {
       if (dist[a] !== dist[b]) return dist[a] - dist[b];
       return a < b ? -1 : 1;
@@ -240,17 +255,23 @@
       // heavies on the rim, the fort tucked at the back
       const back = zone.slice(0, 4);
       const front = zone.slice(4).reverse();
-      const placed = back.concat(front);
-      order.forEach(function (k, i) {
+      order.forEach(function (k) {
         const u = grp.pull(k);
-        if (u && placed[i]) state.board[placed[i]] = u;
+        if (!u) return;
+        const cell = back.shift() || front.shift();
+        if (cell) state.board[cell] = u;
       });
       return;
     }
 
-    order.forEach(function (k, i) {
+    // walk the zone in order, skipping only cells we actually fill, so a
+    // smaller roster never leaves holes behind the line
+    let cursor = 0;
+    order.forEach(function (k) {
       const u = grp.pull(k);
-      if (u && zone[i]) state.board[zone[i]] = u;
+      if (!u) return;
+      while (cursor < zone.length && state.board[zone[cursor]]) cursor++;
+      if (cursor < zone.length) state.board[zone[cursor]] = u;
     });
   }
 
@@ -696,6 +717,11 @@
     state.owner = next;
     if (next === 1) {
       state.turn++;
+      // a scenario can run out of rounds: the defence holds
+      if (state.turnLimit && state.turn > state.turnLimit) {
+        endGame(state, 2, 'The rounds ran out — the chakra closed and the breach failed.', events);
+        return;
+      }
       // the wheel turns at the start of every fifth round
       if (state.boardKey === 'wheel' && state.turn % (state.rotation.every || 5) === 0) {
         rotate(state, events);
@@ -718,7 +744,7 @@
   function unknownPool(state, viewer) {
     const foe = viewer === 1 ? 2 : 1;
     const remaining = {};
-    U.ROSTER_ORDER.forEach(function (k) { remaining[k] = (remaining[k] || 0) + 1; });
+    rosterOf(state, foe).forEach(function (k) { remaining[k] = (remaining[k] || 0) + 1; });
     forEachUnit(state, function (u) {
       if (u.owner !== foe) return;
       if (u.revealed) remaining[u.key] = Math.max(0, (remaining[u.key] || 0) - 1);
@@ -814,6 +840,7 @@
     deployPreset: deployPreset,
     swapSlots: swapSlots,
     armyComplete: armyComplete,
+    rosterOf: rosterOf,
     computeValidTargets: computeValidTargets,
     canAct: canAct,
     isMovable: isMovable,

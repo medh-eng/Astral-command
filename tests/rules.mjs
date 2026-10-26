@@ -314,6 +314,48 @@ console.log('No-capture draw');
   ok(/draw/i.test(s.reason), 'the draw reason is reported');
 }
 
+console.log('Abhimanyu — the breach');
+{
+  const s = E.newState({ board: 'wheel', scenario: 'abhimanyu' });
+  ok(s.scenario === 'abhimanyu', 'the scenario is recorded on the state');
+  ok(s.rosters[1].length === 8 && s.rosters[2].length === 10, 'eight raiders against ten defenders');
+  ok(s.rosters[1].indexOf('F') === -1 && s.rosters[1].indexOf('B') === -1, 'the raiders carry no fort and no trap');
+  ok(s.turnLimit === 24, 'the breach has a round limit');
+  let n1 = 0;
+  let n2 = 0;
+  E.forEachUnit(s, (u) => { if (u.owner === 1) n1++; else n2++; });
+  ok(n1 === 8 && n2 === 10, 'both sides deploy their own roster');
+  ok(E.armyComplete(s, 1) && E.armyComplete(s, 2), 'both armies count as complete');
+
+  const pool = E.unknownPool(s, 2);
+  ok(!pool.F && !pool.B, 'the defender knows the raiders have no fort or trap');
+  ok(Object.keys(pool).reduce((a, k) => a + pool[k], 0) === 8, 'the defender has eight unknowns to track');
+
+  // running out of rounds hands the defence the match
+  const s2 = E.newState({ board: 'wheel', scenario: 'abhimanyu' });
+  s2.phase = 'battle';
+  s2.turn = s2.turnLimit;
+  s2.owner = 2;
+  put(s2, 'r3s0', 2, '3');
+  put(s2, 'r3s1', 2, '2');
+  const move = E.allLegalActions(s2, 2)[0];
+  if (move) E.applyAction(s2, move);
+  ok(s2.phase === 'over' && s2.winner === 2, 'the defence wins when the rounds run out');
+  ok(/rounds ran out/i.test(s2.reason), 'and says why');
+
+  // taking the fort still wins it for the raiders
+  const s3 = E.newState({ board: 'wheel', scenario: 'abhimanyu' });
+  s3.board = {};
+  s3.phase = 'battle';
+  s3.owner = 1;
+  s3.turn = 1;
+  put(s3, 'r3s4', 1, '2');
+  put(s3, 'r3s5', 2, 'F');
+  put(s3, 'r3s6', 2, '3');
+  const res3 = act(s3, 'r3s4', 'r3s5');
+  ok(res3.ok && s3.winner === 1, 'capturing the fort wins the breach');
+}
+
 console.log('Belief model');
 {
   const s = blank();

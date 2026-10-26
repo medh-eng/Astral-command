@@ -196,10 +196,13 @@
     const target = state.board[act.to] || null;
     const isBarrage = act.type === 'barrage';
 
-    // when the no-capture clock runs down, a draw is a loss of tempo: the bot
-    // starts forcing contact instead of manoeuvring forever
+    // a clock is a clock: in a timed scenario the rounds themselves are the
+    // enemy, so pressure starts building long before the last turn
     let urgency = 0;
-    if (typeof E.drawCountdown === 'function') {
+    if (state.turnLimit) {
+      const rounds = state.turnLimit - state.turn + 1;
+      if (rounds <= 12) urgency = (12 - rounds) * 2.4;
+    } else if (typeof E.drawCountdown === 'function') {
       const left = E.drawCountdown(state);
       if (left < 30) urgency = (30 - left) * 1.8;
     }

@@ -16,7 +16,7 @@
   app.profile = null;
   app.guest = false;
   app.settings = {};
-  app.setup = { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0 };
+  app.setup = { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0, scenario: 'duel' };
   app.modals = [];
 
   /* ── helpers ─────────────────────────────────────────────────── */
@@ -607,10 +607,19 @@
         { v: 'pass', title: 'Pass & play', sub: 'Two commanders, one device, privacy curtain', icon: 'users' }
       ]
     });
+    const scen = U.SCENARIOS[app.setupScenario()] || U.SCENARIOS.duel;
+    groups.push({
+      label: 'Scenario',
+      key: 'scenario',
+      options: Object.keys(U.SCENARIOS).map(function (k) {
+        const sc = U.SCENARIOS[k];
+        return { v: k, title: sc.label, sub: sc.blurb, icon: k === 'duel' ? 'sword' : 'bolt' };
+      })
+    });
     groups.push({
       label: 'Battlefield',
       key: 'board',
-      options: Object.keys(U.BOARDS).map(function (k) {
+      options: (scen.boards || Object.keys(U.BOARDS)).map(function (k) {
         const b = U.BOARDS[k];
         return { v: k, title: b.label, sub: b.blurb, icon: 'grid' };
       })
@@ -661,18 +670,30 @@
       let val = b.getAttribute('data-val');
       if (key === 'timer') val = Number(val);
       app.setup[key] = val;
+      if (key === 'scenario') {
+        const sc = U.SCENARIOS[val];
+        if (sc && sc.boards && sc.boards.indexOf(app.setup.board) === -1) app.setup.board = sc.boards[0];
+      }
       sfx('select');
       renderSetup();
     };
 
     const mode = app.setup.mode === 'pass' ? 'Pass & play' : 'Astral AI · ' + U.DIFFICULTIES[app.setup.difficulty].label;
+    const scenario = U.SCENARIOS[app.setup.scenario] || U.SCENARIOS.duel;
     const board = U.BOARDS[app.setup.board];
     const tie = app.setup.tie === 'attacker' ? 'Attacker advantage' : 'Mutual destruction';
     const timer = app.setup.timer ? app.setup.timer + 's per turn' : 'No clock';
     document.getElementById('setup-summary').innerHTML =
-      row('Opponent', mode) + row('Board', board.label + ' (' + (board.cells ? board.cells + ' cells' : board.cols + '×' + board.rows) + ')') +
-      row('Tie rule', tie) + row('Clock', timer) + row('Army', '12 pieces each');
+      row('Scenario', scenario.label) + row('Opponent', mode) +
+      row('Board', board.label + ' (' + (board.cells ? board.cells + ' cells' : board.cols + '×' + board.rows) + ')') +
+      row('Tie rule', tie) + row('Clock', timer) +
+      row('Army', scenario.rosters
+        ? scenario.rosters[1].length + ' raiders vs ' + scenario.rosters[2].length + ' defenders'
+        : '12 pieces each') +
+      (scenario.turnLimit ? row('Breach by', 'round ' + scenario.turnLimit) : '');
   }
+
+  app.setupScenario = function () { return app.setup.scenario || 'duel'; };
 
   function row(k, v) {
     return '<div class="row"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>';
@@ -729,6 +750,7 @@
           ['Mines and Cores', 'Both are immovable. Any attacker dies to a Mine except the Warp Sapper, which defuses and captures it. The Core can be captured by any attacking piece.'],
           ['Revealing', 'A piece becomes revealed when it fights, when it is scanned, or when a Strider runs two or more tiles (and when a Valkyrie dashes two). Revealed ranks stay visible for the rest of the match.'],
           ['Two-square rule', 'A piece may not shuttle between the same two squares more than three times in a row. The fourth reversal is illegal — this prevents endless stalling.'],
+          ['Abhimanyu — the breach', 'A scenario, not a duel. Eight raiders with no fort face a ten-piece wheel and must take the defender’s fort before round 24. Lose every raider, or run out of rounds, and the breach has failed.'],
           ['The chakra turns', 'On the Chakravyuha wheel, rings 1 and 2 rotate one spoke clockwise at the start of every fifth round. Whatever they carry moves with them — and is revealed. The hub touches all eight spokes but exposes whoever stands on it.'],
           ['No-capture draw', 'If neither side captures a piece for 60 orders, the engagement is declared a draw. The intel panel shows the countdown.'],
           ['Deployment', 'Each army has 12 pieces placed anywhere in its own three-row zone. Swap any two squares before locking. Presets are starting points, not commitments.']

@@ -1304,6 +1304,7 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border: 0; bo
   .sel-badge { width: 32px; height: 32px; border-radius: 10px; }
   .sel-badge .emblem { width: 18px; height: 18px; }
   .turn-pill { font-size: 10px; padding: 3px 9px; }
+  .turn-banner { top: 24%; padding: 11px 22px; font-size: clamp(16px, 5vw, 22px); letter-spacing: 0.16em; }
   .hud-sub { font-size: 10px; }
   .modal { padding: 16px; }
   .modal-actions .btn { flex: 1 1 100%; }
@@ -1881,13 +1882,37 @@ html.cb {
     archon: { key: 'archon', label: 'Archon', blurb: 'Full belief model, sees your best reply', think: 780, noise: 0.06, depth: 2 }
   };
 
+  /* Scenarios are asymmetric setups layered on the same rules. */
+  const SCENARIOS = {
+    duel: {
+      key: 'duel',
+      label: 'Duel',
+      blurb: 'Two equal armies, one wheel or arena',
+      boards: ['small', 'large', 'wheel'],
+      rosters: null,
+      turnLimit: 0
+    },
+    abhimanyu: {
+      key: 'abhimanyu',
+      label: 'Abhimanyu',
+      blurb: 'Eight raiders must break a ten-piece wheel inside twenty-four rounds',
+      boards: ['wheel'],
+      // a raiding party: no fort, no trap, no commander — just the tools to
+      // break a line: a champion, cavalry, an archer, a seer, two chariots,
+      // a spy and an engineer
+      rosters: { 1: ['9', '7', '6', '5', '2', '2', '1', '3'], 2: ['10', '9', '7', '6', '5', '3', '2', '1', 'B', 'F'] },
+      turnLimit: 24
+    }
+  };
+
   AC.units = {
     FACTIONS: FACTIONS,
     UNIT_DEFS: UNIT_DEFS,
     ROSTER_ORDER: ROSTER_ORDER,
     RANK_ORDER: RANK_ORDER,
     BOARDS: BOARDS,
-    DIFFICULTIES: DIFFICULTIES
+    DIFFICULTIES: DIFFICULTIES,
+    SCENARIOS: SCENARIOS
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -2214,8 +2239,9 @@ html.cb {
     }
   }
 
-  function createArmy(owner) {
-    return U.ROSTER_ORDER.map(function (key, idx) {
+  function createArmy(owner, keys) {
+    const roster = keys || U.ROSTER_ORDER;
+    return roster.map(function (key, idx) {
       const def = U.UNIT_DEFS[key];
       return {
         id: 'P' + owner + '_' + key + '_' + idx,
@@ -2235,9 +2261,11 @@ html.cb {
 
   function newState(config) {
     const cfg = Object.assign({
-      mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran',
+      mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', scenario: 'duel',
       timer: 0, drawAfter: 100, playerName: 'Commander', opponentName: 'Astral AI'
     }, config || {});
+    const scenario = U.SCENARIOS[cfg.scenario] || U.SCENARIOS.duel;
+    if (scenario.boards && scenario.boards.indexOf(cfg.board) === -1) cfg.board = scenario.boards[0];
     const g = G.build(cfg.board);
     const state = {
       version: VERSION,
@@ -2256,6 +2284,12 @@ html.cb {
       lastMove: null,
       winner: null,
       reason: '',
+      scenario: scenario.key,
+      rosters: {
+        1: (scenario.rosters && scenario.rosters[1]) ? scenario.rosters[1].slice() : U.ROSTER_ORDER.slice(),
+        2: (scenario.rosters && scenario.rosters[2]) ? scenario.rosters[2].slice() : U.ROSTER_ORDER.slice()
+      },
+      turnLimit: scenario.turnLimit || 0,
       rotation: { count: 0, lastTurn: 0, every: g.rotateEvery || 0, rings: (g.rotateRings || []).slice() },
       stats: { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0, lastCapturePly: 0 },
       startedAt: Date.now()
@@ -2275,7 +2309,11 @@ html.cb {
   function armyComplete(state, owner) {
     let n = 0;
     forEachUnit(state, function (u) { if (u.owner === owner) n++; });
-    return n === 12;
+    return n === rosterOf(state, owner).length;
+  }
+
+  function rosterOf(state, owner) {
+    return (state.rosters && state.rosters[owner]) ? state.rosters[owner] : U.ROSTER_ORDER;
   }
 
   function groupArmy(army) {
@@ -2335,7 +2373,7 @@ html.cb {
   function deploySquare(state, owner, style) {
     const g = board(state);
     clearZone(state, owner);
-    const army = createArmy(owner);
+    const army = createArmy(owner, rosterOf(state, owner));
     const grp = groupArmy(army);
 
     if (style === 'shuffle' || style === 'random') {
@@ -2391,10 +2429,12 @@ html.cb {
   function deployWheel(state, owner, style) {
     const g = board(state);
     clearZone(state, owner);
-    const army = createArmy(owner);
+    const army = createArmy(owner, rosterOf(state, owner));
     const grp = groupArmy(army);
     const home = state.homes[owner];
     const dist = G.distances(state.boardKey, home);
+    // Deploy from the back of your own half outward: the raiders start on
+    // their rim, outside the wheel, and have to break in.
     const zone = g.zones[owner].slice().sort(function (a, b) {
       if (dist[a] !== dist[b]) return dist[a] - dist[b];
       return a < b ? -1 : 1;
@@ -2419,17 +2459,23 @@ html.cb {
       // heavies on the rim, the fort tucked at the back
       const back = zone.slice(0, 4);
       const front = zone.slice(4).reverse();
-      const placed = back.concat(front);
-      order.forEach(function (k, i) {
+      order.forEach(function (k) {
         const u = grp.pull(k);
-        if (u && placed[i]) state.board[placed[i]] = u;
+        if (!u) return;
+        const cell = back.shift() || front.shift();
+        if (cell) state.board[cell] = u;
       });
       return;
     }
 
-    order.forEach(function (k, i) {
+    // walk the zone in order, skipping only cells we actually fill, so a
+    // smaller roster never leaves holes behind the line
+    let cursor = 0;
+    order.forEach(function (k) {
       const u = grp.pull(k);
-      if (u && zone[i]) state.board[zone[i]] = u;
+      if (!u) return;
+      while (cursor < zone.length && state.board[zone[cursor]]) cursor++;
+      if (cursor < zone.length) state.board[zone[cursor]] = u;
     });
   }
 
@@ -2875,6 +2921,11 @@ html.cb {
     state.owner = next;
     if (next === 1) {
       state.turn++;
+      // a scenario can run out of rounds: the defence holds
+      if (state.turnLimit && state.turn > state.turnLimit) {
+        endGame(state, 2, 'The rounds ran out — the chakra closed and the breach failed.', events);
+        return;
+      }
       // the wheel turns at the start of every fifth round
       if (state.boardKey === 'wheel' && state.turn % (state.rotation.every || 5) === 0) {
         rotate(state, events);
@@ -2897,7 +2948,7 @@ html.cb {
   function unknownPool(state, viewer) {
     const foe = viewer === 1 ? 2 : 1;
     const remaining = {};
-    U.ROSTER_ORDER.forEach(function (k) { remaining[k] = (remaining[k] || 0) + 1; });
+    rosterOf(state, foe).forEach(function (k) { remaining[k] = (remaining[k] || 0) + 1; });
     forEachUnit(state, function (u) {
       if (u.owner !== foe) return;
       if (u.revealed) remaining[u.key] = Math.max(0, (remaining[u.key] || 0) - 1);
@@ -2993,6 +3044,7 @@ html.cb {
     deployPreset: deployPreset,
     swapSlots: swapSlots,
     armyComplete: armyComplete,
+    rosterOf: rosterOf,
     computeValidTargets: computeValidTargets,
     canAct: canAct,
     isMovable: isMovable,
@@ -3216,10 +3268,13 @@ html.cb {
     const target = state.board[act.to] || null;
     const isBarrage = act.type === 'barrage';
 
-    // when the no-capture clock runs down, a draw is a loss of tempo: the bot
-    // starts forcing contact instead of manoeuvring forever
+    // a clock is a clock: in a timed scenario the rounds themselves are the
+    // enemy, so pressure starts building long before the last turn
     let urgency = 0;
-    if (typeof E.drawCountdown === 'function') {
+    if (state.turnLimit) {
+      const rounds = state.turnLimit - state.turn + 1;
+      if (rounds <= 12) urgency = (12 - rounds) * 2.4;
+    } else if (typeof E.drawCountdown === 'function') {
       const left = E.drawCountdown(state);
       if (left < 30) urgency = (30 - left) * 1.8;
     }
@@ -4582,7 +4637,7 @@ html.cb {
   app.profile = null;
   app.guest = false;
   app.settings = {};
-  app.setup = { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0 };
+  app.setup = { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0, scenario: 'duel' };
   app.modals = [];
 
   /* ── helpers ─────────────────────────────────────────────────── */
@@ -5173,10 +5228,19 @@ html.cb {
         { v: 'pass', title: 'Pass & play', sub: 'Two commanders, one device, privacy curtain', icon: 'users' }
       ]
     });
+    const scen = U.SCENARIOS[app.setupScenario()] || U.SCENARIOS.duel;
+    groups.push({
+      label: 'Scenario',
+      key: 'scenario',
+      options: Object.keys(U.SCENARIOS).map(function (k) {
+        const sc = U.SCENARIOS[k];
+        return { v: k, title: sc.label, sub: sc.blurb, icon: k === 'duel' ? 'sword' : 'bolt' };
+      })
+    });
     groups.push({
       label: 'Battlefield',
       key: 'board',
-      options: Object.keys(U.BOARDS).map(function (k) {
+      options: (scen.boards || Object.keys(U.BOARDS)).map(function (k) {
         const b = U.BOARDS[k];
         return { v: k, title: b.label, sub: b.blurb, icon: 'grid' };
       })
@@ -5227,18 +5291,30 @@ html.cb {
       let val = b.getAttribute('data-val');
       if (key === 'timer') val = Number(val);
       app.setup[key] = val;
+      if (key === 'scenario') {
+        const sc = U.SCENARIOS[val];
+        if (sc && sc.boards && sc.boards.indexOf(app.setup.board) === -1) app.setup.board = sc.boards[0];
+      }
       sfx('select');
       renderSetup();
     };
 
     const mode = app.setup.mode === 'pass' ? 'Pass & play' : 'Astral AI · ' + U.DIFFICULTIES[app.setup.difficulty].label;
+    const scenario = U.SCENARIOS[app.setup.scenario] || U.SCENARIOS.duel;
     const board = U.BOARDS[app.setup.board];
     const tie = app.setup.tie === 'attacker' ? 'Attacker advantage' : 'Mutual destruction';
     const timer = app.setup.timer ? app.setup.timer + 's per turn' : 'No clock';
     document.getElementById('setup-summary').innerHTML =
-      row('Opponent', mode) + row('Board', board.label + ' (' + (board.cells ? board.cells + ' cells' : board.cols + '×' + board.rows) + ')') +
-      row('Tie rule', tie) + row('Clock', timer) + row('Army', '12 pieces each');
+      row('Scenario', scenario.label) + row('Opponent', mode) +
+      row('Board', board.label + ' (' + (board.cells ? board.cells + ' cells' : board.cols + '×' + board.rows) + ')') +
+      row('Tie rule', tie) + row('Clock', timer) +
+      row('Army', scenario.rosters
+        ? scenario.rosters[1].length + ' raiders vs ' + scenario.rosters[2].length + ' defenders'
+        : '12 pieces each') +
+      (scenario.turnLimit ? row('Breach by', 'round ' + scenario.turnLimit) : '');
   }
+
+  app.setupScenario = function () { return app.setup.scenario || 'duel'; };
 
   function row(k, v) {
     return '<div class="row"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>';
@@ -5295,6 +5371,7 @@ html.cb {
           ['Mines and Cores', 'Both are immovable. Any attacker dies to a Mine except the Warp Sapper, which defuses and captures it. The Core can be captured by any attacking piece.'],
           ['Revealing', 'A piece becomes revealed when it fights, when it is scanned, or when a Strider runs two or more tiles (and when a Valkyrie dashes two). Revealed ranks stay visible for the rest of the match.'],
           ['Two-square rule', 'A piece may not shuttle between the same two squares more than three times in a row. The fourth reversal is illegal — this prevents endless stalling.'],
+          ['Abhimanyu — the breach', 'A scenario, not a duel. Eight raiders with no fort face a ten-piece wheel and must take the defender’s fort before round 24. Lose every raider, or run out of rounds, and the breach has failed.'],
           ['The chakra turns', 'On the Chakravyuha wheel, rings 1 and 2 rotate one spoke clockwise at the start of every fifth round. Whatever they carry moves with them — and is revealed. The hub touches all eight spokes but exposes whoever stands on it.'],
           ['No-capture draw', 'If neither side captures a piece for 60 orders, the engagement is declared a draw. The intel panel shows the countdown.'],
           ['Deployment', 'Each army has 12 pieces placed anywhere in its own three-row zone. Swap any two squares before locking. Presets are starting points, not commitments.']
@@ -5712,9 +5789,12 @@ html.cb {
     AC.ui.show('game');
     render();
     autosave();
-    FX.toast(g.state.boardKey === 'wheel'
-      ? 'Deploy on your half of the wheel. Every fifth round the inner rings turn.'
-      : 'Army deployed. Arrange your formation, then lock it in.', 'info');
+    const st0 = g.state;
+    FX.toast(st0.turnLimit
+      ? 'Abhimanyu — break the fort before round ' + st0.turnLimit + '. Eight raiders, no fort of your own.'
+      : (st0.boardKey === 'wheel'
+        ? 'Deploy on your half of the wheel. Every fifth round the inner rings turn.'
+        : 'Army deployed. Arrange your formation, then lock it in.'), 'info');
   };
 
   g.load = function (raw, slot) {
@@ -5821,6 +5901,7 @@ html.cb {
       pill.textContent = 'Deployment · ' + U.FACTIONS[owner].short;
       sub.textContent = 'Swap any two cells in your deployment zone, then lock the formation.';
     } else if (st.phase === 'battle') {
+      const roundsLeft = st.turnLimit ? Math.max(0, st.turnLimit - st.turn + 1) : 0;
       if (g.thinking) {
         pill.classList.add('void');
         pill.textContent = 'Astral AI is calculating';
@@ -5828,12 +5909,14 @@ html.cb {
       } else {
         const owner = st.owner;
         pill.classList.add(owner === 1 ? 'solar' : 'void');
-        pill.textContent = 'Turn ' + st.turn + ' · ' + U.FACTIONS[owner].short;
+        pill.textContent = (st.turnLimit ? 'Breach · round ' + st.turn + '/' + st.turnLimit : 'Turn ' + st.turn) +
+          ' · ' + U.FACTIONS[owner].short;
         let extra = '';
         if (st.boardKey === 'wheel') {
           const until = E.turnsUntilRotation(st);
           extra = ' · chakra turns in ' + until;
         }
+        if (st.turnLimit) extra = ' · ' + roundsLeft + ' rounds left' + extra;
         sub.textContent = (isPass()
           ? (owner === 1 ? 'Suryavansh' : 'Chandravansh') + ' to move — tap a unit.'
           : (owner === 1 ? 'Your move — tap a unit to command it.' : 'Chandravansh is moving.')) + extra;
@@ -5876,10 +5959,10 @@ html.cb {
 
     $('#strip-top').innerHTML =
       '<span class="strip-name" style="color:var(--void)">' + esc(topLabel) + '</span>' +
-      '<span class="strip-count">' + aliveCount(2) + '/12</span>' + captureTray(2);
+      '<span class="strip-count">' + aliveCount(2) + '/' + E.rosterOf(st, 2).length + '</span>' + captureTray(2);
     $('#strip-bottom').innerHTML =
       '<span class="strip-name" style="color:var(--solar)">' + esc(botLabel) + '</span>' +
-      '<span class="strip-count">' + aliveCount(1) + '/12</span>' + captureTray(1);
+      '<span class="strip-count">' + aliveCount(1) + '/' + E.rosterOf(st, 1).length + '</span>' + captureTray(1);
   }
 
   function captureTray(victimOwner) {
@@ -6651,7 +6734,8 @@ html.cb {
         E.beginBattle(st);
         FX.toast('Formation locked. Battle stations.', 'success');
         render();
-        banner('Battle begins', U.FACTIONS[1].deva + ' moves first', 'gold');
+        banner(st.turnLimit ? 'The breach begins' : 'Battle begins',
+          U.FACTIONS[1].deva + ' moves first · ' + (st.turnLimit ? st.turnLimit + ' rounds to break the fort' : 'take the fort'), 'gold');
         autosave();
         startClockIfNeeded();
       }
@@ -6781,9 +6865,11 @@ html.cb {
       ['Deploy', 'Twelve pieces anywhere in your zone. Tap two cells to swap them. Citadel, Blitz, Lattice and Shuffle are starting points, not commitments.'],
       ['Command', 'Tap one of your pieces, then tap a highlighted cell. A dot means move; a ring means attack, scan or volley. Ranks are hidden until a piece fights.'],
       ['Probe', 'A piece that has never moved can still be the fort or a trap. Probe with cheap pieces and the archer’s volley — the intel panel shows the real odds before you commit.'],
-      wheel
-        ? ['Mind the wheel', 'Arcs are one cell at a time, spokes are long lanes. Every fifth round the inner two rings turn one spoke and expose whatever they carry. The hub reaches every spoke and exposes whoever holds it.']
-        : ['Break the fort', 'Take the enemy fort, or leave them with no legal action. Sixty orders without a capture is a draw — the countdown is in the intel panel.']
+      st && st.turnLimit
+        ? ['Break the fort in time', 'You have eight raiders and no fort of your own. Take the defender’s fort before round ' + st.turnLimit + ' — by melee or by an archer’s volley down a clear spoke. Lose every raider and the breach fails.']
+        : (wheel
+          ? ['Mind the wheel', 'Arcs are one cell at a time, spokes are long lanes. Every fifth round the inner two rings turn one spoke and expose whatever they carry. The hub reaches every spoke and exposes whoever holds it.']
+          : ['Break the fort', 'Take the enemy fort, or leave them with no legal action. Sixty orders without a capture is a draw — the countdown is in the intel panel.'])
     ];
     AC.ui.modal({
       kicker: 'How to play',

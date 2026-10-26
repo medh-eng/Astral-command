@@ -89,9 +89,12 @@
     AC.ui.show('game');
     render();
     autosave();
-    FX.toast(g.state.boardKey === 'wheel'
-      ? 'Deploy on your half of the wheel. Every fifth round the inner rings turn.'
-      : 'Army deployed. Arrange your formation, then lock it in.', 'info');
+    const st0 = g.state;
+    FX.toast(st0.turnLimit
+      ? 'Abhimanyu — break the fort before round ' + st0.turnLimit + '. Eight raiders, no fort of your own.'
+      : (st0.boardKey === 'wheel'
+        ? 'Deploy on your half of the wheel. Every fifth round the inner rings turn.'
+        : 'Army deployed. Arrange your formation, then lock it in.'), 'info');
   };
 
   g.load = function (raw, slot) {
@@ -198,6 +201,7 @@
       pill.textContent = 'Deployment · ' + U.FACTIONS[owner].short;
       sub.textContent = 'Swap any two cells in your deployment zone, then lock the formation.';
     } else if (st.phase === 'battle') {
+      const roundsLeft = st.turnLimit ? Math.max(0, st.turnLimit - st.turn + 1) : 0;
       if (g.thinking) {
         pill.classList.add('void');
         pill.textContent = 'Astral AI is calculating';
@@ -205,12 +209,14 @@
       } else {
         const owner = st.owner;
         pill.classList.add(owner === 1 ? 'solar' : 'void');
-        pill.textContent = 'Turn ' + st.turn + ' · ' + U.FACTIONS[owner].short;
+        pill.textContent = (st.turnLimit ? 'Breach · round ' + st.turn + '/' + st.turnLimit : 'Turn ' + st.turn) +
+          ' · ' + U.FACTIONS[owner].short;
         let extra = '';
         if (st.boardKey === 'wheel') {
           const until = E.turnsUntilRotation(st);
           extra = ' · chakra turns in ' + until;
         }
+        if (st.turnLimit) extra = ' · ' + roundsLeft + ' rounds left' + extra;
         sub.textContent = (isPass()
           ? (owner === 1 ? 'Suryavansh' : 'Chandravansh') + ' to move — tap a unit.'
           : (owner === 1 ? 'Your move — tap a unit to command it.' : 'Chandravansh is moving.')) + extra;
@@ -253,10 +259,10 @@
 
     $('#strip-top').innerHTML =
       '<span class="strip-name" style="color:var(--void)">' + esc(topLabel) + '</span>' +
-      '<span class="strip-count">' + aliveCount(2) + '/12</span>' + captureTray(2);
+      '<span class="strip-count">' + aliveCount(2) + '/' + E.rosterOf(st, 2).length + '</span>' + captureTray(2);
     $('#strip-bottom').innerHTML =
       '<span class="strip-name" style="color:var(--solar)">' + esc(botLabel) + '</span>' +
-      '<span class="strip-count">' + aliveCount(1) + '/12</span>' + captureTray(1);
+      '<span class="strip-count">' + aliveCount(1) + '/' + E.rosterOf(st, 1).length + '</span>' + captureTray(1);
   }
 
   function captureTray(victimOwner) {
@@ -1028,7 +1034,8 @@
         E.beginBattle(st);
         FX.toast('Formation locked. Battle stations.', 'success');
         render();
-        banner('Battle begins', U.FACTIONS[1].deva + ' moves first', 'gold');
+        banner(st.turnLimit ? 'The breach begins' : 'Battle begins',
+          U.FACTIONS[1].deva + ' moves first · ' + (st.turnLimit ? st.turnLimit + ' rounds to break the fort' : 'take the fort'), 'gold');
         autosave();
         startClockIfNeeded();
       }
@@ -1158,9 +1165,11 @@
       ['Deploy', 'Twelve pieces anywhere in your zone. Tap two cells to swap them. Citadel, Blitz, Lattice and Shuffle are starting points, not commitments.'],
       ['Command', 'Tap one of your pieces, then tap a highlighted cell. A dot means move; a ring means attack, scan or volley. Ranks are hidden until a piece fights.'],
       ['Probe', 'A piece that has never moved can still be the fort or a trap. Probe with cheap pieces and the archer’s volley — the intel panel shows the real odds before you commit.'],
-      wheel
-        ? ['Mind the wheel', 'Arcs are one cell at a time, spokes are long lanes. Every fifth round the inner two rings turn one spoke and expose whatever they carry. The hub reaches every spoke and exposes whoever holds it.']
-        : ['Break the fort', 'Take the enemy fort, or leave them with no legal action. Sixty orders without a capture is a draw — the countdown is in the intel panel.']
+      st && st.turnLimit
+        ? ['Break the fort in time', 'You have eight raiders and no fort of your own. Take the defender’s fort before round ' + st.turnLimit + ' — by melee or by an archer’s volley down a clear spoke. Lose every raider and the breach fails.']
+        : (wheel
+          ? ['Mind the wheel', 'Arcs are one cell at a time, spokes are long lanes. Every fifth round the inner two rings turn one spoke and expose whatever they carry. The hub reaches every spoke and exposes whoever holds it.']
+          : ['Break the fort', 'Take the enemy fort, or leave them with no legal action. Sixty orders without a capture is a draw — the countdown is in the intel panel.'])
     ];
     AC.ui.modal({
       kicker: 'How to play',

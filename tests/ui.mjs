@@ -122,6 +122,14 @@ async function run() {
   await sleep(60);
   ok(st.phase === 'battle', 'battle begins after locking');
 
+  ok(!!game.saveTo('1'), 'manual save writes a slot');
+  ok(AC.storage.listSaves().some((s) => s.slot === '1'), 'save listed in storage');
+
+  const saved = AC.storage.loadGame('1');
+  game.load(saved, '1');
+  ok(game.state.phase === 'battle' || game.state.phase === 'over', 'save reloads into the board');
+  ok($$('#board .cell').length === 80, 'reloaded board still renders its cells');
+
   // play a few UI-driven orders
   let plies = 0;
   for (let i = 0; i < 12 && st.phase === 'battle'; i++) {
@@ -142,14 +150,6 @@ async function run() {
   }
   ok(plies > 3, 'played ' + plies + ' UI-driven orders');
   ok(st.log.length > 0, 'battle log recorded');
-  ok(!!game.saveTo('1'), 'manual save writes a slot');
-  ok(AC.storage.listSaves().some((s) => s.slot === '1'), 'save listed in storage');
-
-  const saved = AC.storage.loadGame('1');
-  game.load(saved, '1');
-  ok(game.state.phase === 'battle' || game.state.phase === 'over', 'save reloads into the board');
-  ok($$('#board .cell').length === 80, 'reloaded board still renders its cells');
-
   // modals
   AC.ui.openCodex();
   ok(!!$('.modal-backdrop .codex-tabs'), 'codex opens with tabs');
@@ -247,6 +247,25 @@ async function run() {
     ok(!st3.board[mv.from], 'plain moves still work');
     AC.app.modals.slice().forEach((m) => m.close());
   }
+
+  // ── the Abhimanyu scenario ──
+  game.state = null;
+  AC.app.setup.scenario = 'abhimanyu';
+  click($('#btn-new-match'));
+  ok(!!document.querySelector('#setup-form [data-group="scenario"]'), 'setup offers a scenario choice');
+  click(document.querySelector('#setup-form [data-group="scenario"][data-val="abhimanyu"]'));
+  ok(AC.app.setup.board === 'wheel', 'choosing the breach forces the wheel');
+  ok(!document.querySelector('#setup-form [data-group="board"][data-val="small"]'), 'and hides the boards it cannot use');
+  click($('#btn-start-match'));
+  await sleep(60);
+  ok(game.state.scenario === 'abhimanyu' && game.state.turnLimit === 24, 'breach state starts with a round limit');
+  ok($$('#board .cell').length === 37, 'the wheel renders for the breach');
+  ok($$('#board .token').length === 18, 'eight raiders and ten defenders on the board');
+  click(document.querySelector('#action-bar [data-deploy="lock"]'));
+  await sleep(80);
+  ok(game.state.phase === 'battle', 'the breach begins');
+  ok(/round/i.test($('#hud-turn').textContent), 'HUD shows the round clock');
+  AC.app.setup.scenario = 'duel';
 
   // ── pass & play privacy curtain ──
   game.state = null;

@@ -142,12 +142,36 @@
     archon: { key: 'archon', label: 'Archon', blurb: 'Full belief model, sees your best reply', think: 780, noise: 0.06, depth: 2 }
   };
 
+  /* Scenarios are asymmetric setups layered on the same rules. */
+  const SCENARIOS = {
+    duel: {
+      key: 'duel',
+      label: 'Duel',
+      blurb: 'Two equal armies, one wheel or arena',
+      boards: ['small', 'large', 'wheel'],
+      rosters: null,
+      turnLimit: 0
+    },
+    abhimanyu: {
+      key: 'abhimanyu',
+      label: 'Abhimanyu',
+      blurb: 'Eight raiders must break a ten-piece wheel inside twenty-four rounds',
+      boards: ['wheel'],
+      // a raiding party: no fort, no trap, no commander — just the tools to
+      // break a line: a champion, cavalry, an archer, a seer, two chariots,
+      // a spy and an engineer
+      rosters: { 1: ['9', '7', '6', '5', '2', '2', '1', '3'], 2: ['10', '9', '7', '6', '5', '3', '2', '1', 'B', 'F'] },
+      turnLimit: 24
+    }
+  };
+
   AC.units = {
     FACTIONS: FACTIONS,
     UNIT_DEFS: UNIT_DEFS,
     ROSTER_ORDER: ROSTER_ORDER,
     RANK_ORDER: RANK_ORDER,
     BOARDS: BOARDS,
-    DIFFICULTIES: DIFFICULTIES
+    DIFFICULTIES: DIFFICULTIES,
+    SCENARIOS: SCENARIOS
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -38,6 +38,9 @@ worker, so it installs and runs offline.
   two Yantrik, two Rath, Chara, Shataghni, Durg (the sci-fi names are kept as aliases in the Codex).
 - **Three boards** — Small Arena (6×8) and Large Expanse (8×10) with impassable Astral Rifts, plus
   **Chakravyuha**, a wheel of 37 cells (hub + 3 rings × 12 spokes) where the inner rings turn.
+- **Abhimanyu** — a scenario on the wheel: eight raiders with no fort of their own must break a
+  ten-piece defence and take its fort before round 24. Take the fort and the breach succeeds; lose
+  every raider, or run out of rounds, and the wheel closes.
 - **The chakra turns** — on the wheel, rings 1 and 2 rotate one spoke clockwise every fifth round,
   carrying whatever stands on them and revealing it. The hub touches all twelve spokes and exposes
   whoever stands on it. Arcs are one cell at a time; only the spokes are long lanes.
@@ -57,6 +60,7 @@ worker, so it installs and runs offline.
 | **Intel ledger** | Live belief model in the side panel: which enemy pieces are still unaccounted for, which are identified, which are destroyed, and what the enemy knows about you. |
 | **Clash odds** | Before you strike an unknown piece, you get the real probability of winning, losing, trading, or hitting the Core — averaged over every rank the enemy could still be hiding. |
 | **Advisor** | Ask for the three best orders, scored by the same belief model the AI uses. Click one to preview it on the board. Also plays your move automatically if the turn clock runs out. |
+| **Scenarios** | Asymmetric setups on the same rules: per-side rosters, a round limit, and win conditions that are not just "take the fort". |
 | **Three AI tiers** | Recruit (greedy, noisy), Veteran (beliefs + reply check), Archon (full belief model with 1-ply lookahead). |
 | **Pass & play privacy curtain** | Between deployments and between turns, a full-screen curtain hides the board while the device changes hands. |
 | **Turn clock** | Off, 60s or 30s per turn, with a warning pulse and an auto-move fallback. |
@@ -127,6 +131,9 @@ Everything you would want to adjust is data, not logic:
   Rifts are cell ids (`"row,col"` on squares).
 - **The wheel** → `js/geometry.js` (`wheelBoard`: sectors, rings, zones, rotation rings) and
   `js/engine.js` (`rotate`).
+- **Scenarios** → `js/units.js` (`SCENARIOS`: rosters per side, allowed boards, turn limit).
+  The engine reads `state.rosters` for army sizes and the belief model, and `state.turnLimit`
+  for the clock, so a new scenario is data.
 - **AI difficulty** → `js/units.js` (`DIFFICULTIES`: `noise`, `think`, `depth`).
 - **Starting formations** → `js/engine.js` (`presetSlots`, `PRESET_ORDER`).
 - **Combat rules** → `js/engine.js` (`resolveMelee`, `applyAction`).
