@@ -2,7 +2,7 @@
  * Network-first for navigation so updates land immediately, cache-first for
  * the static shell so the game still boots with no connection.
  */
-const CACHE = 'aetherfront-v4';
+const CACHE = 'aetherfront-v5';
 const SHELL = [
   './',
   './index.html',
