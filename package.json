@@ -21,14 +21,11 @@
   ],
   "author": "",
   "license": "MIT",
-  "description": "Aetherfront: Astral Command \u2014 a hidden-rank sci-fi tactical duel (static web app).",
-  "dependencies": {
-    "jsdom": "^29.1.1"
-  },
+  "description": "Aetherfront: Astral Command — a hidden-rank sci-fi tactical duel (static web app).",
   "private": true,
   "homepage": "https://medh-eng.github.io/Astral-command/",
   "devDependencies": {
-    "jsdom": "^26.0.0",
+    "jsdom": "^26.1.0",
     "puppeteer-core": "^24.0.0"
   }
 }

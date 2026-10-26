@@ -10,6 +10,7 @@
     1: {
       id: 1,
       name: 'Suryavansh',
+      deva: 'सूर्यवंश',
       short: 'Surya',
       motto: 'The sun holds the line',
       color: '#22d3ee',
@@ -20,6 +21,7 @@
     2: {
       id: 2,
       name: 'Chandravansh',
+      deva: 'चंद्रवंश',
       short: 'Chandra',
       motto: 'The moon eats the light',
       color: '#f43f5e',
@@ -32,63 +34,63 @@
   // Complete 12-piece roster. `rank` drives combat; `power` describes the special.
   const UNIT_DEFS = {
     '10': {
-      key: '10', rank: 10, count: 1, name: 'Senapati', short: 'Senapati', alias: 'Senapati',
+      key: '10', rank: 10, count: 1, name: 'Senapati', short: 'Senapati', deva: 'सेनापति', alias: 'Solar Archon',
       badge: '10', movable: true, moveRange: 1, tier: 'command',
       role: 'Supreme Commander',
       power: null,
-      desc: 'Moves 1 tile. Beats every unit in melee except a Shataghni, or a Chara that strikes first.',
-      tip: 'Keep it behind a screen until the enemy Wraith is spent.'
+      desc: 'Moves 1 cell. Beats every unit in melee except a Shataghni, or a Chara that strikes first.',
+      tip: 'Keep it behind a screen until the enemy Chara is spent.'
     },
     '9': {
-      key: '9', rank: 9, count: 1, name: 'Maharathi', short: 'Maharathi', alias: 'Maharathi',
+      key: '9', rank: 9, count: 1, name: 'Maharathi', short: 'Maharathi', deva: 'महारथी', alias: 'Star Paladin',
       badge: '9', movable: true, moveRange: 1, tier: 'command',
       role: 'Heavy Warlord',
       power: null,
-      desc: 'Moves 1 tile. Second-highest rank — only the Archon outranks it, and an attacking Wraith can fell it.',
+      desc: 'Moves 1 cell. Second-highest rank — only the Senapati outranks it, and an attacking Chara can fell it.',
       tip: 'A bodyguard for your core: strong enough to absorb probes.'
     },
     '7': {
-      key: '7', rank: 7, count: 1, name: 'Ashvarohi', short: 'Ashvarohi', alias: 'Ashvarohi',
+      key: '7', rank: 7, count: 1, name: 'Ashvarohi', short: 'Ashvarohi', deva: 'अश्वारोही', alias: 'Valkyrie Vanguard',
       badge: '7', movable: true, moveRange: 2, tier: 'elite',
       role: 'Phase Dasher',
-      power: { id: 'dash', label: 'Phase Dash', range: 2 },
-      desc: 'Moves up to 2 open tiles in a straight line and may strike at the end of a 2-tile dash.',
+      power: { id: 'dash', label: 'Dvi-pada Dash', range: 2 },
+      desc: 'Moves up to 2 open cells along a lane and may strike at the end of a 2-cell dash.',
       tip: 'Reaches the second rank of a formation in one tempo.'
     },
     '6': {
-      key: '6', rank: 6, count: 1, name: 'Dhanurdhar', short: 'Dhanurdhar', alias: 'Dhanurdhar',
+      key: '6', rank: 6, count: 1, name: 'Dhanurdhar', short: 'Dhanurdhar', deva: 'धनुर्धर', alias: 'Plasma Lancer',
       badge: '6', movable: true, moveRange: 1, tier: 'elite', hasRanged: true,
       role: 'Arc Artillery',
-      power: { id: 'barrage', label: 'Arc Barrage', range: 2 },
-      desc: 'Moves 1 tile, or fires an Arc Barrage at exactly 2 tiles, arcing over any unit or rift in between. Vaporises Rank ≤ 5 without moving.',
-      tip: 'The only unit that kills without moving — and it cannot be hurt by the reply.'
+      power: { id: 'barrage', label: 'Shara-varsha', range: 2 },
+      desc: 'Moves 1 cell, or fires a volley at exactly 2 cells, arcing over anything in between. Cuts down Rank ≤ 5 without moving.',
+      tip: 'The only piece that kills without moving — and it cannot be hurt by the reply.'
     },
     '5': {
-      key: '5', rank: 5, count: 1, name: 'Divyadrishti', short: 'Divyadrishti', alias: 'Divyadrishti',
+      key: '5', rank: 5, count: 1, name: 'Divyadrishti', short: 'Divyadrishti', deva: 'दिव्यदृष्टि', alias: 'Chrono Seer',
       badge: '5', movable: true, moveRange: 1, tier: 'elite', hasScan: true,
       role: 'Psionic Scanner',
-      power: { id: 'scan', label: 'Psionic Scan', range: 2 },
-      desc: 'Moves 1 tile, or scans: permanently reveals any enemy within 2 tiles (Manhattan) without fighting.',
+      power: { id: 'scan', label: 'Divya-drishti', range: 2 },
+      desc: 'Moves 1 cell, or scans: permanently reveals any enemy within 2 cells without fighting.',
       tip: 'Information is tempo. Scan before you commit an attack.'
     },
     '3': {
-      key: '3', rank: 3, count: 2, name: 'Yantrik', short: 'Yantrik', alias: 'Yantrik',
+      key: '3', rank: 3, count: 2, name: 'Yantrik', short: 'Yantrik', deva: 'यंत्रिक', alias: 'Warp Sapper',
       badge: '3', movable: true, moveRange: 1, tier: 'line', defusesMines: true,
       role: 'Mine Specialist ×2',
       power: null,
-      desc: 'Moves 1 tile. The only unit that can defuse and capture an immovable Shataghni.',
-      tip: 'Your mine-clearer is also your best cheap probe.'
+      desc: 'Moves 1 cell. The only unit that can defuse and capture an immovable Shataghni.',
+      tip: 'Your trap-clearer is also your best cheap probe.'
     },
     '2': {
-      key: '2', rank: 2, count: 2, name: 'Rath', short: 'Rath', alias: 'Rath',
+      key: '2', rank: 2, count: 2, name: 'Rath', short: 'Rath', deva: 'रथ', alias: 'Astral Strider',
       badge: '2', movable: true, moveRange: 99, tier: 'line',
       role: 'Long-Range Scout ×2',
       power: null,
-      desc: 'Slides any number of open tiles in a straight line and may attack in the same turn. A 2+ tile run exposes it.',
+      desc: 'Slides any number of open cells along a lane and may attack in the same turn. A 2+ cell run exposes it.',
       tip: 'Crossing the board reveals you — run late, not early.'
     },
     '1': {
-      key: '1', rank: 1, count: 1, name: 'Chara', short: 'Chara', alias: 'Chara',
+      key: '1', rank: 1, count: 1, name: 'Chara', short: 'Chara', deva: 'चर', alias: 'Shadow Wraith',
       badge: 'S', movable: true, moveRange: 1, tier: 'line', assassin: true,
       role: 'Cloaked Assassin',
       power: null,
@@ -96,7 +98,7 @@
       tip: 'Hold it for the endgame, then trade it for a commander.'
     },
     'B': {
-      key: 'B', rank: 0, count: 1, name: 'Shataghni', short: 'Shataghni', alias: 'Shataghni',
+      key: 'B', rank: 0, count: 1, name: 'Shataghni', short: 'Shataghni', deva: 'शतघ्नी', alias: 'Stasis Mine',
       badge: 'B', movable: false, moveRange: 0, tier: 'trap',
       role: 'Singularity Trap',
       power: null,
@@ -104,12 +106,12 @@
       tip: 'A mine only works once. Hide it where a probe must pass.'
     },
     'F': {
-      key: 'F', rank: -1, count: 1, name: 'Durg', short: 'Durg', alias: 'Durg',
+      key: 'F', rank: -1, count: 1, name: 'Durg', short: 'Durg', deva: 'दुर्ग', alias: 'Nexus Core',
       badge: 'F', movable: false, moveRange: 0, tier: 'trap',
       role: 'Primary Objective',
       power: null,
-      desc: 'Immovable. Lose it and the match is over — by melee capture or a Lancer shot from range.',
-      tip: 'Never leave it where a Lancer has a clear 2-tile line.'
+      desc: 'Immovable. Lose it and the match is over — by melee capture or a volley from range.',
+      tip: 'Never leave it where an archer has a clear two-cell lane.'
     }
   };
 
@@ -122,7 +124,7 @@
   const BOARDS = {
     small: { key: 'small', cols: 6, rows: 8, deployRows: 3, label: 'Small Arena', blurb: '6 × 8 · fast and brutal', rifts: ['3,1', '4,1', '3,4', '4,4'] },
     wheel: {
-      key: 'wheel', cols: 0, rows: 0, deployRows: 0, cells: 33,
+      key: 'wheel', cols: 0, rows: 0, deployRows: 0, cells: 37,
       label: 'Chakravyuha', blurb: 'the wheel · rings turn every 5 turns', rifts: []
     },
     large: {

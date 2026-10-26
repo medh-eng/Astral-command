@@ -185,6 +185,8 @@ async function run() {
   game.state = null;
   AC.app.setup.board = 'small';
   game.start(AC.app.setup);
+  // no AI turns during this section: keeps the assertions deterministic
+  game.state.config.mode = 'pass';
   game.state.phase = 'battle';
   AC.engine.beginBattle(game.state);
   game.render();

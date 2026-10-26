@@ -681,6 +681,13 @@
   function wireSetup() {
     document.getElementById('btn-setup-back').innerHTML = A.icon('back');
     document.getElementById('btn-setup-back').addEventListener('click', function () { sfx('ui'); show('home'); });
+    const howTo = document.getElementById('btn-how-to');
+    if (howTo) {
+      howTo.addEventListener('click', function () {
+        sfx('ui');
+        if (AC.game && AC.game.openHelp) AC.game.openHelp();
+      });
+    }
     document.getElementById('btn-start-match').addEventListener('click', function () {
       sfx('lock');
       AC.game.start(app.setup);
@@ -704,7 +711,10 @@
           return '<div class="unit-row">' +
             '<div class="unit-emblem">' + A.emblem(key) + '<span class="rank-tag">' + u.badge + '</span></div>' +
             '<div class="unit-body">' +
-              '<div class="unit-name">' + esc(u.name) + ' <span class="unit-role">' + esc(u.role) + '</span></div>' +
+              '<div class="unit-name">' + esc(u.name) +
+                (u.deva ? ' <span class="deva" style="font-size:15px;color:var(--parch);opacity:.9">' + esc(u.deva) + '</span>' : '') +
+                ' <span class="unit-role">' + esc(u.role) + '</span></div>' +
+              (u.alias ? '<div class="unit-role" style="text-transform:none;letter-spacing:.02em;opacity:.7">was ' + esc(u.alias) + '</div>' : '') +
               '<div class="unit-desc">' + esc(u.desc) + '</div>' +
               '<div class="unit-tip">▸ ' + esc(u.tip) + '</div>' +
             '</div></div>';
@@ -942,6 +952,7 @@
         '<button class="advice-item" data-p="resume"><span class="advice-score">▶</span><span><span class="advice-label">Resume battle</span><span class="advice-note">Back to the board</span></span></button>' +
         '<button class="advice-item" data-p="save"><span class="advice-score">' + A.icon('save') + '</span><span><span class="advice-label">Save game</span><span class="advice-note">Write to a manual slot</span></span></button>' +
         '<button class="advice-item" data-p="intel"><span class="advice-score">' + A.icon('eye') + '</span><span><span class="advice-label">Intel ledger</span><span class="advice-note">What you know about the enemy</span></span></button>' +
+        '<button class="advice-item" data-p="help"><span class="advice-score">' + A.icon('help') + '</span><span><span class="advice-label">How to play</span><span class="advice-note">Four things to know, in one screen</span></span></button>' +
         '<button class="advice-item" data-p="codex"><span class="advice-score">' + A.icon('book') + '</span><span><span class="advice-label">Codex & rules</span><span class="advice-note">Ranks, powers and edge cases</span></span></button>' +
         '<button class="advice-item" data-p="settings"><span class="advice-score">' + A.icon('settings') + '</span><span><span class="advice-label">Settings</span><span class="advice-note">Audio, motion, accessibility</span></span></button>' +
         '<button class="advice-item" data-p="resign"><span class="advice-score">' + A.icon('flag') + '</span><span><span class="advice-label">Resign match</span><span class="advice-note">Concede and return to the command deck</span></span></button>' +
@@ -956,6 +967,7 @@
       if (what === 'save') { m.close(); openSaves('game'); return; }
       if (what === 'intel') { m.close(); AC.game.openIntel(); return; }
       if (what === 'codex') { m.close(); openCodex(); return; }
+      if (what === 'help') { m.close(); if (AC.game.openHelp) AC.game.openHelp(); return; }
       if (what === 'settings') { m.close(); openSettings(); return; }
       if (what === 'resign') {
         m.close();

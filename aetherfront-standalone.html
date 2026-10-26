@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIiB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiI+ICA8ZGVmcz4gICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzBiMTQyOCIvPiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzA0MDYwZCIvPiAgICA8L2xpbmVhckdyYWRpZW50PiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNyeSIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E1ZjNmYyIvPiAgICAgIDxzdG9wIG9mZnNldD0iMC41NSIgc3RvcC1jb2xvcj0iIzIyZDNlZSIvPiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E4NTVmNyIvPiAgICA8L2xpbmVhckdyYWRpZW50PiAgPC9kZWZzPiAgPHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSI0MiIgZmlsbD0idXJsKCNiZykiLz4gIDxjaXJjbGUgY3g9Ijk2IiBjeT0iODYiIHI9IjY2IiBmaWxsPSIjMjJkM2VlIiBvcGFjaXR5PSIwLjEyIi8+ICA8ZyBmaWxsPSJub25lIiBzdHJva2U9InVybCgjY3J5KSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4gICAgPHBhdGggZD0iTTk2IDI2IEwxNDYgNjAgTDEzNSAxMzIgTDk2IDE2MiBMNTcgMTMyIEw0NiA2MCBaIiBmaWxsPSIjMjJkM2VlIiBmaWxsLW9wYWNpdHk9IjAuMTIiLz4gICAgPHBhdGggZD0iTTk2IDI2IFYxNjIgTTQ2IDYwIEw5NiA4NiBMMTQ2IDYwIE05NiA4NiBMNTcgMTMyIE05NiA4NiBMMTM1IDEzMiIgc3Ryb2tlLW9wYWNpdHk9IjAuNjUiLz4gIDwvZz4gIDxjaXJjbGUgY3g9Ijk2IiBjeT0iODYiIHI9IjkiIGZpbGw9IiNmYmJmMjQiLz48L3N2Zz4=" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet" />
 <style>
 /* ══════════════════════════════════════════════════════════════════
    Aetherfront: Astral Command — design system
@@ -676,6 +676,7 @@ input::placeholder { color: var(--faint); }
 }
 .hud-centre { flex: 1; min-width: 0; text-align: center; }
 .turn-pill {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1294,14 +1295,19 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border: 0; bo
     box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
   }
   .intel-panel.open { transform: none; }
-  .action-bar { gap: 6px; padding: 7px 10px calc(7px + var(--safe-b)); }
+  .action-bar { gap: 5px; padding: 6px 10px calc(6px + var(--safe-b)); min-height: 0; }
   .action-info { flex: 1 1 100%; }
-  .action-buttons { flex: 1 1 100%; justify-content: flex-end; }
+  .action-buttons { flex: 1 1 100%; justify-content: flex-end; gap: 4px; }
   .sel-desc { display: none; }
+  .mode-btn { padding: 6px 9px; font-size: 10.5px; }
+  .mode-btn .ico { width: 12px; height: 12px; }
+  .sel-badge { width: 32px; height: 32px; border-radius: 10px; }
+  .sel-badge .emblem { width: 18px; height: 18px; }
+  .turn-pill { font-size: 10px; padding: 3px 9px; }
   .hud-sub { font-size: 10px; }
   .modal { padding: 16px; }
   .modal-actions .btn { flex: 1 1 100%; }
-  .toast-root { bottom: calc(152px + var(--safe-b)); }
+  .toast-root { bottom: calc(210px + var(--safe-b)); }
 }
 @media (max-width: 520px) {
   .action-grid { grid-template-columns: 1fr; }
@@ -1338,6 +1344,136 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Chapter II · temple-punk theme
+   Brass and obsidian against indigo: the wheel's world.
+   ══════════════════════════════════════════════════════════════════ */
+:root {
+  --solar: #e0a94a;
+  --solar-2: #f2cf8b;
+  --solar-ink: #2a1c06;
+  --void: #8b8ff0;
+  --void-2: #b9a8ff;
+  --void-ink: #0e1030;
+  --gold: #f2cf8b;
+  --deva: 'Tiro Devanagari Hindi', 'Noto Sans Devanagari', serif;
+}
+html.cb {
+  --solar: #f2a33a;
+  --solar-2: #ffd08a;
+  --void: #4cc9f0;
+  --void-2: #7dd3fc;
+}
+.app {
+  background:
+    radial-gradient(1100px 700px at 12% -8%, rgba(224, 169, 74, 0.14), transparent 60%),
+    radial-gradient(900px 600px at 92% 4%, rgba(139, 143, 240, 0.15), transparent 62%),
+    radial-gradient(700px 500px at 50% 110%, rgba(200, 69, 43, 0.09), transparent 60%),
+    linear-gradient(180deg, #0b0810 0%, #07060e 55%, #0a0812 100%);
+}
+.deva { font-family: var(--deva); font-weight: 400; }
+.faction-deva { font-family: var(--deva); font-size: 0.95em; opacity: 0.9; margin-right: 7px; }
+
+.btn-primary {
+  background: linear-gradient(135deg, #f2cf8b, #e0a94a 55%, #c07f2a);
+  color: #241704;
+  box-shadow: 0 10px 26px rgba(224, 169, 74, 0.28);
+}
+.btn-primary:hover { box-shadow: 0 14px 34px rgba(224, 169, 74, 0.42); }
+.btn-void {
+  background: linear-gradient(135deg, #b9a8ff, #8b8ff0 55%, #5b60c9);
+  color: #0b0c22;
+  box-shadow: 0 10px 26px rgba(139, 143, 240, 0.28);
+}
+.btn-gold { background: linear-gradient(135deg, #fde9c0, #f2cf8b); color: #2b1d02; }
+
+.cell .cell-fill { fill: rgba(30, 26, 36, 0.92); stroke: rgba(224, 169, 74, 0.16); }
+.cell:nth-child(even) .cell-fill { fill: rgba(26, 22, 32, 0.92); }
+.cell.zone-1 .cell-fill { stroke: rgba(224, 169, 74, 0.34); }
+.cell.zone-2 .cell-fill { stroke: rgba(139, 143, 240, 0.34); }
+.cell.hub .cell-fill { fill: rgba(242, 207, 139, 0.1); stroke: rgba(242, 207, 139, 0.5); }
+.cell.selected .cell-fill { fill: rgba(224, 169, 74, 0.18); stroke: var(--solar); }
+.cell.target-move .cell-fill { fill: rgba(224, 169, 74, 0.15); stroke: rgba(224, 169, 74, 0.5); }
+.cell.target-attack .cell-fill { fill: rgba(139, 143, 240, 0.2); stroke: rgba(139, 143, 240, 0.75); }
+.cell.target-scan .cell-fill { fill: rgba(185, 168, 255, 0.2); stroke: rgba(185, 168, 255, 0.75); }
+.cell.target-barrage .cell-fill { fill: rgba(242, 207, 139, 0.18); stroke: rgba(242, 207, 139, 0.8); }
+
+.token .tok-disc { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55)); }
+.token.solar .tok-disc { fill: rgba(52, 36, 10, 0.97); stroke: rgba(224, 169, 74, 0.8); }
+.token.void .tok-disc { fill: rgba(20, 22, 56, 0.97); stroke: rgba(139, 143, 240, 0.8); }
+.token .tok-emblem { color: #f7e3b6; }
+.token.void .tok-emblem { color: #d7dbff; }
+.token .tok-rank { fill: #fdf3dd; }
+.token.void .tok-rank { fill: #e8eaff; }
+.token .sel-ring { stroke: #f2cf8b; }
+.token .tok-moved { fill: #f2cf8b; }
+.token.hidden-unit .tok-disc { fill: rgba(30, 28, 40, 0.97); stroke: rgba(224, 169, 74, 0.34); }
+.token.hidden-unit.void .tok-disc { fill: rgba(22, 20, 44, 0.97); stroke: rgba(139, 143, 240, 0.34); }
+.token.hidden-unit .tok-q { fill: rgba(224, 200, 160, 0.7); }
+.target-dot { fill: var(--solar); }
+.cell.target-attack .target-ring { stroke: var(--void); }
+.cell.target-scan .target-ring { stroke: #b9a8ff; }
+.cell.target-barrage .target-ring { stroke: var(--gold); }
+.coord { fill: rgba(200, 175, 135, 0.6); }
+
+.cell.last-move .cell-fill {
+  stroke: #f2cf8b;
+  stroke-width: 0.032;
+  animation: lastPulse 1.9s ease-in-out infinite;
+}
+@keyframes lastPulse { 0%, 100% { stroke-opacity: 0.45; } 50% { stroke-opacity: 1; } }
+
+/* the inner rings physically turn when the chakra moves */
+.ring-1, .ring-2 { transform-box: view-box; transform-origin: 50% 50%; }
+.chakra-spin { animation: chakraTurn 0.62s cubic-bezier(0.2, 0.8, 0.25, 1) both; }
+@keyframes chakraTurn { from { transform: rotate(-30deg); } to { transform: rotate(0deg); } }
+
+/* turn banner */
+.turn-banner {
+  position: fixed;
+  left: 50%;
+  top: 34%;
+  transform: translate(-50%, -50%) scale(0.92);
+  z-index: 76;
+  pointer-events: none;
+  text-align: center;
+  padding: 14px 32px;
+  border-radius: 16px;
+  border: 1px solid rgba(242, 207, 139, 0.3);
+  background: rgba(10, 8, 16, 0.74);
+  backdrop-filter: blur(10px);
+  font-family: var(--display);
+  font-size: clamp(19px, 4.4vw, 32px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #f7ecd7;
+  opacity: 0;
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+.turn-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.turn-banner.solar { color: #f7e0ad; border-color: rgba(224, 169, 74, 0.55); box-shadow: 0 0 50px rgba(224, 169, 74, 0.22); }
+.turn-banner.void { color: #d3d7ff; border-color: rgba(139, 143, 240, 0.55); box-shadow: 0 0 50px rgba(139, 143, 240, 0.22); }
+.turn-banner.gold { color: #fde9c0; border-color: rgba(242, 207, 139, 0.6); }
+.turn-banner small { display: block; font-family: var(--deva); font-size: 0.44em; letter-spacing: 0.08em; opacity: 0.85; margin-top: 7px; }
+
+/* how-to sheet */
+.howto { display: grid; gap: 10px; }
+.howto-step { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; }
+.howto-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-size: 12px;
+  color: var(--solar-2);
+  border: 1px solid rgba(224, 169, 74, 0.4);
+  background: rgba(224, 169, 74, 0.1);
+}
+.howto-title { display: block; font-size: 13px; font-weight: 700; }
+.howto-body { display: block; font-size: 12px; color: var(--dim); line-height: 1.55; margin-top: 2px; }
 
 </style>
 </head>
@@ -1531,6 +1667,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
           <div class="panel-head"><span>Match summary</span></div>
           <div id="setup-summary" class="setup-summary"></div>
           <button class="btn btn-primary btn-block" id="btn-start-match">Deploy army</button>
+          <button class="btn btn-ghost btn-block btn-sm" id="btn-how-to" style="margin-top:8px">How to play</button>
         </div>
         <div class="panel panel-quiet">
           <div class="panel-head"><span>Rules quick reference</span></div>
@@ -1587,6 +1724,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   </section>
 
   <canvas id="fx" class="fx-canvas" aria-hidden="true"></canvas>
+  <div id="turn-banner" class="turn-banner" role="status" aria-live="polite"></div>
   <div id="modal-root" class="modal-root"></div>
   <div id="toast-root" class="toast-root" aria-live="polite"></div>
 </div>
@@ -1611,6 +1749,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     1: {
       id: 1,
       name: 'Suryavansh',
+      deva: 'सूर्यवंश',
       short: 'Surya',
       motto: 'The sun holds the line',
       color: '#22d3ee',
@@ -1621,6 +1760,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     2: {
       id: 2,
       name: 'Chandravansh',
+      deva: 'चंद्रवंश',
       short: 'Chandra',
       motto: 'The moon eats the light',
       color: '#f43f5e',
@@ -1633,63 +1773,63 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   // Complete 12-piece roster. `rank` drives combat; `power` describes the special.
   const UNIT_DEFS = {
     '10': {
-      key: '10', rank: 10, count: 1, name: 'Senapati', short: 'Senapati', alias: 'Senapati',
+      key: '10', rank: 10, count: 1, name: 'Senapati', short: 'Senapati', deva: 'सेनापति', alias: 'Solar Archon',
       badge: '10', movable: true, moveRange: 1, tier: 'command',
       role: 'Supreme Commander',
       power: null,
-      desc: 'Moves 1 tile. Beats every unit in melee except a Shataghni, or a Chara that strikes first.',
-      tip: 'Keep it behind a screen until the enemy Wraith is spent.'
+      desc: 'Moves 1 cell. Beats every unit in melee except a Shataghni, or a Chara that strikes first.',
+      tip: 'Keep it behind a screen until the enemy Chara is spent.'
     },
     '9': {
-      key: '9', rank: 9, count: 1, name: 'Maharathi', short: 'Maharathi', alias: 'Maharathi',
+      key: '9', rank: 9, count: 1, name: 'Maharathi', short: 'Maharathi', deva: 'महारथी', alias: 'Star Paladin',
       badge: '9', movable: true, moveRange: 1, tier: 'command',
       role: 'Heavy Warlord',
       power: null,
-      desc: 'Moves 1 tile. Second-highest rank — only the Archon outranks it, and an attacking Wraith can fell it.',
+      desc: 'Moves 1 cell. Second-highest rank — only the Senapati outranks it, and an attacking Chara can fell it.',
       tip: 'A bodyguard for your core: strong enough to absorb probes.'
     },
     '7': {
-      key: '7', rank: 7, count: 1, name: 'Ashvarohi', short: 'Ashvarohi', alias: 'Ashvarohi',
+      key: '7', rank: 7, count: 1, name: 'Ashvarohi', short: 'Ashvarohi', deva: 'अश्वारोही', alias: 'Valkyrie Vanguard',
       badge: '7', movable: true, moveRange: 2, tier: 'elite',
       role: 'Phase Dasher',
-      power: { id: 'dash', label: 'Phase Dash', range: 2 },
-      desc: 'Moves up to 2 open tiles in a straight line and may strike at the end of a 2-tile dash.',
+      power: { id: 'dash', label: 'Dvi-pada Dash', range: 2 },
+      desc: 'Moves up to 2 open cells along a lane and may strike at the end of a 2-cell dash.',
       tip: 'Reaches the second rank of a formation in one tempo.'
     },
     '6': {
-      key: '6', rank: 6, count: 1, name: 'Dhanurdhar', short: 'Dhanurdhar', alias: 'Dhanurdhar',
+      key: '6', rank: 6, count: 1, name: 'Dhanurdhar', short: 'Dhanurdhar', deva: 'धनुर्धर', alias: 'Plasma Lancer',
       badge: '6', movable: true, moveRange: 1, tier: 'elite', hasRanged: true,
       role: 'Arc Artillery',
-      power: { id: 'barrage', label: 'Arc Barrage', range: 2 },
-      desc: 'Moves 1 tile, or fires an Arc Barrage at exactly 2 tiles, arcing over any unit or rift in between. Vaporises Rank ≤ 5 without moving.',
-      tip: 'The only unit that kills without moving — and it cannot be hurt by the reply.'
+      power: { id: 'barrage', label: 'Shara-varsha', range: 2 },
+      desc: 'Moves 1 cell, or fires a volley at exactly 2 cells, arcing over anything in between. Cuts down Rank ≤ 5 without moving.',
+      tip: 'The only piece that kills without moving — and it cannot be hurt by the reply.'
     },
     '5': {
-      key: '5', rank: 5, count: 1, name: 'Divyadrishti', short: 'Divyadrishti', alias: 'Divyadrishti',
+      key: '5', rank: 5, count: 1, name: 'Divyadrishti', short: 'Divyadrishti', deva: 'दिव्यदृष्टि', alias: 'Chrono Seer',
       badge: '5', movable: true, moveRange: 1, tier: 'elite', hasScan: true,
       role: 'Psionic Scanner',
-      power: { id: 'scan', label: 'Psionic Scan', range: 2 },
-      desc: 'Moves 1 tile, or scans: permanently reveals any enemy within 2 tiles (Manhattan) without fighting.',
+      power: { id: 'scan', label: 'Divya-drishti', range: 2 },
+      desc: 'Moves 1 cell, or scans: permanently reveals any enemy within 2 cells without fighting.',
       tip: 'Information is tempo. Scan before you commit an attack.'
     },
     '3': {
-      key: '3', rank: 3, count: 2, name: 'Yantrik', short: 'Yantrik', alias: 'Yantrik',
+      key: '3', rank: 3, count: 2, name: 'Yantrik', short: 'Yantrik', deva: 'यंत्रिक', alias: 'Warp Sapper',
       badge: '3', movable: true, moveRange: 1, tier: 'line', defusesMines: true,
       role: 'Mine Specialist ×2',
       power: null,
-      desc: 'Moves 1 tile. The only unit that can defuse and capture an immovable Shataghni.',
-      tip: 'Your mine-clearer is also your best cheap probe.'
+      desc: 'Moves 1 cell. The only unit that can defuse and capture an immovable Shataghni.',
+      tip: 'Your trap-clearer is also your best cheap probe.'
     },
     '2': {
-      key: '2', rank: 2, count: 2, name: 'Rath', short: 'Rath', alias: 'Rath',
+      key: '2', rank: 2, count: 2, name: 'Rath', short: 'Rath', deva: 'रथ', alias: 'Astral Strider',
       badge: '2', movable: true, moveRange: 99, tier: 'line',
       role: 'Long-Range Scout ×2',
       power: null,
-      desc: 'Slides any number of open tiles in a straight line and may attack in the same turn. A 2+ tile run exposes it.',
+      desc: 'Slides any number of open cells along a lane and may attack in the same turn. A 2+ cell run exposes it.',
       tip: 'Crossing the board reveals you — run late, not early.'
     },
     '1': {
-      key: '1', rank: 1, count: 1, name: 'Chara', short: 'Chara', alias: 'Chara',
+      key: '1', rank: 1, count: 1, name: 'Chara', short: 'Chara', deva: 'चर', alias: 'Shadow Wraith',
       badge: 'S', movable: true, moveRange: 1, tier: 'line', assassin: true,
       role: 'Cloaked Assassin',
       power: null,
@@ -1697,7 +1837,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       tip: 'Hold it for the endgame, then trade it for a commander.'
     },
     'B': {
-      key: 'B', rank: 0, count: 1, name: 'Shataghni', short: 'Shataghni', alias: 'Shataghni',
+      key: 'B', rank: 0, count: 1, name: 'Shataghni', short: 'Shataghni', deva: 'शतघ्नी', alias: 'Stasis Mine',
       badge: 'B', movable: false, moveRange: 0, tier: 'trap',
       role: 'Singularity Trap',
       power: null,
@@ -1705,12 +1845,12 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       tip: 'A mine only works once. Hide it where a probe must pass.'
     },
     'F': {
-      key: 'F', rank: -1, count: 1, name: 'Durg', short: 'Durg', alias: 'Durg',
+      key: 'F', rank: -1, count: 1, name: 'Durg', short: 'Durg', deva: 'दुर्ग', alias: 'Nexus Core',
       badge: 'F', movable: false, moveRange: 0, tier: 'trap',
       role: 'Primary Objective',
       power: null,
-      desc: 'Immovable. Lose it and the match is over — by melee capture or a Lancer shot from range.',
-      tip: 'Never leave it where a Lancer has a clear 2-tile line.'
+      desc: 'Immovable. Lose it and the match is over — by melee capture or a volley from range.',
+      tip: 'Never leave it where an archer has a clear two-cell lane.'
     }
   };
 
@@ -1723,7 +1863,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   const BOARDS = {
     small: { key: 'small', cols: 6, rows: 8, deployRows: 3, label: 'Small Arena', blurb: '6 × 8 · fast and brutal', rifts: ['3,1', '4,1', '3,4', '4,4'] },
     wheel: {
-      key: 'wheel', cols: 0, rows: 0, deployRows: 0, cells: 33,
+      key: 'wheel', cols: 0, rows: 0, deployRows: 0, cells: 37,
       label: 'Chakravyuha', blurb: 'the wheel · rings turn every 5 turns', rifts: []
     },
     large: {
@@ -5107,6 +5247,13 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   function wireSetup() {
     document.getElementById('btn-setup-back').innerHTML = A.icon('back');
     document.getElementById('btn-setup-back').addEventListener('click', function () { sfx('ui'); show('home'); });
+    const howTo = document.getElementById('btn-how-to');
+    if (howTo) {
+      howTo.addEventListener('click', function () {
+        sfx('ui');
+        if (AC.game && AC.game.openHelp) AC.game.openHelp();
+      });
+    }
     document.getElementById('btn-start-match').addEventListener('click', function () {
       sfx('lock');
       AC.game.start(app.setup);
@@ -5130,7 +5277,10 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
           return '<div class="unit-row">' +
             '<div class="unit-emblem">' + A.emblem(key) + '<span class="rank-tag">' + u.badge + '</span></div>' +
             '<div class="unit-body">' +
-              '<div class="unit-name">' + esc(u.name) + ' <span class="unit-role">' + esc(u.role) + '</span></div>' +
+              '<div class="unit-name">' + esc(u.name) +
+                (u.deva ? ' <span class="deva" style="font-size:15px;color:var(--parch);opacity:.9">' + esc(u.deva) + '</span>' : '') +
+                ' <span class="unit-role">' + esc(u.role) + '</span></div>' +
+              (u.alias ? '<div class="unit-role" style="text-transform:none;letter-spacing:.02em;opacity:.7">was ' + esc(u.alias) + '</div>' : '') +
               '<div class="unit-desc">' + esc(u.desc) + '</div>' +
               '<div class="unit-tip">▸ ' + esc(u.tip) + '</div>' +
             '</div></div>';
@@ -5368,6 +5518,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         '<button class="advice-item" data-p="resume"><span class="advice-score">▶</span><span><span class="advice-label">Resume battle</span><span class="advice-note">Back to the board</span></span></button>' +
         '<button class="advice-item" data-p="save"><span class="advice-score">' + A.icon('save') + '</span><span><span class="advice-label">Save game</span><span class="advice-note">Write to a manual slot</span></span></button>' +
         '<button class="advice-item" data-p="intel"><span class="advice-score">' + A.icon('eye') + '</span><span><span class="advice-label">Intel ledger</span><span class="advice-note">What you know about the enemy</span></span></button>' +
+        '<button class="advice-item" data-p="help"><span class="advice-score">' + A.icon('help') + '</span><span><span class="advice-label">How to play</span><span class="advice-note">Four things to know, in one screen</span></span></button>' +
         '<button class="advice-item" data-p="codex"><span class="advice-score">' + A.icon('book') + '</span><span><span class="advice-label">Codex & rules</span><span class="advice-note">Ranks, powers and edge cases</span></span></button>' +
         '<button class="advice-item" data-p="settings"><span class="advice-score">' + A.icon('settings') + '</span><span><span class="advice-label">Settings</span><span class="advice-note">Audio, motion, accessibility</span></span></button>' +
         '<button class="advice-item" data-p="resign"><span class="advice-score">' + A.icon('flag') + '</span><span><span class="advice-label">Resign match</span><span class="advice-note">Concede and return to the command deck</span></span></button>' +
@@ -5382,6 +5533,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       if (what === 'save') { m.close(); openSaves('game'); return; }
       if (what === 'intel') { m.close(); AC.game.openIntel(); return; }
       if (what === 'codex') { m.close(); openCodex(); return; }
+      if (what === 'help') { m.close(); if (AC.game.openHelp) AC.game.openHelp(); return; }
       if (what === 'settings') { m.close(); openSettings(); return; }
       if (what === 'resign') {
         m.close();
@@ -5505,6 +5657,27 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   const buzz = function (p) { AU.buzz(p); };
 
   function settings() { return AC.app.settings; }
+
+  let bannerTimer = null;
+  function banner(title, sub, kind, ms) {
+    const el = document.getElementById('turn-banner');
+    if (!el) return;
+    el.className = 'turn-banner' + (kind ? ' ' + kind : '');
+    el.innerHTML = esc(title) + (sub ? '<small>' + esc(sub) + '</small>' : '');
+    void el.offsetWidth;
+    el.classList.add('show');
+    if (bannerTimer) clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(function () { el.classList.remove('show'); }, ms || 1250);
+  }
+  g.banner = banner;
+
+  function spinRings() {
+    Array.prototype.forEach.call(document.querySelectorAll('#board .ring-1, #board .ring-2'), function (el) {
+      el.classList.remove('chakra-spin');
+      void el.getBoundingClientRect();
+      el.classList.add('chakra-spin');
+    });
+  }
   function isPass() { return g.state && g.state.config.mode === 'pass'; }
   function isAi() { return g.state && g.state.config.mode === 'ai'; }
   function board() { return G.build(g.state.boardKey); }
@@ -5785,6 +5958,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
     const last = st.lastMove;
     let out = '';
+    const rings = { 1: '', 2: '' };
 
     b.cells.forEach(function (cell) {
       const id = cell.id;
@@ -5809,12 +5983,17 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         : u ? (visibleToViewer(u) ? u.name + ', rank ' + u.badge : 'unknown enemy piece')
           : 'empty cell';
 
-      out += '<g class="' + cls + '" data-id="' + id + '" tabindex="0" role="gridcell" aria-label="' + esc(label) + '">' +
+      const markup = '<g class="' + cls + '" data-id="' + id + '" tabindex="0" role="gridcell" aria-label="' + esc(label) + '">' +
         shapeSvg(cell) +
         (u ? tokenSvg(u, cell, isSel)
           : (target ? '<g transform="translate(' + cell.x + ',' + cell.y + ')">' + targetMarker(target, cell.tr) + '</g>' : '')) +
         '</g>';
+      if (cell.ring === 1 || cell.ring === 2) rings[cell.ring] += markup;
+      else out += markup;
     });
+    // the inner rings live in their own groups so the wheel can turn
+    if (rings[2]) out += '<g class="ring ring-2">' + rings[2] + '</g>';
+    if (rings[1]) out += '<g class="ring ring-1">' + rings[1] + '</g>';
 
     (b.labels || []).forEach(function (l) {
       if (settings().coordinates === false) return;
@@ -6214,6 +6393,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
   function performAction(action) {
     const st = g.state;
+    const mover = st.board[action.from];
+    const moverWasAi = isAi() && mover && mover.owner === 2;
     g.busy = true;
     const res = E.applyAction(st, action);
     if (!res.ok) {
@@ -6262,7 +6443,13 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     });
 
     render();
-    if (rotated) FX.toast('The inner rings turned — everything they carried is exposed.', 'warn');
+    if (rotated) {
+      spinRings();
+      FX.toast('The inner rings turned — everything they carried is exposed.', 'warn');
+    }
+    if (moverWasAi && !dramatic) {
+      FX.toast('Chandravansh moved a ' + (mover.revealed ? mover.name : 'piece') + '.', 'info');
+    }
 
     const finish = function () {
       g.busy = false;
@@ -6271,6 +6458,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       if (st.phase === 'over') { handleGameOver(); return; }
       if (isAi() && st.owner === 2) scheduleAi();
       else if (isPass()) showCurtain(st.owner, 'battle');
+      else banner('Your turn', U.FACTIONS[st.owner].deva + ' · turn ' + st.turn, st.owner === 1 ? 'solar' : 'void');
+      if (st.boardKey === 'wheel' && st.phase === 'battle' && E.turnsUntilRotation(st) === 1 && g.warnedAt !== st.turn) {
+        g.warnedAt = st.turn;
+        FX.toast('The chakra turns next round — the inner rings will shift and expose what they carry.', 'warn');
+      }
       startClockIfNeeded();
     };
 
@@ -6426,6 +6618,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       render();
       startClockIfNeeded();
       sfx('unlock');
+      if (kind !== 'deploy') {
+        banner('Your turn', U.FACTIONS[nextOwner].deva + ' · turn ' + st.turn, nextOwner === 1 ? 'solar' : 'void');
+      }
     };
     overlay.querySelector('#curtain-go').addEventListener('click', reveal);
     overlay.addEventListener('click', function (e) { if (e.target === overlay) reveal(); });
@@ -6456,6 +6651,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         E.beginBattle(st);
         FX.toast('Formation locked. Battle stations.', 'success');
         render();
+        banner('Battle begins', U.FACTIONS[1].deva + ' moves first', 'gold');
         autosave();
         startClockIfNeeded();
       }
@@ -6577,6 +6773,35 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
       FX.spawn(at.x, at.y, { count: 14, color: '#34d399', speed: 2 });
     });
   }
+
+  function openHelp() {
+    const st = g.state;
+    const wheel = st && st.boardKey === 'wheel';
+    const steps = [
+      ['Deploy', 'Twelve pieces anywhere in your zone. Tap two cells to swap them. Citadel, Blitz, Lattice and Shuffle are starting points, not commitments.'],
+      ['Command', 'Tap one of your pieces, then tap a highlighted cell. A dot means move; a ring means attack, scan or volley. Ranks are hidden until a piece fights.'],
+      ['Probe', 'A piece that has never moved can still be the fort or a trap. Probe with cheap pieces and the archer’s volley — the intel panel shows the real odds before you commit.'],
+      wheel
+        ? ['Mind the wheel', 'Arcs are one cell at a time, spokes are long lanes. Every fifth round the inner two rings turn one spoke and expose whatever they carry. The hub reaches every spoke and exposes whoever holds it.']
+        : ['Break the fort', 'Take the enemy fort, or leave them with no legal action. Sixty orders without a capture is a draw — the countdown is in the intel panel.']
+    ];
+    AC.ui.modal({
+      kicker: 'How to play',
+      title: 'Four things to know',
+      wide: true,
+      body: '<div class="howto">' + steps.map(function (s2, i) {
+        return '<div class="howto-step"><span class="howto-num">' + (i + 1) + '</span>' +
+          '<span><span class="howto-title">' + esc(s2[0]) + '</span>' +
+          '<span class="howto-body">' + esc(s2[1]) + '</span></span></div>';
+      }).join('') + '</div>',
+      actions: [
+        { label: 'Full codex', cls: 'btn-ghost', onClick: function () { AC.ui.openCodex(); } },
+        { label: 'Got it', cls: 'btn-primary' }
+      ]
+    });
+  }
+
+  g.openHelp = openHelp;
 
   g.openIntel = function () {
     const panel = document.getElementById('intel-panel');

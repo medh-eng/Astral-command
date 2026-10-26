@@ -34,6 +34,27 @@
   const buzz = function (p) { AU.buzz(p); };
 
   function settings() { return AC.app.settings; }
+
+  let bannerTimer = null;
+  function banner(title, sub, kind, ms) {
+    const el = document.getElementById('turn-banner');
+    if (!el) return;
+    el.className = 'turn-banner' + (kind ? ' ' + kind : '');
+    el.innerHTML = esc(title) + (sub ? '<small>' + esc(sub) + '</small>' : '');
+    void el.offsetWidth;
+    el.classList.add('show');
+    if (bannerTimer) clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(function () { el.classList.remove('show'); }, ms || 1250);
+  }
+  g.banner = banner;
+
+  function spinRings() {
+    Array.prototype.forEach.call(document.querySelectorAll('#board .ring-1, #board .ring-2'), function (el) {
+      el.classList.remove('chakra-spin');
+      void el.getBoundingClientRect();
+      el.classList.add('chakra-spin');
+    });
+  }
   function isPass() { return g.state && g.state.config.mode === 'pass'; }
   function isAi() { return g.state && g.state.config.mode === 'ai'; }
   function board() { return G.build(g.state.boardKey); }
@@ -314,6 +335,7 @@
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
     const last = st.lastMove;
     let out = '';
+    const rings = { 1: '', 2: '' };
 
     b.cells.forEach(function (cell) {
       const id = cell.id;
@@ -338,12 +360,17 @@
         : u ? (visibleToViewer(u) ? u.name + ', rank ' + u.badge : 'unknown enemy piece')
           : 'empty cell';
 
-      out += '<g class="' + cls + '" data-id="' + id + '" tabindex="0" role="gridcell" aria-label="' + esc(label) + '">' +
+      const markup = '<g class="' + cls + '" data-id="' + id + '" tabindex="0" role="gridcell" aria-label="' + esc(label) + '">' +
         shapeSvg(cell) +
         (u ? tokenSvg(u, cell, isSel)
           : (target ? '<g transform="translate(' + cell.x + ',' + cell.y + ')">' + targetMarker(target, cell.tr) + '</g>' : '')) +
         '</g>';
+      if (cell.ring === 1 || cell.ring === 2) rings[cell.ring] += markup;
+      else out += markup;
     });
+    // the inner rings live in their own groups so the wheel can turn
+    if (rings[2]) out += '<g class="ring ring-2">' + rings[2] + '</g>';
+    if (rings[1]) out += '<g class="ring ring-1">' + rings[1] + '</g>';
 
     (b.labels || []).forEach(function (l) {
       if (settings().coordinates === false) return;
@@ -743,6 +770,8 @@
 
   function performAction(action) {
     const st = g.state;
+    const mover = st.board[action.from];
+    const moverWasAi = isAi() && mover && mover.owner === 2;
     g.busy = true;
     const res = E.applyAction(st, action);
     if (!res.ok) {
@@ -791,7 +820,13 @@
     });
 
     render();
-    if (rotated) FX.toast('The inner rings turned — everything they carried is exposed.', 'warn');
+    if (rotated) {
+      spinRings();
+      FX.toast('The inner rings turned — everything they carried is exposed.', 'warn');
+    }
+    if (moverWasAi && !dramatic) {
+      FX.toast('Chandravansh moved a ' + (mover.revealed ? mover.name : 'piece') + '.', 'info');
+    }
 
     const finish = function () {
       g.busy = false;
@@ -800,6 +835,11 @@
       if (st.phase === 'over') { handleGameOver(); return; }
       if (isAi() && st.owner === 2) scheduleAi();
       else if (isPass()) showCurtain(st.owner, 'battle');
+      else banner('Your turn', U.FACTIONS[st.owner].deva + ' · turn ' + st.turn, st.owner === 1 ? 'solar' : 'void');
+      if (st.boardKey === 'wheel' && st.phase === 'battle' && E.turnsUntilRotation(st) === 1 && g.warnedAt !== st.turn) {
+        g.warnedAt = st.turn;
+        FX.toast('The chakra turns next round — the inner rings will shift and expose what they carry.', 'warn');
+      }
       startClockIfNeeded();
     };
 
@@ -955,6 +995,9 @@
       render();
       startClockIfNeeded();
       sfx('unlock');
+      if (kind !== 'deploy') {
+        banner('Your turn', U.FACTIONS[nextOwner].deva + ' · turn ' + st.turn, nextOwner === 1 ? 'solar' : 'void');
+      }
     };
     overlay.querySelector('#curtain-go').addEventListener('click', reveal);
     overlay.addEventListener('click', function (e) { if (e.target === overlay) reveal(); });
@@ -985,6 +1028,7 @@
         E.beginBattle(st);
         FX.toast('Formation locked. Battle stations.', 'success');
         render();
+        banner('Battle begins', U.FACTIONS[1].deva + ' moves first', 'gold');
         autosave();
         startClockIfNeeded();
       }
@@ -1106,6 +1150,35 @@
       FX.spawn(at.x, at.y, { count: 14, color: '#34d399', speed: 2 });
     });
   }
+
+  function openHelp() {
+    const st = g.state;
+    const wheel = st && st.boardKey === 'wheel';
+    const steps = [
+      ['Deploy', 'Twelve pieces anywhere in your zone. Tap two cells to swap them. Citadel, Blitz, Lattice and Shuffle are starting points, not commitments.'],
+      ['Command', 'Tap one of your pieces, then tap a highlighted cell. A dot means move; a ring means attack, scan or volley. Ranks are hidden until a piece fights.'],
+      ['Probe', 'A piece that has never moved can still be the fort or a trap. Probe with cheap pieces and the archer’s volley — the intel panel shows the real odds before you commit.'],
+      wheel
+        ? ['Mind the wheel', 'Arcs are one cell at a time, spokes are long lanes. Every fifth round the inner two rings turn one spoke and expose whatever they carry. The hub reaches every spoke and exposes whoever holds it.']
+        : ['Break the fort', 'Take the enemy fort, or leave them with no legal action. Sixty orders without a capture is a draw — the countdown is in the intel panel.']
+    ];
+    AC.ui.modal({
+      kicker: 'How to play',
+      title: 'Four things to know',
+      wide: true,
+      body: '<div class="howto">' + steps.map(function (s2, i) {
+        return '<div class="howto-step"><span class="howto-num">' + (i + 1) + '</span>' +
+          '<span><span class="howto-title">' + esc(s2[0]) + '</span>' +
+          '<span class="howto-body">' + esc(s2[1]) + '</span></span></div>';
+      }).join('') + '</div>',
+      actions: [
+        { label: 'Full codex', cls: 'btn-ghost', onClick: function () { AC.ui.openCodex(); } },
+        { label: 'Got it', cls: 'btn-primary' }
+      ]
+    });
+  }
+
+  g.openHelp = openHelp;
 
   g.openIntel = function () {
     const panel = document.getElementById('intel-panel');

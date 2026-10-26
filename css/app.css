@@ -659,6 +659,7 @@ input::placeholder { color: var(--faint); }
 }
 .hud-centre { flex: 1; min-width: 0; text-align: center; }
 .turn-pill {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1277,14 +1278,19 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border: 0; bo
     box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
   }
   .intel-panel.open { transform: none; }
-  .action-bar { gap: 6px; padding: 7px 10px calc(7px + var(--safe-b)); }
+  .action-bar { gap: 5px; padding: 6px 10px calc(6px + var(--safe-b)); min-height: 0; }
   .action-info { flex: 1 1 100%; }
-  .action-buttons { flex: 1 1 100%; justify-content: flex-end; }
+  .action-buttons { flex: 1 1 100%; justify-content: flex-end; gap: 4px; }
   .sel-desc { display: none; }
+  .mode-btn { padding: 6px 9px; font-size: 10.5px; }
+  .mode-btn .ico { width: 12px; height: 12px; }
+  .sel-badge { width: 32px; height: 32px; border-radius: 10px; }
+  .sel-badge .emblem { width: 18px; height: 18px; }
+  .turn-pill { font-size: 10px; padding: 3px 9px; }
   .hud-sub { font-size: 10px; }
   .modal { padding: 16px; }
   .modal-actions .btn { flex: 1 1 100%; }
-  .toast-root { bottom: calc(152px + var(--safe-b)); }
+  .toast-root { bottom: calc(210px + var(--safe-b)); }
 }
 @media (max-width: 520px) {
   .action-grid { grid-template-columns: 1fr; }
@@ -1321,3 +1327,133 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Chapter II · temple-punk theme
+   Brass and obsidian against indigo: the wheel's world.
+   ══════════════════════════════════════════════════════════════════ */
+:root {
+  --solar: #e0a94a;
+  --solar-2: #f2cf8b;
+  --solar-ink: #2a1c06;
+  --void: #8b8ff0;
+  --void-2: #b9a8ff;
+  --void-ink: #0e1030;
+  --gold: #f2cf8b;
+  --deva: 'Tiro Devanagari Hindi', 'Noto Sans Devanagari', serif;
+}
+html.cb {
+  --solar: #f2a33a;
+  --solar-2: #ffd08a;
+  --void: #4cc9f0;
+  --void-2: #7dd3fc;
+}
+.app {
+  background:
+    radial-gradient(1100px 700px at 12% -8%, rgba(224, 169, 74, 0.14), transparent 60%),
+    radial-gradient(900px 600px at 92% 4%, rgba(139, 143, 240, 0.15), transparent 62%),
+    radial-gradient(700px 500px at 50% 110%, rgba(200, 69, 43, 0.09), transparent 60%),
+    linear-gradient(180deg, #0b0810 0%, #07060e 55%, #0a0812 100%);
+}
+.deva { font-family: var(--deva); font-weight: 400; }
+.faction-deva { font-family: var(--deva); font-size: 0.95em; opacity: 0.9; margin-right: 7px; }
+
+.btn-primary {
+  background: linear-gradient(135deg, #f2cf8b, #e0a94a 55%, #c07f2a);
+  color: #241704;
+  box-shadow: 0 10px 26px rgba(224, 169, 74, 0.28);
+}
+.btn-primary:hover { box-shadow: 0 14px 34px rgba(224, 169, 74, 0.42); }
+.btn-void {
+  background: linear-gradient(135deg, #b9a8ff, #8b8ff0 55%, #5b60c9);
+  color: #0b0c22;
+  box-shadow: 0 10px 26px rgba(139, 143, 240, 0.28);
+}
+.btn-gold { background: linear-gradient(135deg, #fde9c0, #f2cf8b); color: #2b1d02; }
+
+.cell .cell-fill { fill: rgba(30, 26, 36, 0.92); stroke: rgba(224, 169, 74, 0.16); }
+.cell:nth-child(even) .cell-fill { fill: rgba(26, 22, 32, 0.92); }
+.cell.zone-1 .cell-fill { stroke: rgba(224, 169, 74, 0.34); }
+.cell.zone-2 .cell-fill { stroke: rgba(139, 143, 240, 0.34); }
+.cell.hub .cell-fill { fill: rgba(242, 207, 139, 0.1); stroke: rgba(242, 207, 139, 0.5); }
+.cell.selected .cell-fill { fill: rgba(224, 169, 74, 0.18); stroke: var(--solar); }
+.cell.target-move .cell-fill { fill: rgba(224, 169, 74, 0.15); stroke: rgba(224, 169, 74, 0.5); }
+.cell.target-attack .cell-fill { fill: rgba(139, 143, 240, 0.2); stroke: rgba(139, 143, 240, 0.75); }
+.cell.target-scan .cell-fill { fill: rgba(185, 168, 255, 0.2); stroke: rgba(185, 168, 255, 0.75); }
+.cell.target-barrage .cell-fill { fill: rgba(242, 207, 139, 0.18); stroke: rgba(242, 207, 139, 0.8); }
+
+.token .tok-disc { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55)); }
+.token.solar .tok-disc { fill: rgba(52, 36, 10, 0.97); stroke: rgba(224, 169, 74, 0.8); }
+.token.void .tok-disc { fill: rgba(20, 22, 56, 0.97); stroke: rgba(139, 143, 240, 0.8); }
+.token .tok-emblem { color: #f7e3b6; }
+.token.void .tok-emblem { color: #d7dbff; }
+.token .tok-rank { fill: #fdf3dd; }
+.token.void .tok-rank { fill: #e8eaff; }
+.token .sel-ring { stroke: #f2cf8b; }
+.token .tok-moved { fill: #f2cf8b; }
+.token.hidden-unit .tok-disc { fill: rgba(30, 28, 40, 0.97); stroke: rgba(224, 169, 74, 0.34); }
+.token.hidden-unit.void .tok-disc { fill: rgba(22, 20, 44, 0.97); stroke: rgba(139, 143, 240, 0.34); }
+.token.hidden-unit .tok-q { fill: rgba(224, 200, 160, 0.7); }
+.target-dot { fill: var(--solar); }
+.cell.target-attack .target-ring { stroke: var(--void); }
+.cell.target-scan .target-ring { stroke: #b9a8ff; }
+.cell.target-barrage .target-ring { stroke: var(--gold); }
+.coord { fill: rgba(200, 175, 135, 0.6); }
+
+.cell.last-move .cell-fill {
+  stroke: #f2cf8b;
+  stroke-width: 0.032;
+  animation: lastPulse 1.9s ease-in-out infinite;
+}
+@keyframes lastPulse { 0%, 100% { stroke-opacity: 0.45; } 50% { stroke-opacity: 1; } }
+
+/* the inner rings physically turn when the chakra moves */
+.ring-1, .ring-2 { transform-box: view-box; transform-origin: 50% 50%; }
+.chakra-spin { animation: chakraTurn 0.62s cubic-bezier(0.2, 0.8, 0.25, 1) both; }
+@keyframes chakraTurn { from { transform: rotate(-30deg); } to { transform: rotate(0deg); } }
+
+/* turn banner */
+.turn-banner {
+  position: fixed;
+  left: 50%;
+  top: 34%;
+  transform: translate(-50%, -50%) scale(0.92);
+  z-index: 76;
+  pointer-events: none;
+  text-align: center;
+  padding: 14px 32px;
+  border-radius: 16px;
+  border: 1px solid rgba(242, 207, 139, 0.3);
+  background: rgba(10, 8, 16, 0.74);
+  backdrop-filter: blur(10px);
+  font-family: var(--display);
+  font-size: clamp(19px, 4.4vw, 32px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #f7ecd7;
+  opacity: 0;
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+.turn-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.turn-banner.solar { color: #f7e0ad; border-color: rgba(224, 169, 74, 0.55); box-shadow: 0 0 50px rgba(224, 169, 74, 0.22); }
+.turn-banner.void { color: #d3d7ff; border-color: rgba(139, 143, 240, 0.55); box-shadow: 0 0 50px rgba(139, 143, 240, 0.22); }
+.turn-banner.gold { color: #fde9c0; border-color: rgba(242, 207, 139, 0.6); }
+.turn-banner small { display: block; font-family: var(--deva); font-size: 0.44em; letter-spacing: 0.08em; opacity: 0.85; margin-top: 7px; }
+
+/* how-to sheet */
+.howto { display: grid; gap: 10px; }
+.howto-step { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; }
+.howto-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-size: 12px;
+  color: var(--solar-2);
+  border: 1px solid rgba(224, 169, 74, 0.4);
+  background: rgba(224, 169, 74, 0.1);
+}
+.howto-title { display: block; font-size: 13px; font-weight: 700; }
+.howto-body { display: block; font-size: 12px; color: var(--dim); line-height: 1.55; margin-top: 2px; }
