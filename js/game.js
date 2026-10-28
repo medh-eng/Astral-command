@@ -257,10 +257,10 @@
     $('#strip-bottom').className = 'player-strip' + (st.phase === 'battle' && st.owner === 1 ? ' active-solar' : '') +
       (st.phase === 'deploy1' ? ' active-solar' : '');
 
-    $('#strip-top').innerHTML =
+    $('#strip-top').innerHTML = A.crest(2) +
       '<span class="strip-name" style="color:var(--void)">' + esc(topLabel) + '</span>' +
       '<span class="strip-count">' + aliveCount(2) + '/' + E.rosterOf(st, 2).length + '</span>' + captureTray(2);
-    $('#strip-bottom').innerHTML =
+    $('#strip-bottom').innerHTML = A.crest(1) +
       '<span class="strip-name" style="color:var(--solar)">' + esc(botLabel) + '</span>' +
       '<span class="strip-count">' + aliveCount(1) + '/' + E.rosterOf(st, 1).length + '</span>' + captureTray(1);
   }
@@ -305,13 +305,11 @@
     const sel = isSel ? '<circle class="sel-ring" r="' + (R * 1.14) + '"/>' : '';
     const eye = (u.revealed && u.owner === g.state.viewer && g.state.phase !== 'over')
       ? '<circle class="tok-eye" cx="' + (R * 0.6) + '" cy="' + (-R * 0.6) + '" r="' + (R * 0.15) + '"/>' : '';
-    const scale = (R * 1.3) / 32;
     return '<g class="token ' + cls + (isSel ? ' selected-token' : '') + (u.shieldBroken ? ' shield-broken' : '') +
       '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
       '<circle class="tok-disc" r="' + R + '"/>' +
       sel +
-      '<g class="tok-emblem" transform="translate(' + (-R * 0.65) + ',' + (-R * 0.65) + ') scale(' + scale + ')">' +
-      (A.EMBLEMS[u.key] || '') + '</g>' +
+      A.tokenInner(u.key, R) +
       '<text class="tok-rank" x="' + (R * 0.46) + '" y="' + (R * 0.74) + '" font-size="' + (R * 0.52) + '" text-anchor="middle">' +
       esc(u.badge) + '</text>' +
       moved + eye + '</g>';
@@ -341,6 +339,31 @@
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
     const last = st.lastMove;
     let out = '';
+
+    // a painted board texture, if one has been dropped in
+    const tex = A.artFor('board:' + st.boardKey);
+    if (tex) {
+      out += '<image href="' + tex + '" x="' + bounds.x + '" y="' + bounds.y + '" width="' + bounds.w +
+        '" height="' + bounds.h + '" preserveAspectRatio="xMidYMid slice" opacity="0.42"/>';
+    }
+
+    // the yantra frame: rings, ticks and kolam dots around the chakra
+    if (b.kind === 'wheel') {
+      const R0 = (bounds.w / 2) - 0.05;
+      let y = '<g class="yantra" aria-hidden="true">';
+      [1.02, 1.07, 1.14].forEach(function (f) {
+        y += '<circle cx="0" cy="0" r="' + (R0 * f).toFixed(3) + '"/>';
+      });
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+        y += '<line x1="' + (Math.cos(a) * R0 * 1.02).toFixed(3) + '" y1="' + (Math.sin(a) * R0 * 1.02).toFixed(3) +
+          '" x2="' + (Math.cos(a) * R0 * 1.07).toFixed(3) + '" y2="' + (Math.sin(a) * R0 * 1.07).toFixed(3) + '"/>';
+        y += '<circle class="dot" cx="' + (Math.cos(a) * R0 * 1.105).toFixed(3) + '" cy="' +
+          (Math.sin(a) * R0 * 1.105).toFixed(3) + '" r="0.018"/>';
+      }
+      y += '</g>';
+      out += y;
+    }
     const rings = { 1: '', 2: '' };
 
     b.cells.forEach(function (cell) {
@@ -898,6 +921,7 @@
     AC.ui.modal({
       kicker: kicker,
       title: title,
+      art: A.artFor('ui:combat'),
       body: '<div class="combat-arena">' + card(att, attDead) + '<div class="combat-vs">' +
         (ev.kind === 'scan' ? '◎' : 'VS') + '</div>' + card(def, defDead) + '</div>' +
         '<div class="combat-outcome ' + outcomeCls + '">' + esc(ev.text) + '</div>',
@@ -1232,6 +1256,7 @@
     AC.ui.modal({
       kicker: 'Engagement complete',
       title: '',
+      art: A.artFor(winner === 1 ? 'ui:victory' : winner === 2 ? 'ui:defeat' : 'ui:combat'),
       dismissible: false,
       body:
         '<div class="result-hero">' +

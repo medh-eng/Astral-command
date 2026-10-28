@@ -1372,8 +1372,8 @@ html.cb {
 }
 .btn-gold { background: linear-gradient(135deg, #fde9c0, #f2cf8b); color: #2b1d02; }
 
-.cell .cell-fill { fill: rgba(30, 26, 36, 0.92); stroke: rgba(224, 169, 74, 0.16); }
-.cell:nth-child(even) .cell-fill { fill: rgba(26, 22, 32, 0.92); }
+.cell .cell-fill { fill: rgba(40, 34, 45, 0.94); stroke: rgba(224, 169, 74, 0.24); }
+.cell:nth-child(even) .cell-fill { fill: rgba(34, 29, 39, 0.94); }
 .cell.zone-1 .cell-fill { stroke: rgba(224, 169, 74, 0.34); }
 .cell.zone-2 .cell-fill { stroke: rgba(139, 143, 240, 0.34); }
 .cell.hub .cell-fill { fill: rgba(242, 207, 139, 0.1); stroke: rgba(242, 207, 139, 0.5); }
@@ -1458,3 +1458,40 @@ html.cb {
 }
 .howto-title { display: block; font-size: 13px; font-weight: 700; }
 .howto-body { display: block; font-size: 12px; color: var(--dim); line-height: 1.55; margin-top: 2px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Painted art layer — used automatically when images are supplied
+   ══════════════════════════════════════════════════════════════════ */
+.emblem-art {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+.intel-chip .emblem-art { width: 13px; height: 13px; }
+.capture-chip .emblem-art { width: 14px; height: 14px; }
+.sel-badge .emblem-art { width: 22px; height: 22px; }
+.combat-emblem .emblem-art { width: 46px; height: 46px; }
+.unit-emblem .emblem-art { width: 26px; height: 26px; }
+.card-icon .emblem-art { width: 24px; height: 24px; }
+
+.crest {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex: none;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.6));
+}
+
+.modal.art-modal {
+  background-image:
+    linear-gradient(180deg, rgba(10, 8, 16, 0.86), rgba(8, 7, 12, 0.95)),
+    var(--modal-art);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.yantra circle { fill: none; stroke: rgba(242, 207, 139, 0.16); stroke-width: 0.008; }
+.yantra circle.dot { fill: rgba(242, 207, 139, 0.5); stroke: none; }
+.yantra line { stroke: rgba(242, 207, 139, 0.22); stroke-width: 0.01; }

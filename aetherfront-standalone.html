@@ -1389,8 +1389,8 @@ html.cb {
 }
 .btn-gold { background: linear-gradient(135deg, #fde9c0, #f2cf8b); color: #2b1d02; }
 
-.cell .cell-fill { fill: rgba(30, 26, 36, 0.92); stroke: rgba(224, 169, 74, 0.16); }
-.cell:nth-child(even) .cell-fill { fill: rgba(26, 22, 32, 0.92); }
+.cell .cell-fill { fill: rgba(40, 34, 45, 0.94); stroke: rgba(224, 169, 74, 0.24); }
+.cell:nth-child(even) .cell-fill { fill: rgba(34, 29, 39, 0.94); }
 .cell.zone-1 .cell-fill { stroke: rgba(224, 169, 74, 0.34); }
 .cell.zone-2 .cell-fill { stroke: rgba(139, 143, 240, 0.34); }
 .cell.hub .cell-fill { fill: rgba(242, 207, 139, 0.1); stroke: rgba(242, 207, 139, 0.5); }
@@ -1475,6 +1475,43 @@ html.cb {
 }
 .howto-title { display: block; font-size: 13px; font-weight: 700; }
 .howto-body { display: block; font-size: 12px; color: var(--dim); line-height: 1.55; margin-top: 2px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Painted art layer — used automatically when images are supplied
+   ══════════════════════════════════════════════════════════════════ */
+.emblem-art {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+.intel-chip .emblem-art { width: 13px; height: 13px; }
+.capture-chip .emblem-art { width: 14px; height: 14px; }
+.sel-badge .emblem-art { width: 22px; height: 22px; }
+.combat-emblem .emblem-art { width: 46px; height: 46px; }
+.unit-emblem .emblem-art { width: 26px; height: 26px; }
+.card-icon .emblem-art { width: 24px; height: 24px; }
+
+.crest {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex: none;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.6));
+}
+
+.modal.art-modal {
+  background-image:
+    linear-gradient(180deg, rgba(10, 8, 16, 0.86), rgba(8, 7, 12, 0.95)),
+    var(--modal-art);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.yantra circle { fill: none; stroke: rgba(242, 207, 139, 0.16); stroke-width: 0.008; }
+.yantra circle.dot { fill: rgba(242, 207, 139, 0.5); stroke: none; }
+.yantra line { stroke: rgba(242, 207, 139, 0.22); stroke-width: 0.01; }
 
 </style>
 </head>
@@ -4344,9 +4381,76 @@ html.cb {
       '<path d="M16 2.5 V30 M6 9.5 L16 14 L26 9.5 M16 14 L8.5 24 M16 14 L23.5 24" ' + S + ' stroke-opacity="0.6"/>'
   };
 
+  /* ── painted art layer ──────────────────────────────────────────
+     Drop a PNG at the path below and the game uses it instead of the
+     engraved vector mark. Nothing else needs to change: the loader probes
+     each slot once at boot, and any screen that is open re-renders when an
+     image arrives. Missing files are silently ignored. */
+  const IMG = {};
+  const SLUG = {
+    '10': 'senapati', '9': 'maharathi', '7': 'ashvarohi', '6': 'dhanurdhar',
+    '5': 'divyadrishti', '3': 'yantrik', '2': 'rath', '1': 'chara',
+    'B': 'shataghni', 'F': 'durg'
+  };
+  let onArt = null;
+
+  function probe(slot, url) {
+    if (typeof Image === 'undefined') return;
+    const img = new Image();
+    img.onload = function () {
+      IMG[slot] = url;
+      if (slot.indexOf('ui:') === 0) {
+        document.body.classList.add('has-' + slot.split(':')[1] + '-art');
+      }
+      if (onArt) onArt(slot, url);
+    };
+    img.onerror = function () { /* no art for this slot: keep the vector */ };
+    img.src = url;
+  }
+
+  function probeAll() {
+    Object.keys(SLUG).forEach(function (k) {
+      probe('unit:' + k, 'assets/art/units/' + SLUG[k] + '.png');
+    });
+    probe('faction:1', 'assets/art/factions/suryavansh.png');
+    probe('faction:2', 'assets/art/factions/chandravansh.png');
+    ['wheel', 'small', 'large'].forEach(function (b) {
+      probe('board:' + b, 'assets/art/boards/' + b + '.jpg');
+    });
+    probe('ui:combat', 'assets/art/ui/combat.jpg');
+    probe('ui:victory', 'assets/art/ui/victory.jpg');
+    probe('ui:defeat', 'assets/art/ui/defeat.jpg');
+    probe('ui:hero', 'assets/art/ui/hero.jpg');
+  }
+
+  function artFor(slot) { return IMG[slot] || null; }
+
   function emblem(key, cls) {
+    const painted = IMG['unit:' + key];
+    if (painted) {
+      return '<img class="emblem emblem-art ' + (cls || '') + '" src="' + painted + '" alt="" draggable="false">';
+    }
     const body = EMBLEMS[key] || EMBLEMS['2'];
     return '<svg class="emblem ' + (cls || '') + '" viewBox="0 0 32 32" aria-hidden="true" focusable="false">' + body + '</svg>';
+  }
+
+  /* Inside an SVG token: a painted disc, or the engraved vector paths. */
+  function tokenInner(key, R) {
+    const painted = IMG['unit:' + key];
+    const size = R * 1.34;
+    if (painted) {
+      return '<image href="' + painted + '" x="' + (-size / 2) + '" y="' + (-size / 2) + '" width="' + size +
+        '" height="' + size + '" preserveAspectRatio="xMidYMid meet"/>';
+    }
+    const scale = (R * 1.3) / 32;
+    return '<g class="tok-emblem" transform="translate(' + (-R * 0.65) + ',' + (-R * 0.65) + ') scale(' + scale + ')">' +
+      (EMBLEMS[key] || '') + '</g>';
+  }
+
+  function crest(faction) {
+    const painted = IMG['faction:' + faction];
+    if (!painted) return '';
+    return '<img class="crest" src="' + painted + '" alt="" draggable="false">';
   }
 
   /* ---------- faction sigils (used for avatars) ---------- */
@@ -4436,7 +4540,20 @@ html.cb {
     return out;
   }
 
-  AC.art = { emblem: emblem, sigil: sigil, icon: icon, SIGILS: SIGILS, EMBLEMS: EMBLEMS, boardPreview: boardPreview };
+  AC.art = {
+    emblem: emblem,
+    sigil: sigil,
+    icon: icon,
+    SIGILS: SIGILS,
+    EMBLEMS: EMBLEMS,
+    SLUG: SLUG,
+    boardPreview: boardPreview,
+    probeAll: probeAll,
+    artFor: artFor,
+    tokenInner: tokenInner,
+    crest: crest,
+    onArtLoaded: function (fn) { onArt = fn; }
+  };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
 </script>
@@ -4689,7 +4806,8 @@ html.cb {
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
     const box = document.createElement('div');
-    box.className = 'modal' + (opts.wide ? ' wide' : '');
+    box.className = 'modal' + (opts.wide ? ' wide' : '') + (opts.art ? ' art-modal' : '');
+    if (opts.art) box.style.setProperty('--modal-art', 'url("' + opts.art + '")');
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-modal', 'true');
     box.setAttribute('aria-label', opts.title || 'Dialog');
@@ -4825,6 +4943,9 @@ html.cb {
   let chosenSigil = 'crystal';
 
   function renderAuth() {
+    const heroArt = AC.art && AC.art.artFor ? AC.art.artFor('ui:hero') : null;
+    const bg = document.querySelector('.auth-bg');
+    if (bg && heroArt) bg.style.backgroundImage = 'url("' + heroArt + '")';
     const profiles = S.listProfiles();
     const list = document.getElementById('auth-profiles');
     const pinPanel = document.getElementById('auth-pin-panel');
@@ -5957,10 +6078,10 @@ html.cb {
     $('#strip-bottom').className = 'player-strip' + (st.phase === 'battle' && st.owner === 1 ? ' active-solar' : '') +
       (st.phase === 'deploy1' ? ' active-solar' : '');
 
-    $('#strip-top').innerHTML =
+    $('#strip-top').innerHTML = A.crest(2) +
       '<span class="strip-name" style="color:var(--void)">' + esc(topLabel) + '</span>' +
       '<span class="strip-count">' + aliveCount(2) + '/' + E.rosterOf(st, 2).length + '</span>' + captureTray(2);
-    $('#strip-bottom').innerHTML =
+    $('#strip-bottom').innerHTML = A.crest(1) +
       '<span class="strip-name" style="color:var(--solar)">' + esc(botLabel) + '</span>' +
       '<span class="strip-count">' + aliveCount(1) + '/' + E.rosterOf(st, 1).length + '</span>' + captureTray(1);
   }
@@ -6005,13 +6126,11 @@ html.cb {
     const sel = isSel ? '<circle class="sel-ring" r="' + (R * 1.14) + '"/>' : '';
     const eye = (u.revealed && u.owner === g.state.viewer && g.state.phase !== 'over')
       ? '<circle class="tok-eye" cx="' + (R * 0.6) + '" cy="' + (-R * 0.6) + '" r="' + (R * 0.15) + '"/>' : '';
-    const scale = (R * 1.3) / 32;
     return '<g class="token ' + cls + (isSel ? ' selected-token' : '') + (u.shieldBroken ? ' shield-broken' : '') +
       '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
       '<circle class="tok-disc" r="' + R + '"/>' +
       sel +
-      '<g class="tok-emblem" transform="translate(' + (-R * 0.65) + ',' + (-R * 0.65) + ') scale(' + scale + ')">' +
-      (A.EMBLEMS[u.key] || '') + '</g>' +
+      A.tokenInner(u.key, R) +
       '<text class="tok-rank" x="' + (R * 0.46) + '" y="' + (R * 0.74) + '" font-size="' + (R * 0.52) + '" text-anchor="middle">' +
       esc(u.badge) + '</text>' +
       moved + eye + '</g>';
@@ -6041,6 +6160,31 @@ html.cb {
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
     const last = st.lastMove;
     let out = '';
+
+    // a painted board texture, if one has been dropped in
+    const tex = A.artFor('board:' + st.boardKey);
+    if (tex) {
+      out += '<image href="' + tex + '" x="' + bounds.x + '" y="' + bounds.y + '" width="' + bounds.w +
+        '" height="' + bounds.h + '" preserveAspectRatio="xMidYMid slice" opacity="0.42"/>';
+    }
+
+    // the yantra frame: rings, ticks and kolam dots around the chakra
+    if (b.kind === 'wheel') {
+      const R0 = (bounds.w / 2) - 0.05;
+      let y = '<g class="yantra" aria-hidden="true">';
+      [1.02, 1.07, 1.14].forEach(function (f) {
+        y += '<circle cx="0" cy="0" r="' + (R0 * f).toFixed(3) + '"/>';
+      });
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+        y += '<line x1="' + (Math.cos(a) * R0 * 1.02).toFixed(3) + '" y1="' + (Math.sin(a) * R0 * 1.02).toFixed(3) +
+          '" x2="' + (Math.cos(a) * R0 * 1.07).toFixed(3) + '" y2="' + (Math.sin(a) * R0 * 1.07).toFixed(3) + '"/>';
+        y += '<circle class="dot" cx="' + (Math.cos(a) * R0 * 1.105).toFixed(3) + '" cy="' +
+          (Math.sin(a) * R0 * 1.105).toFixed(3) + '" r="0.018"/>';
+      }
+      y += '</g>';
+      out += y;
+    }
     const rings = { 1: '', 2: '' };
 
     b.cells.forEach(function (cell) {
@@ -6598,6 +6742,7 @@ html.cb {
     AC.ui.modal({
       kicker: kicker,
       title: title,
+      art: A.artFor('ui:combat'),
       body: '<div class="combat-arena">' + card(att, attDead) + '<div class="combat-vs">' +
         (ev.kind === 'scan' ? '◎' : 'VS') + '</div>' + card(def, defDead) + '</div>' +
         '<div class="combat-outcome ' + outcomeCls + '">' + esc(ev.text) + '</div>',
@@ -6932,6 +7077,7 @@ html.cb {
     AC.ui.modal({
       kicker: 'Engagement complete',
       title: '',
+      art: A.artFor(winner === 1 ? 'ui:victory' : winner === 2 ? 'ui:defeat' : 'ui:combat'),
       dismissible: false,
       body:
         '<div class="result-hero">' +
@@ -7107,6 +7253,16 @@ html.cb {
     void brandIcon;
 
     AC.ui.boot();
+
+    // painted art is optional: probe the slots and re-render when one lands
+    if (AC.art && AC.art.probeAll) {
+      AC.art.onArtLoaded(function () {
+        if (AC.app.screen === 'game' && AC.game && AC.game.render) AC.game.render();
+        else if (AC.app.screen === 'home') AC.ui.renderHome();
+        else if (AC.app.screen === 'auth') AC.ui.renderAuth();
+      });
+      AC.art.probeAll();
+    }
 
     // Offline support (GitHub Pages friendly). Silently skipped on file://
     if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function' &&

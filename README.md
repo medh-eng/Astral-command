@@ -86,6 +86,13 @@ Full rules, every rank and every edge case live in the in-game **Codex** (top ba
 
 ---
 
+## Art
+
+The board, the pieces and the panels are drawn in vector so the game never depends on a
+download. Painted art can be layered on top: drop images into `assets/art/` and they replace
+the vector marks automatically — see `docs/art-brief.md` for the exact slots, sizes and the
+prompt pack, and `assets/art/README.md` for the filename map.
+
 ## Project layout
 
 ```
@@ -97,7 +104,7 @@ js/engine.js                pure rules engine (no DOM): legality, combat, turns,
 js/ai.js                    belief-model bot + advisor
 js/audio.js                 Web Audio SFX + procedural score
 js/storage.js               profiles, PIN hashing, saves, settings, export/import
-js/art.js                   inline SVG emblems, sigils, icons, board thumbnails
+js/art.js                   inline SVG emblems, sigils, icons + the painted-art loader
 js/fx.js                    particle canvas, floating text, shake, toasts
 js/ui.js                    screens, auth, home, setup, modals, codex, saves, settings
 js/game.js                  battle screen: board render, input, AI loop, curtains, results

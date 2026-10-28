@@ -67,9 +67,76 @@
       '<path d="M16 2.5 V30 M6 9.5 L16 14 L26 9.5 M16 14 L8.5 24 M16 14 L23.5 24" ' + S + ' stroke-opacity="0.6"/>'
   };
 
+  /* ── painted art layer ──────────────────────────────────────────
+     Drop a PNG at the path below and the game uses it instead of the
+     engraved vector mark. Nothing else needs to change: the loader probes
+     each slot once at boot, and any screen that is open re-renders when an
+     image arrives. Missing files are silently ignored. */
+  const IMG = {};
+  const SLUG = {
+    '10': 'senapati', '9': 'maharathi', '7': 'ashvarohi', '6': 'dhanurdhar',
+    '5': 'divyadrishti', '3': 'yantrik', '2': 'rath', '1': 'chara',
+    'B': 'shataghni', 'F': 'durg'
+  };
+  let onArt = null;
+
+  function probe(slot, url) {
+    if (typeof Image === 'undefined') return;
+    const img = new Image();
+    img.onload = function () {
+      IMG[slot] = url;
+      if (slot.indexOf('ui:') === 0) {
+        document.body.classList.add('has-' + slot.split(':')[1] + '-art');
+      }
+      if (onArt) onArt(slot, url);
+    };
+    img.onerror = function () { /* no art for this slot: keep the vector */ };
+    img.src = url;
+  }
+
+  function probeAll() {
+    Object.keys(SLUG).forEach(function (k) {
+      probe('unit:' + k, 'assets/art/units/' + SLUG[k] + '.png');
+    });
+    probe('faction:1', 'assets/art/factions/suryavansh.png');
+    probe('faction:2', 'assets/art/factions/chandravansh.png');
+    ['wheel', 'small', 'large'].forEach(function (b) {
+      probe('board:' + b, 'assets/art/boards/' + b + '.jpg');
+    });
+    probe('ui:combat', 'assets/art/ui/combat.jpg');
+    probe('ui:victory', 'assets/art/ui/victory.jpg');
+    probe('ui:defeat', 'assets/art/ui/defeat.jpg');
+    probe('ui:hero', 'assets/art/ui/hero.jpg');
+  }
+
+  function artFor(slot) { return IMG[slot] || null; }
+
   function emblem(key, cls) {
+    const painted = IMG['unit:' + key];
+    if (painted) {
+      return '<img class="emblem emblem-art ' + (cls || '') + '" src="' + painted + '" alt="" draggable="false">';
+    }
     const body = EMBLEMS[key] || EMBLEMS['2'];
     return '<svg class="emblem ' + (cls || '') + '" viewBox="0 0 32 32" aria-hidden="true" focusable="false">' + body + '</svg>';
+  }
+
+  /* Inside an SVG token: a painted disc, or the engraved vector paths. */
+  function tokenInner(key, R) {
+    const painted = IMG['unit:' + key];
+    const size = R * 1.34;
+    if (painted) {
+      return '<image href="' + painted + '" x="' + (-size / 2) + '" y="' + (-size / 2) + '" width="' + size +
+        '" height="' + size + '" preserveAspectRatio="xMidYMid meet"/>';
+    }
+    const scale = (R * 1.3) / 32;
+    return '<g class="tok-emblem" transform="translate(' + (-R * 0.65) + ',' + (-R * 0.65) + ') scale(' + scale + ')">' +
+      (EMBLEMS[key] || '') + '</g>';
+  }
+
+  function crest(faction) {
+    const painted = IMG['faction:' + faction];
+    if (!painted) return '';
+    return '<img class="crest" src="' + painted + '" alt="" draggable="false">';
   }
 
   /* ---------- faction sigils (used for avatars) ---------- */
@@ -159,5 +226,18 @@
     return out;
   }
 
-  AC.art = { emblem: emblem, sigil: sigil, icon: icon, SIGILS: SIGILS, EMBLEMS: EMBLEMS, boardPreview: boardPreview };
+  AC.art = {
+    emblem: emblem,
+    sigil: sigil,
+    icon: icon,
+    SIGILS: SIGILS,
+    EMBLEMS: EMBLEMS,
+    SLUG: SLUG,
+    boardPreview: boardPreview,
+    probeAll: probeAll,
+    artFor: artFor,
+    tokenInner: tokenInner,
+    crest: crest,
+    onArtLoaded: function (fn) { onArt = fn; }
+  };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

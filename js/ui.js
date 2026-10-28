@@ -68,7 +68,8 @@
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
     const box = document.createElement('div');
-    box.className = 'modal' + (opts.wide ? ' wide' : '');
+    box.className = 'modal' + (opts.wide ? ' wide' : '') + (opts.art ? ' art-modal' : '');
+    if (opts.art) box.style.setProperty('--modal-art', 'url("' + opts.art + '")');
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-modal', 'true');
     box.setAttribute('aria-label', opts.title || 'Dialog');
@@ -204,6 +205,9 @@
   let chosenSigil = 'crystal';
 
   function renderAuth() {
+    const heroArt = AC.art && AC.art.artFor ? AC.art.artFor('ui:hero') : null;
+    const bg = document.querySelector('.auth-bg');
+    if (bg && heroArt) bg.style.backgroundImage = 'url("' + heroArt + '")';
     const profiles = S.listProfiles();
     const list = document.getElementById('auth-profiles');
     const pinPanel = document.getElementById('auth-pin-panel');

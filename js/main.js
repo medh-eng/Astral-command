@@ -20,6 +20,16 @@
 
     AC.ui.boot();
 
+    // painted art is optional: probe the slots and re-render when one lands
+    if (AC.art && AC.art.probeAll) {
+      AC.art.onArtLoaded(function () {
+        if (AC.app.screen === 'game' && AC.game && AC.game.render) AC.game.render();
+        else if (AC.app.screen === 'home') AC.ui.renderHome();
+        else if (AC.app.screen === 'auth') AC.ui.renderAuth();
+      });
+      AC.art.probeAll();
+    }
+
     // Offline support (GitHub Pages friendly). Silently skipped on file://
     if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function' &&
         location.protocol.indexOf('http') === 0) {
