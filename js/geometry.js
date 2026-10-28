@@ -238,39 +238,49 @@
   const META = {
     small: { key: 'small', label: 'Small Arena', blurb: '6 × 8 · fast and brutal', cells: 48, kind: 'square' },
     large: { key: 'large', label: 'Large Expanse', blurb: '8 × 10 · room to flank', cells: 80, kind: 'square' },
-    wheel: { key: 'wheel', label: 'Chakravyuha', blurb: '33 cells · the rings turn every 5 turns', cells: 33, kind: 'wheel' }
+    wheel: { key: 'wheel', label: 'Chakravyuha', blurb: '37 cells · the rings turn every 5 rounds', cells: 37, kind: 'wheel' },
+    padma: { key: 'padma', label: 'Padmavyuha', blurb: '37 cells · six exits, the rings turn', cells: 37, kind: 'hex' }
   };
 
 
   /* ── Padmavyuha: a hexagon of hexagons ────────────────────────────────
      37 cells — an eye, then rings of 6, 12 and 18. Six exits per cell, so
-     there is no corner to camp in. Deployment is three petals a side; the
-     forts sit on the outer ring. */
+     there is no corner to camp in. The field is drawn point-down: your fort
+     sits on the bottom petal tip, the enemy's on the top one, and each side
+     deploys on the 15 outer cells of its own half. Rings 1 and 2 turn. */
   function padmaBoard() {
     const R = 3;
-    const S = 1;                       // one cell = one unit
     const cells = [];
     const byId = {};
     const key = function (q, r) { return q + ',' + r; };
+    // axial -> pointy-top position, then a quarter turn so a vertex points down
+    const place = function (q, r) {
+      const x = Math.sqrt(3) * (q + r / 2);
+      const y = 1.5 * r;
+      return [-y, x];
+    };
     for (let q = -R; q <= R; q++) {
       for (let r = -R; r <= R; r++) {
         if (Math.abs(q + r) > R) continue;
         const ring = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
-        const x = S * Math.sqrt(3) * (q + r / 2);
-        const y = S * 1.5 * r;
-        // six petals by angle
-        let ang = Math.atan2(y, x) * 180 / Math.PI;      // -180..180
-        if (ang < 0) ang += 360;
-        const sector = Math.round(ang / 60) % 6;
-        const zone = ring >= 2 ? (sector === 4 || sector === 5 || sector === 0 ? 1 : 2) : 0;
+        const p = place(q, r);
+        const x = p[0];
+        const y = p[1];
+        let zone = 0;
+        if (ring >= 2) {
+          if (y > 0.01) zone = 1;
+          else if (y < -0.01) zone = 2;
+          else zone = x > 0 ? 1 : 2;      // the two cells on the waist: one each
+        }
         const pts = [];
         for (let i = 0; i < 6; i++) {
-          const a = Math.PI / 180 * (60 * i - 30);
-          pts.push([x + S * 0.96 * Math.cos(a), y + S * 0.96 * Math.sin(a)]);
+          // flat-top cells after the quarter turn
+          const a = Math.PI / 180 * (60 * i);
+          pts.push([x + 0.96 * Math.cos(a), y + 0.96 * Math.sin(a)]);
         }
         const cell = {
           id: key(q, r), x: x, y: y, shape: 'poly', zone: zone,
-          ring: ring, sector: sector, tr: S * 0.52,
+          ring: ring, angle: Math.atan2(y, x), tr: 0.5,
           points: pts, q: q, r: r
         };
         cells.push(cell);
@@ -278,58 +288,64 @@
       }
     }
 
-    // six rays leave every cell
+    // six rays leave every cell; the ray index is the direction (0..5), which
+    // the facing rule relies on, so empty rays are kept as placeholders
     const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
     const rays = {};
-    const neighbours = {};
     cells.forEach(function (cell) {
       const out = [];
-      const nb = [];
       DIRS.forEach(function (d) {
         const line = [];
         let q = cell.q + d[0];
         let r = cell.r + d[1];
         while (byId[key(q, r)]) { line.push(key(q, r)); q += d[0]; r += d[1]; }
         out.push(line);
-        if (line.length) nb.push(line[0]);
       });
       rays[cell.id] = out;
-      neighbours[cell.id] = nb;
     });
 
-    const zones = { 1: [], 2: [] };
+    // forts: the petal tips
+    let bottom = null;
+    let top = null;
     cells.forEach(function (c) {
-      if (c.zone) zones[c.zone].push(c.id);
+      if (!bottom || c.y > bottom.y + 1e-6) bottom = c;
+      if (!top || c.y < top.y - 1e-6) top = c;
     });
 
-    // forts: the outermost cell of each side's centre petal
-    const home = function (sector) {
-      let best = null;
-      cells.forEach(function (c) {
-        if (c.sector !== sector || c.ring !== 3) return;
-        if (!best || Math.abs(c.q) + Math.abs(c.r) > Math.abs(best.q) + Math.abs(best.r)) best = c;
-      });
-      return best ? best.id : null;
-    };
-    const homes = { 1: home(5), 2: home(2) };
-
+    // the turning rings, in clockwise order on screen
     const rotateRings = [1, 2];
-    const rotateEvery = 5;
     const rotationOrder = {};
     rotateRings.forEach(function (ring) {
-      const ids = cells.filter(function (c) { return c.ring === ring; })
-        .sort(function (a, b) { return (a.sector - b.sector) || (a.q - b.q); })
+      rotationOrder[ring] = cells.filter(function (c) { return c.ring === ring; })
+        .sort(function (a, b) { return a.angle - b.angle; })
         .map(function (c) { return c.id; });
-      rotationOrder[ring] = ids;
     });
 
-    return {
-      key: 'padma', kind: 'hex', cells: cells, byId: byId, cellIds: cells.map(function (c) { return c.id; }),
-      zones: zones, homes: homes, rays: rays, neighbours: neighbours,
-      bounds: { x: -6.15, y: -5.5, w: 12.3, h: 11.0 },
-      labels: [], rifts: [], rotateRings: rotateRings, rotateEvery: rotateEvery,
-      rotationOrder: rotationOrder, sides: 6
-    };
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    cells.forEach(function (c) {
+      c.points.forEach(function (pt) {
+        minX = Math.min(minX, pt[0]); maxX = Math.max(maxX, pt[0]);
+        minY = Math.min(minY, pt[1]); maxY = Math.max(maxY, pt[1]);
+      });
+    });
+    const m = 0.25;
+
+    return finish({
+      key: 'padma',
+      kind: 'hex',
+      label: 'Padmavyuha',
+      blurb: 'the lotus · six exits, the rings turn',
+      cells: cells,
+      rays: rays,
+      rifts: [],
+      homes: { 1: bottom.id, 2: top.id },
+      bounds: { x: minX - m, y: minY - m, w: maxX - minX + 2 * m, h: maxY - minY + 2 * m },
+      labels: [],
+      rotateRings: rotateRings,
+      rotateEvery: 5,
+      rotationOrder: rotationOrder,
+      sides: 6
+    });
   }
 
   function build(key) {

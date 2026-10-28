@@ -20,8 +20,11 @@ function ok(cond, name) {
   else { fail++; console.log('  ✗ ' + name); }
 }
 
+// The classic tests run with the Chapter III layers off; the Chapter III
+// section below switches them on explicitly.
+const CLASSIC = { gates: false, hours: false, vyuha: false, astras: false };
 function blank(config) {
-  const s = E.newState(Object.assign({ board: 'small' }, config || {}));
+  const s = E.newState(Object.assign({ board: 'small', rules: CLASSIC }, config || {}));
   s.board = {};
   s.phase = 'battle';
   s.owner = 1;
@@ -310,8 +313,8 @@ console.log('No-capture draw');
   [[6, 2, 5, 2], [0, 2, 1, 2], [5, 2, 4, 2], [1, 2, 2, 2]].forEach((m) => {
     if (s.phase === 'battle') act(s, m[0] + ',' + m[1], m[2] + ',' + m[3]);
   });
-  ok(s.phase === 'over' && s.winner === 0, 'four quiet orders end the match as a draw');
-  ok(/draw/i.test(s.reason), 'the draw reason is reported');
+  ok(s.phase === 'over' && s.winner === 0, 'four quiet orders between equal armies end in a shared field');
+  ok(/ceasefire/i.test(s.reason), 'the ceasefire reason is reported');
 }
 
 console.log('Abhimanyu — the breach');
@@ -320,7 +323,7 @@ console.log('Abhimanyu — the breach');
   ok(s.scenario === 'abhimanyu', 'the scenario is recorded on the state');
   ok(s.rosters[1].length === 8 && s.rosters[2].length === 10, 'eight raiders against ten defenders');
   ok(s.rosters[1].indexOf('F') === -1 && s.rosters[1].indexOf('B') === -1, 'the raiders carry no fort and no trap');
-  ok(s.turnLimit === 24, 'the breach has a round limit');
+  ok(s.turnLimit === 28, 'the breach has a round limit');
   let n1 = 0;
   let n2 = 0;
   E.forEachUnit(s, (u) => { if (u.owner === 1) n1++; else n2++; });
@@ -350,7 +353,7 @@ console.log('Abhimanyu — the breach');
   s3.owner = 1;
   s3.turn = 1;
   put(s3, 'r3s4', 1, '2');
-  put(s3, 'r3s5', 2, 'F');
+  put(s3, 'r3s5', 2, 'F').breached = true;   // the gate is already down
   put(s3, 'r3s6', 2, '3');
   const res3 = act(s3, 'r3s4', 'r3s5');
   ok(res3.ok && s3.winner === 1, 'capturing the fort wins the breach');
@@ -367,6 +370,282 @@ console.log('Belief model');
   u.hasMoved = true;
   const d2 = E.beliefFor(s, 1, '5,2');
   ok(!d2.F && !d2.B, 'a piece that has moved can no longer be either');
+}
+
+/* ══ Chapter III — Shakti ══════════════════════════════════════════ */
+const FULL = { gates: true, hours: true, vyuha: true, astras: true };
+function fresh(config) {
+  const s = blank(Object.assign({ rules: FULL }, config || {}));
+  s.shakti = { 1: 0, 2: 0 };
+  s.astrasUsed = { 1: {}, 2: {} };
+  s.astraLog = [];
+  return s;
+}
+
+console.log('The fort gate');
+{
+  const s = fresh();
+  s.sky.startNight = false;
+  put(s, '6,2', 1, '2');
+  put(s, '6,3', 1, '3');
+  const fort = put(s, '5,2', 2, 'F');
+  put(s, '0,0', 2, '3');
+  const res = act(s, '6,2', '5,2');
+  ok(res.ok && s.phase === 'battle', 'the first blow does not end the match');
+  ok(fort.breached && fort.revealed, 'it breaks the gate and reveals the fort');
+  ok(s.board['6,2'] && s.board['6,2'].key === '2' && s.board['5,2'] === fort, 'the attacker stays where it was');
+  ok(res.events.some((e) => e.kind === 'breach'), 'a breach event is raised');
+  act(s, '0,0', '0,1');
+  act(s, '6,2', '5,2');
+  ok(s.phase === 'over' && s.winner === 1, 'the second blow takes the fort');
+
+  const v = fresh();
+  put(v, '7,2', 1, '6');
+  const f2 = put(v, '5,2', 2, 'F');
+  put(v, '0,0', 2, '3');
+  act(v, '7,2', '5,2', 'barrage');
+  ok(f2.breached && v.phase === 'battle', 'a volley breaks the gate too');
+}
+
+console.log('The hours of Surya and Chandra');
+{
+  const s = fresh();
+  s.sky.startNight = true;
+  s.turn = 1;
+  ok(E.hourOf(s) === 'night' && E.hourOwner(s) === 2, 'a duel opens in the hour of Chandra');
+  s.turn = 5;
+  ok(E.hourOf(s) === 'day' && E.hourOwner(s) === 1, 'the sky turns on round 5');
+  s.turn = 10;
+  ok(E.hourOf(s) === 'night', 'and again on round 10');
+
+  const d = fresh();
+  d.sky.startNight = false;            // Surya's hour
+  put(d, '6,2', 1, '5');
+  put(d, '5,2', 2, '5');
+  put(d, '0,0', 2, '3');
+  const ctx = E.combatContext(d, '6,2', '5,2');
+  ok(ctx.att === 1 && ctx.attParts[0].key === 'surya', 'in your hour you strike at +1');
+  act(d, '6,2', '5,2');
+  ok(d.board['5,2'] && d.board['5,2'].owner === 1 && !d.board['5,2'].shieldBroken, 'equal ranks: the hour decides it cleanly');
+
+  const n = fresh();
+  n.sky.startNight = true;             // not Surya's hour
+  put(n, '6,2', 1, '5');
+  put(n, '5,2', 2, '5');
+  ok(E.combatContext(n, '6,2', '5,2').att === 0, 'out of your hour there is no bonus');
+}
+
+console.log('Formations — Makara and Padma');
+{
+  const s = fresh({ tie: 'mutual' });
+  s.sky.startNight = true;             // no hour bonus for Suryavansh
+  put(s, '6,2', 1, '5');
+  put(s, '5,3', 1, '2');               // the second jaw, beside the target
+  put(s, '5,2', 2, '6');
+  put(s, '0,0', 2, '3');
+  const ctx = E.combatContext(s, '6,2', '5,2');
+  ok(ctx.att === 1 && ctx.attParts.some((p) => p.key === 'makara'), 'a pincer gives the attacker +1');
+  act(s, '6,2', '5,2');
+  ok(!s.board['5,2'] && !s.board['6,2'], 'a 5 in a pincer meets a 6 as an equal');
+
+  const p = fresh();
+  p.sky.startNight = true;
+  put(p, '6,2', 1, '6');
+  put(p, '5,2', 2, '5');
+  put(p, '4,2', 2, '2');
+  put(p, '5,1', 2, '3');               // two petals around the defender
+  const ctx2 = E.combatContext(p, '6,2', '5,2');
+  ok(ctx2.def === 1, 'a piece guarded by two friends defends at +1');
+
+  const c = fresh();
+  c.sky.startNight = false;
+  put(c, '6,2', 1, '9');
+  put(c, '5,3', 1, '2');
+  put(c, '5,2', 2, '10');
+  ok(E.combatContext(c, '6,2', '5,2').att === 2, 'hour and pincer stack');
+  act(c, '6,2', '5,2');
+  ok(c.board['5,2'] && c.board['5,2'].key === '9', 'a Maharathi in its hour, in a pincer, topples the Senapati');
+
+  const a = fresh();
+  a.sky.startNight = true;
+  put(a, '6,2', 1, '1');
+  put(a, '5,2', 2, '10');
+  put(a, '4,2', 2, '2');
+  put(a, '5,3', 2, '3');
+  act(a, '6,2', '5,2');
+  ok(a.board['5,2'] && a.board['5,2'].key === '1', 'the Chara’s first strike ignores the petals');
+}
+
+console.log('Shakti');
+{
+  const s = fresh();
+  s.sky.startNight = true;
+  put(s, '6,2', 1, '9');
+  put(s, '5,2', 2, '3');
+  put(s, '0,0', 2, '3');
+  act(s, '6,2', '5,2');
+  ok(s.shakti[1] === 1 && s.shakti[2] === 0, 'taking a piece grows your Shakti by one');
+  s.shakti[1] = 5;
+  put(s, '4,0', 2, '2');
+  act(s, '0,0', '0,1');
+  act(s, '5,2', '4,2');
+  ok(s.shakti[1] === 5, 'Shakti never passes five');
+
+  const t = fresh();
+  t.turn = 4;
+  t.owner = 2;
+  put(t, '7,0', 1, '3');
+  put(t, '0,0', 2, '3');
+  act(t, '0,0', '0,1');
+  ok(t.turn === 5 && t.shakti[1] === 1 && t.shakti[2] === 1, 'the turning sky gives both sides one Shakti');
+}
+
+console.log('Astras');
+{
+  const s = fresh();
+  s.shakti[1] = 5;
+  const a = put(s, '7,0', 1, 'F');
+  const b = put(s, '6,5', 1, '3');
+  put(s, '0,0', 2, '3');
+  let res = E.applyAction(s, { type: 'astra', astra: 'vayavya', from: '7,0', to: '6,5' });
+  ok(res.ok && s.board['6,5'] === a && s.board['7,0'] === b, 'Vayavyastra swaps two of your pieces — even the fort');
+  ok(s.shakti[1] === 4 && s.astrasUsed[1].vayavya, 'it costs one Shakti and is spent');
+  ok(!a.revealed && !b.revealed, 'both stay hidden');
+  act(s, '0,0', '0,1');
+  res = E.applyAction(s, { type: 'astra', astra: 'vayavya', from: '6,5', to: '7,0' });
+  ok(!res.ok, 'each astra works once per match');
+
+  const t = fresh();
+  t.shakti[1] = 2;
+  put(t, '6,2', 1, '3');
+  const foe = put(t, '4,2', 2, '9');
+  put(t, '0,0', 2, '2');
+  ok(E.astraTargets(t, 1, 'sammohana').indexOf('4,2') !== -1, 'Sammohanastra reaches two cells out');
+  ok(E.astraTargets(t, 1, 'sammohana').indexOf('0,0') === -1, 'but no further');
+  E.applyAction(t, { type: 'astra', astra: 'sammohana', to: '4,2' });
+  ok(foe.stun === 2 && E.computeValidTargets(t, '4,2', 'move').length === 0, 'the entranced piece cannot act');
+  act(t, '0,0', '0,1');
+  ok(t.owner === 1, 'its side still plays its other pieces');
+  act(t, '6,2', '6,3');
+  act(t, '0,1', '0,0');
+  act(t, '6,3', '6,2');
+  ok(foe.stun === 0 && E.computeValidTargets(t, '4,2', 'move').length > 0, 'the trance lasts two of its owner’s turns');
+
+  const lone = fresh();
+  lone.shakti[1] = 2;
+  put(lone, '6,2', 1, '3');
+  put(lone, '4,2', 2, '9');
+  put(lone, '0,0', 2, 'F');
+  E.applyAction(lone, { type: 'astra', astra: 'sammohana', to: '4,2' });
+  ok(lone.phase === 'battle' && lone.owner === 1, 'a side with only entranced pieces loses its turn, not the match');
+
+  const f = fresh();
+  f.shakti[1] = 5;
+  put(f, '6,2', 1, '3');
+  put(f, '5,2', 2, '3');
+  put(f, '5,3', 2, '7');
+  const trap = put(f, '4,2', 2, 'B');
+  const fort = put(f, '4,3', 2, 'F');
+  E.applyAction(f, { type: 'astra', astra: 'agneya', to: '5,2' });
+  ok(!f.board['5,2'], 'Agneyastra burns a rank 3');
+  ok(f.shakti[1] === 3, 'the fire costs three (and the kill gave one back)');
+
+  const f2 = fresh();
+  f2.shakti[1] = 3;
+  put(f2, '6,2', 1, '3');
+  const seven = put(f2, '5,2', 2, '7');
+  put(f2, '0,0', 2, '2');
+  E.applyAction(f2, { type: 'astra', astra: 'agneya', to: '5,2' });
+  ok(f2.board['5,2'] === seven && seven.revealed, 'a rank 7 walks through the fire, revealed');
+
+  const f3 = fresh();
+  f3.shakti[1] = 3;
+  put(f3, '6,2', 1, '3');
+  const t3 = put(f3, '5,2', 2, 'B');
+  put(f3, '0,0', 2, '2');
+  E.applyAction(f3, { type: 'astra', astra: 'agneya', to: '5,2' });
+  ok(!f3.board['5,2'], 'fire burns a Shataghni');
+  void t3; void trap; void fort;
+
+  const f4 = fresh();
+  f4.shakti[1] = 3;
+  put(f4, '6,2', 1, '3');
+  const fo = put(f4, '5,2', 2, 'F');
+  put(f4, '0,0', 2, '2');
+  E.applyAction(f4, { type: 'astra', astra: 'agneya', to: '5,2' });
+  ok(fo.breached && f4.phase === 'battle', 'fire breaks a fort gate but does not take the fort');
+
+  const br = fresh();
+  br.shakti[1] = 5;
+  put(br, '6,2', 1, '3');
+  put(br, '5,2', 2, '10');
+  const nb = put(br, '4,2', 2, '2');
+  put(br, '5,1', 2, 'F');
+  put(br, '0,0', 2, '2');
+  ok(E.astraTargets(br, 1, 'brahma').indexOf('5,1') === -1, 'Brahmastra cannot touch the fort');
+  E.applyAction(br, { type: 'astra', astra: 'brahma', to: '5,2' });
+  ok(!br.board['5,2'], 'Brahmastra destroys even the Senapati');
+  ok(nb.revealed && br.board['5,1'].revealed, 'and lays bare every piece around it');
+
+  const nr = fresh();
+  nr.shakti[1] = 1;
+  put(nr, '6,2', 1, '3');
+  put(nr, '6,3', 1, '2');
+  put(nr, '0,0', 2, '2');
+  ok(!E.applyAction(nr, { type: 'astra', astra: 'sammohana', to: '0,0' }).ok, 'an astra needs its Shakti');
+}
+
+console.log('Ceasefire');
+{
+  const s = fresh({ roundCap: 3 });
+  s.turn = 3;
+  s.owner = 2;
+  put(s, '7,0', 1, '10');
+  put(s, '0,0', 2, '3');
+  act(s, '0,0', '0,1');
+  ok(s.phase === 'over' && s.winner === 1, 'at sunset the stronger army holds the field');
+  ok(/sunset/i.test(s.reason), 'and the reason says so');
+}
+
+console.log('Formations that cannot lose the fort on move one');
+{
+  let bad = 0;
+  ['small', 'large', 'wheel', 'padma'].forEach((bk) => {
+    for (let i = 0; i < 120; i++) {
+      const s = E.newState({ board: bk });
+      E.deployPreset(s, 2, 'shuffle');
+      const depth = E.depthMap(s, 2);
+      let max = 0;
+      G.build(bk).zones[2].forEach((id) => { if (depth[id] > max) max = depth[id]; });
+      const fortAt = E.findUnit(s, (u) => u.owner === 2 && u.key === 'F');
+      if (depth[fortAt] !== max) bad++;
+    }
+  });
+  ok(bad === 0, 'a shuffled fort always sits in the deepest line');
+}
+
+console.log('Padmavyuha');
+{
+  const g = G.build('padma');
+  ok(g.cells.length === 37, 'the lotus has 37 cells');
+  ok(g.zones[1].length === 15 && g.zones[2].length === 15, 'each side deploys on fifteen');
+  const ringOk = [1, 2].every((ring) => {
+    const order = g.rotationOrder[ring];
+    return order.every((id, i) => g.neighbours[id].indexOf(order[(i + 1) % order.length]) !== -1);
+  });
+  ok(ringOk, 'each turning ring steps to a neighbour');
+  const s = E.newState({ board: 'padma' });
+  ok(E.armyComplete(s, 1) && E.armyComplete(s, 2), 'both armies deploy on the lotus');
+}
+
+console.log('The opponent does not peek');
+{
+  const AI = globalThis.AC.ai;
+  const s = fresh();
+  put(s, '0,2', 2, 'B');               // deepest unmoved piece is the trap
+  put(s, '1,4', 2, 'F');               // the real fort is shallower
+  put(s, '7,0', 1, '3');
+  ok(AI.fortGuess(s, 1) === '0,2', 'it aims at the deepest unmoved piece, not the hidden fort');
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

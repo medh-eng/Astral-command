@@ -32,7 +32,7 @@ function check(cond, msg) {
 }
 
 for (let g = 0; g < games; g++) {
-  const board = ['small', 'large', 'wheel'][g % 3];
+  const board = ['small', 'large', 'wheel', 'padma'][g % 4];
   const tie = g % 3 === 0 ? 'mutual' : 'attacker';
   const d1 = ['recruit', 'veteran', 'archon'][g % 3];
   const d2 = ['archon', 'veteran', 'recruit'][(g + 1) % 3];
@@ -75,6 +75,7 @@ for (let g = 0; g < games; g++) {
     });
     check(counts.F <= 2, 'never more than two forts');
     check(counts[1] + counts[2] <= 24, 'piece count stays sane');
+    check(s.shakti[1] >= 0 && s.shakti[1] <= 5 && s.shakti[2] >= 0 && s.shakti[2] <= 5, 'shakti stays within 0..5');
   }
   check(s.phase === 'over', `game ${g} terminated (phase=${s.phase}, plies=${plies})`);
   results[s.winner === null ? 0 : s.winner]++;
