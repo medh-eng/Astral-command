@@ -139,8 +139,10 @@
       const outer = inner + STEP;
       const rm = (inner + outer) / 2;
       for (let s = 0; s < SECT; s++) {
-        const a0 = (s / SECT) * TAU - Math.PI / 2 + GAP;
-        const a1 = ((s + 1) / SECT) * TAU - Math.PI / 2 - GAP;
+        // Suryavansh's six sectors (9–2) are centred on the bottom of the
+        // screen, so the player always fights upward, like every other field
+        const a0 = (s / SECT) * TAU + Math.PI / 3 + GAP;
+        const a1 = ((s + 1) / SECT) * TAU + Math.PI / 3 - GAP;
         const mid = (a0 + a1) / 2;
         // sectors 9,10,11,0,1,2 belong to Suryavansh; 3..8 to Chandravansh
         const zone = (s === 9 || s === 10 || s === 11 || s === 0 || s === 1 || s === 2) ? 1 : 2;

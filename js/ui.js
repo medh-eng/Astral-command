@@ -1,6 +1,6 @@
-/* VYUHA: Astral Command — app shell UI
- * Screens, profiles/login, home, setup, modals, codex, saves, settings.
- * The battle screen itself lives in game.js.
+/* VYUHA — app shell UI
+ * Screens, profiles, home, setup, modals, codex, saves, settings.
+ * The battle screen lives in game.js; the tutorial and the daily puzzle in modes.js.
  */
 (function (root) {
   'use strict';
@@ -16,7 +16,7 @@
   app.profile = null;
   app.guest = false;
   app.settings = {};
-  app.setup = { mode: 'ai', board: 'small', tie: 'attacker', difficulty: 'veteran', timer: 0, scenario: 'duel' };
+  app.setup = { mode: 'ai', board: 'wheel', tie: 'attacker', difficulty: 'veteran', timer: 0, scenario: 'duel', ruleset: 'vyuha' };
   app.modals = [];
 
   /* ── helpers ─────────────────────────────────────────────────── */
@@ -189,6 +189,10 @@
     document.documentElement.classList.toggle('reduce-motion', !!s.reducedMotion);
     AU.setSettings({ sfx: s.sfx, music: s.music, muted: s.muted, haptics: s.haptics });
     FX.setReducedMotion(s.reducedMotion);
+    if (AC.sanjaya) {
+      AC.sanjaya.setLang(s.narratorLang || 'hinglish');
+      AC.sanjaya.setVoice(s.voice !== false && s.narrator !== false);
+    }
   }
 
   function patchSettings(patch) {
@@ -414,6 +418,34 @@
   }
 
   /* ── home ────────────────────────────────────────────────────── */
+  const HOME_LINES = [
+    'Pieces that never move are either the fort or a trap, Maharaj. Probe them with something cheap.',
+    'In your hour, every strike lands at +1. Count the rounds before you commit.',
+    'Two of yours touching one of theirs is Makara — the jaws. Close them.',
+    'A piece with two friends beside it is Padma. Strike it from where the petals are thin.',
+    'The Chara kills the Senapati only when it strikes first. Keep yours hidden until then.',
+    'Agneyastra burns traps too. Clear the lane to their fort with fire.',
+    'Brahmastra fells any one fighting piece. Save it for the one that matters.',
+    'The archer kills from two cells and never pays for it. Keep your fort out of its lane.',
+    'The wheel turns every fifth round and shows everything it carries. Do not ride it by accident.',
+    'At sunset the stronger army holds the field. Sometimes the best move is not to lose a piece.'
+  ];
+
+  function greeting() {
+    const hour = new Date().getHours();
+    if (hour < 5) return 'Shubh ratri';
+    if (hour < 12) return 'Suprabhat';
+    if (hour < 17) return 'Pranam';
+    if (hour < 21) return 'Shubh sandhya';
+    return 'Shubh ratri';
+  }
+
+  function quickSetup() {
+    const last = app.settings.lastSetup;
+    return Object.assign({ mode: 'ai', board: 'wheel', tie: 'attacker', difficulty: 'veteran', timer: 0, scenario: 'duel', ruleset: 'vyuha' },
+      last && last.mode === 'ai' ? last : {});
+  }
+
   function renderHome() {
     if (AC.art && AC.art.artFor) AC.art.artFor('ui:home');   // lazy: only on this screen
     const p = app.profile;
@@ -422,13 +454,18 @@
     document.getElementById('home-sigil').innerHTML = p ? A.sigil(p.sigil) : A.sigil('chevron');
 
     const stats = (p && p.stats) || { wins: 0, losses: 0, draws: 0, matches: 0, captures: 0, cores: 0, bestStreak: 0 };
-    document.getElementById('home-rank').textContent = rankLabel(stats) + ' · ' + stats.matches + ' match' + (stats.matches === 1 ? '' : 'es');
+    document.getElementById('home-rank').textContent = rankLabel(stats) + ' · ' + stats.matches + ' battle' + (stats.matches === 1 ? '' : 's');
+    document.getElementById('home-greeting').textContent = greeting() + ', ' + name;
 
-    const hour = new Date().getHours();
-    document.getElementById('home-greeting').textContent =
-      hour < 5 ? 'Late watch' : hour < 12 ? 'Morning watch' : hour < 17 ? 'Afternoon watch' : hour < 21 ? 'Evening watch' : 'Night watch';
+    document.getElementById('ci-quick').innerHTML = A.icon('sword') + ' Yuddh karo';
+    const q = quickSetup();
+    const qb = U.BOARDS[q.board] || U.BOARDS.wheel;
+    const qd = U.DIFFICULTIES[q.difficulty] || U.DIFFICULTIES.veteran;
+    document.getElementById('quick-sub').textContent = 'Quick battle · ' + qb.label + ' vs ' + qd.label;
 
-    document.getElementById('ci-new').innerHTML = A.icon('sword');
+    document.getElementById('ci-daily').innerHTML = A.icon('calendar');
+    document.getElementById('ci-tutorial').innerHTML = A.icon('help');
+    document.getElementById('ci-new').innerHTML = A.icon('grid');
     document.getElementById('ci-resume').innerHTML = A.icon('play');
     document.getElementById('ci-saves').innerHTML = A.icon('folder');
     document.getElementById('ci-codex').innerHTML = A.icon('book');
@@ -436,11 +473,25 @@
     document.getElementById('btn-home-codex').innerHTML = A.icon('book');
     document.getElementById('btn-signout').innerHTML = A.icon('user');
 
+    // the daily card
+    if (AC.modes && AC.modes.dailyStatus) {
+      const d = AC.modes.dailyStatus();
+      document.getElementById('daily-title').innerHTML = 'Daily Chakravyuha <span class="daily-num">#' + d.info.n + '</span>';
+      document.getElementById('daily-sub').textContent = d.today
+        ? (d.today.win ? 'Broken in on round ' + d.today.rounds + ' — share it, or practise' : 'The wheel held today — practise, or try tomorrow')
+        : d.info.mod.name + ' · same wheel for everyone today';
+      document.getElementById('daily-badge').innerHTML = d.streak ? A.icon('diya') + d.streak : (d.today ? A.icon('check') : 'NEW');
+      document.getElementById('btn-daily').classList.toggle('done', !!d.today);
+    }
+    const tutDone = !!app.settings.tutorialDone;
+    document.getElementById('btn-tutorial').classList.toggle('card-pulse', !tutDone);
+    document.getElementById('tutorial-sub').textContent = tutDone ? 'Replay the two-minute lesson' : 'Start here · learn the field in two minutes';
+
     const auto = S.listSaves().filter(function (s) { return s.slot === 'auto'; })[0];
     const saves = S.listSaves().filter(function (s) { return s.slot !== 'auto'; });
     document.getElementById('resume-sub').textContent = auto
       ? describeSave(auto)
-      : 'No game in progress';
+      : 'No battle in progress';
     document.getElementById('saves-sub').textContent = saves.length + ' of 3 slots used';
     document.getElementById('btn-resume').disabled = !auto;
 
@@ -450,18 +501,31 @@
       statCell(winRate + '%', 'Win rate') + statCell(stats.bestStreak || 0, 'Best streak');
     document.getElementById('winrate-fill').style.width = winRate + '%';
     document.getElementById('winrate-label').textContent = stats.matches
-      ? stats.wins + ' wins · ' + stats.draws + ' draws · ' + stats.captures + ' captures · ' + stats.cores + ' cores broken'
-      : 'No matches yet — the field is yours to take.';
+      ? stats.wins + ' wins · ' + stats.draws + ' shared · ' + stats.captures + ' pieces taken · ' + stats.cores + ' forts taken · next title: ' + nextTitle(stats)
+      : 'No battles yet — the field is yours to take.';
 
-    const tips = [
-      'Immovable pieces are the only ones that never move. Track them — that is your Core and Mine map.',
-      'A Strider that runs two or more tiles is revealed. Run it late, when the intel is worth the exposure.',
-      'Probe the enemy back row with a Sapper: it is the only piece that can clear a Mine without dying.',
-      'The Lancer shoots exactly two tiles and cannot be hurt by the reply. Free information, every other turn.',
-      'If your opponent has not moved a piece all game, treat it as a Mine or the Core until proven otherwise.',
-      'The Wraith only kills commanders when it attacks first. Never walk a Paladin into an unknown square.'
-    ];
-    document.getElementById('home-briefing').textContent = tips[Math.floor(Math.random() * tips.length)];
+    const sj = document.getElementById('home-sanjaya');
+    if (sj) sj.innerHTML = A.sanjayaMark();
+    document.getElementById('home-briefing').textContent = HOME_LINES[Math.floor(Math.random() * HOME_LINES.length)];
+
+    // the spokes of the home chakra are drawn once
+    const spokes = document.querySelector('.hc-spokes');
+    if (spokes && !spokes.childNodes.length) {
+      let svg = '';
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * Math.PI * 2;
+        const r0 = i % 2 ? 26 : 13;
+        svg += '<line x1="' + (Math.cos(a) * r0).toFixed(2) + '" y1="' + (Math.sin(a) * r0).toFixed(2) +
+          '" x2="' + (Math.cos(a) * 40).toFixed(2) + '" y2="' + (Math.sin(a) * 40).toFixed(2) + '"/>';
+      }
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 + Math.PI / 12;
+        svg += '<circle class="hc-dot" cx="' + (Math.cos(a) * 44).toFixed(2) + '" cy="' + (Math.sin(a) * 44).toFixed(2) + '" r="1.1"/>';
+      }
+      const tpl = document.createElement('template');
+      tpl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg">' + svg + '</svg>';
+      Array.prototype.slice.call(tpl.content.firstElementChild.childNodes).forEach(function (n) { spokes.appendChild(n); });
+    }
 
     renderQuickSettings();
     if (AC.game) AC.game.updateResumeState();
@@ -471,23 +535,37 @@
     return '<div class="stat-cell"><div class="stat-val">' + v + '</div><div class="stat-lab">' + l + '</div></div>';
   }
 
+  /* Titles follow the epic's grades of warrior: rathi, atirathi, maharathi,
+   * atimaharathi — earned by wins, not by win rate, so they only go up. */
+  const TITLES = [
+    [0, 'Shishya', 'शिष्य'],
+    [1, 'Sainik', 'सैनिक'],
+    [5, 'Rathi', 'रथी'],
+    [15, 'Atirathi', 'अतिरथी'],
+    [35, 'Maharathi', 'महारथी'],
+    [75, 'Atimaharathi', 'अतिमहारथी']
+  ];
+  function titleFor(wins) {
+    let t = TITLES[0];
+    TITLES.forEach(function (x) { if (wins >= x[0]) t = x; });
+    return t;
+  }
   function rankLabel(stats) {
-    const m = stats.matches || 0;
-    if (!m) return 'Unranked';
-    const wr = (stats.wins || 0) / m;
-    if (m < 3) return 'Cadet';
-    if (wr >= 0.75 && m >= 8) return 'Astral Marshal';
-    if (wr >= 0.6) return 'Voidbreaker';
-    if (wr >= 0.45) return 'Line Captain';
-    if (wr >= 0.3) return 'Field Ensign';
-    return 'Recruit';
+    const t = titleFor(stats.wins || 0);
+    return t[1] + ' ' + t[2];
+  }
+  function nextTitle(stats) {
+    const w = stats.wins || 0;
+    const next = TITLES.filter(function (x) { return x[0] > w; })[0];
+    return next ? next[1] + ' at ' + next[0] + ' wins' : 'none — you are an Atimaharathi';
   }
 
   function describeSave(save) {
     const m = save.meta || {};
     const mode = m.mode === 'pass' ? 'Pass & play' : 'vs ' + (U.DIFFICULTIES[m.difficulty] || U.DIFFICULTIES.veteran).label;
     const board = (U.BOARDS[m.board] || U.BOARDS.small).label;
-    return board + ' · ' + mode + ' · turn ' + (m.turn || 1);
+    const what = m.scenario === 'daily' ? 'Daily · ' : m.scenario === 'abhimanyu' ? 'Abhimanyu · ' : '';
+    return what + board + ' · ' + mode + ' · round ' + (m.turn || 1);
   }
 
   function renderQuickSettings() {
@@ -496,7 +574,8 @@
     const s = app.settings;
     host.innerHTML =
       toggleRow('Sound effects', 'sfxOn', !s.muted) +
-      toggleRow('Ambient score', 'musicOn', s.musicOn !== false) +
+      toggleRow('Music', 'musicOn', s.musicOn !== false) +
+      toggleRow('Sanjaya narrates', 'narrator', s.narrator !== false) +
       toggleRow('Haptics', 'haptics', s.haptics !== false) +
       toggleRow('Colour-blind palette', 'colorblind', !!s.colorblind);
     $$('[data-toggle]', host).forEach(function (row) {
@@ -509,6 +588,7 @@
           patchSettings({ musicOn: on });
           if (on) AU.startMusic('menu'); else AU.stopMusic();
         } else if (key === 'haptics') patchSettings({ haptics: !app.settings.haptics });
+        else if (key === 'narrator') patchSettings({ narrator: app.settings.narrator === false });
         else patchSettings({ colorblind: !app.settings.colorblind });
       });
     });
@@ -521,9 +601,33 @@
 
   function wireHome() {
     document.getElementById('btn-new-match').addEventListener('click', function () { sfx('select'); show('setup'); });
+    document.getElementById('btn-quick').addEventListener('click', function () {
+      sfx('lock');
+      if (AC.modes) AC.modes.clear();
+      app.setup = quickSetup();
+      AC.game.start(app.setup);
+    });
+    document.getElementById('btn-daily').addEventListener('click', function () {
+      sfx('select');
+      if (AC.modes) AC.modes.startDaily();
+    });
+    document.getElementById('home-name').addEventListener('click', function () {
+      if (!app.profile) return;
+      promptText({ kicker: 'Your name', title: 'What should Sanjaya call you?', label: 'Name', value: app.profile.name, maxlength: 18 })
+        .then(function (name) {
+          if (!name) return;
+          S.renameProfile(app.profile.id, name);
+          app.profile = S.getProfile(app.profile.id);
+          renderHome();
+        });
+    });
+    document.getElementById('btn-tutorial').addEventListener('click', function () {
+      sfx('select');
+      if (AC.modes) AC.modes.startTutorial();
+    });
     document.getElementById('btn-resume').addEventListener('click', function () {
       const auto = S.listSaves().filter(function (s) { return s.slot === 'auto'; })[0];
-      if (!auto) { FX.toast('No game in progress.', 'warn'); return; }
+      if (!auto) { FX.toast('No battle in progress.', 'warn'); return; }
       sfx('select');
       AC.game.load(auto.state, 'auto');
     });
@@ -534,9 +638,9 @@
     document.getElementById('btn-signout').addEventListener('click', function () {
       sfx('ui');
       confirm({
-        title: 'Sign out?',
-        message: 'Your profile and saved games stay on this device. You can sign back in with your access code.',
-        confirmLabel: 'Sign out'
+        title: 'Switch player?',
+        message: 'Your profile and saved games stay on this device. You can come back to it any time.',
+        confirmLabel: 'Switch'
       }).then(function (ok) {
         if (!ok) return;
         app.profile = null;
@@ -548,13 +652,13 @@
     });
     document.getElementById('btn-reset-stats').addEventListener('click', function () {
       if (!app.profile) { FX.toast('Guest records are not stored.', 'warn'); return; }
-      confirm({ title: 'Reset service record?', message: 'Wins, losses and streaks for this commander will be cleared. Saved games are untouched.', confirmLabel: 'Reset', danger: true })
+      confirm({ title: 'Reset your record?', message: 'Wins, losses, streaks and your title will be cleared. Saved games are untouched.', confirmLabel: 'Reset', danger: true })
         .then(function (ok) {
           if (!ok) return;
           S.resetStats(app.profile.id);
           app.profile = S.getProfile(app.profile.id);
           renderHome();
-          FX.toast('Service record cleared.', 'success');
+          FX.toast('Record cleared.', 'success');
         });
     });
     document.getElementById('btn-export').addEventListener('click', function () {
@@ -564,7 +668,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'aetherfront-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.download = 'vyuha-backup-' + new Date().toISOString().slice(0, 10) + '.json';
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -608,8 +712,8 @@
       label: 'Opponent',
       key: 'mode',
       options: [
-        { v: 'ai', title: 'Astral AI', sub: 'Hidden-information bot with three difficulty tiers', icon: 'brain' },
-        { v: 'pass', title: 'Pass & play', sub: 'Two commanders, one device, privacy curtain', icon: 'users' }
+        { v: 'ai', title: 'Against the AI', sub: 'Sainik, Dronacharya or Shakuni', icon: 'brain' },
+        { v: 'pass', title: 'Pass & play', sub: 'Two players, one device, a curtain between turns', icon: 'users' }
       ]
     });
     const scen = U.SCENARIOS[app.setupScenario()] || U.SCENARIOS.duel;
@@ -618,7 +722,7 @@
       key: 'scenario',
       options: Object.keys(U.SCENARIOS).map(function (k) {
         const sc = U.SCENARIOS[k];
-        return { v: k, title: sc.label, sub: sc.blurb, icon: k === 'duel' ? 'sword' : 'bolt' };
+        return { v: k, title: sc.label, deva: sc.deva, sub: sc.blurb, icon: k === 'duel' ? 'sword' : 'bolt' };
       })
     });
     groups.push({
@@ -626,25 +730,33 @@
       key: 'board',
       options: (scen.boards || Object.keys(U.BOARDS)).map(function (k) {
         const b = U.BOARDS[k];
-        return { v: k, title: b.label, sub: b.blurb, icon: 'grid' };
+        return { v: k, title: b.label, deva: b.deva, sub: b.blurb, icon: 'grid' };
       })
     });
     if (s.mode === 'ai') {
       groups.push({
-        label: 'AI difficulty',
+        label: 'Opponent',
         key: 'difficulty',
         options: Object.keys(U.DIFFICULTIES).map(function (k) {
           const d = U.DIFFICULTIES[k];
-          return { v: k, title: d.label, sub: d.blurb, icon: 'star' };
+          return { v: k, title: d.label, deva: d.deva, sub: d.blurb, icon: 'star' };
         })
       });
     }
     groups.push({
-      label: 'Equal-rank clashes',
+      label: 'Rules',
+      key: 'ruleset',
+      options: [
+        { v: 'vyuha', title: 'VYUHA', deva: 'व्यूह', sub: 'Gates, hours, formations and astras', icon: 'sun' },
+        { v: 'classic', title: 'Classic', sub: 'Bare ranks only — one blow takes the fort', icon: 'shield' }
+      ]
+    });
+    groups.push({
+      label: 'Equal strength',
       key: 'tie',
       options: [
-        { v: 'attacker', title: 'Attacker advantage', sub: 'Attacker wins the tie but loses one rank (Shield Break)', icon: 'sword' },
-        { v: 'mutual', title: 'Mutual destruction', sub: 'Classic rule — both pieces leave the board', icon: 'shield' }
+        { v: 'attacker', title: 'Attacker wins', sub: 'The attacker takes it but its shield cracks (−1 rank)', icon: 'sword' },
+        { v: 'mutual', title: 'Both fall', sub: 'Classic rule — both pieces leave the field', icon: 'shield' }
       ]
     });
     groups.push({
@@ -653,36 +765,35 @@
       options: [
         { v: 0, title: 'No clock', sub: 'Take your time', icon: 'clock' },
         { v: 60, title: '60 seconds', sub: 'Relaxed pace', icon: 'clock' },
-        { v: 30, title: '30 seconds', sub: 'Blitz tempo — auto-move on timeout', icon: 'bolt' }
+        { v: 30, title: '30 seconds', sub: 'Blitz — the advisor moves when time runs out', icon: 'bolt' }
       ]
     });
 
-    host.innerHTML = groups.map(function (g) {
+    host.innerHTML = groups.map(function (g, gi) {
+      const label = g.key === 'difficulty' ? 'Who you face' : g.label;
       if (g.key === 'scenario') {
         return '<div class="opt-group">' +
-          '<div class="opt-label">' + esc(g.label) + '</div>' +
+          '<div class="opt-label">' + esc(label) + '</div>' +
           '<div class="mode-cards">' + g.options.map(function (o) {
             const on = String(app.setup.scenario) === String(o.v);
             const art = AC.art.artFor('card:' + o.v);
-            const blurb = o.v === 'abhimanyu'
-              ? '8 raiders vs 10 defenders · breach by round 24'
-              : '12 pieces each · take the enemy fort';
             return '<button class="mode-card' + (on ? ' on' : '') + '" data-group="scenario" data-val="' + o.v + '"' +
               (art ? ' style="background-image:url(\'' + art + '\')"' : '') + '>' +
               '<span class="mode-card-body">' +
-                '<span class="mode-card-title">' + esc(o.title) + '</span>' +
-                '<span class="mode-card-sub">' + esc(blurb) + '</span>' +
+                '<span class="mode-card-title">' + esc(o.title) + (o.deva ? ' <span class="deva">' + esc(o.deva) + '</span>' : '') + '</span>' +
+                '<span class="mode-card-sub">' + esc(o.sub) + '</span>' +
               '</span>' +
               (on ? '<span class="mode-card-tick">' + A.icon('check') + '</span>' : '') +
             '</button>';
           }).join('') + '</div></div>';
       }
+      void gi;
       return '<div class="opt-group">' +
-        '<div class="opt-label">' + esc(g.label) + '</div>' +
+        '<div class="opt-label">' + esc(label) + '</div>' +
         '<div class="opt-row">' + g.options.map(function (o) {
-          const on = String(app.setup[g.key]) === String(o.v);
+          const on = String(app.setup[g.key] == null ? (g.key === 'ruleset' ? 'vyuha' : '') : app.setup[g.key]) === String(o.v);
           return '<button class="opt' + (on ? ' on' : '') + '" data-group="' + g.key + '" data-val="' + o.v + '">' +
-            '<span class="opt-title">' + A.icon(o.icon) + esc(o.title) + '</span>' +
+            '<span class="opt-title">' + A.icon(o.icon) + esc(o.title) + (o.deva ? ' <span class="deva">' + esc(o.deva) + '</span>' : '') + '</span>' +
             '<span class="opt-sub">' + esc(o.sub) + '</span></button>';
         }).join('') + '</div></div>';
     }).join('');
@@ -702,22 +813,31 @@
       renderSetup();
     };
 
-    const mode = app.setup.mode === 'pass' ? 'Pass & play' : 'Astral AI · ' + U.DIFFICULTIES[app.setup.difficulty].label;
+    const mode = app.setup.mode === 'pass' ? 'Pass & play' : 'vs ' + U.DIFFICULTIES[app.setup.difficulty].label;
     const scenario = U.SCENARIOS[app.setup.scenario] || U.SCENARIOS.duel;
     const board = U.BOARDS[app.setup.board];
-    const tie = app.setup.tie === 'attacker' ? 'Attacker advantage' : 'Mutual destruction';
+    const tie = app.setup.tie === 'attacker' ? 'Attacker wins' : 'Both fall';
     const timer = app.setup.timer ? app.setup.timer + 's per turn' : 'No clock';
     document.getElementById('setup-summary').innerHTML =
       row('Scenario', scenario.label) + row('Opponent', mode) +
-      row('Board', board.label + ' (' + (board.cells ? board.cells + ' cells' : board.cols + '×' + board.rows) + ')') +
-      row('Tie rule', tie) + row('Clock', timer) +
+      row('Field', board.label + ' (' + (board.cells ? board.cells + ' cells' : board.cols + '×' + board.rows) + ')') +
+      row('Rules', app.setup.ruleset === 'classic' ? 'Classic' : 'VYUHA') +
+      row('Equal strength', tie) + row('Clock', timer) +
       row('Army', scenario.rosters
         ? scenario.rosters[1].length + ' raiders vs ' + scenario.rosters[2].length + ' defenders'
         : '12 pieces each') +
-      (scenario.turnLimit ? row('Breach by', 'round ' + scenario.turnLimit) : '');
+      (scenario.turnLimit ? row('Take the fort by', 'round ' + scenario.turnLimit) : '');
   }
 
   app.setupScenario = function () { return app.setup.scenario || 'duel'; };
+
+  /* The setup screen speaks in rulesets; the engine speaks in rule layers. */
+  function configFromSetup(setup) {
+    const cfg = Object.assign({}, setup);
+    if (setup.ruleset === 'classic') cfg.rules = { gates: false, hours: false, vyuha: false, astras: false };
+    return cfg;
+  }
+  app.configFromSetup = configFromSetup;
 
   function row(k, v) {
     return '<div class="row"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>';
@@ -735,7 +855,9 @@
     }
     document.getElementById('btn-start-match').addEventListener('click', function () {
       sfx('lock');
-      AC.game.start(app.setup);
+      if (AC.modes) AC.modes.clear();
+      patchSettings({ lastSetup: Object.assign({}, app.setup) });
+      AC.game.start(configFromSetup(app.setup));
     });
   }
 
@@ -743,11 +865,18 @@
   function openCodex(tab) {
     let active = tab || 'units';
     const tabs = [
-      { k: 'units', label: 'Units' },
+      { k: 'units', label: 'Pieces' },
       { k: 'rules', label: 'Rules' },
-      { k: 'powers', label: 'Powers' },
-      { k: 'intel', label: 'Reading intel' }
+      { k: 'astras', label: 'Astras' },
+      { k: 'sky', label: 'Hours & formations' },
+      { k: 'intel', label: 'Reading the field' }
     ];
+
+    function block(rows) {
+      return '<div class="rule-block">' + rows.map(function (r) {
+        return '<div class="rule-item"><h4>' + r[0] + '</h4><p>' + r[1] + '</p></div>';
+      }).join('') + '</div>';
+    }
 
     function bodyFor(k) {
       if (k === 'units') {
@@ -760,51 +889,59 @@
                 (u.deva ? ' <span class="deva" style="font-size:15px;color:var(--parch);opacity:.9">' + esc(u.deva) + '</span>' : '') +
                 ' <span class="unit-role">' + esc(u.role) + '</span></div>' +
               (u.one ? '<div class="unit-one">' + esc(u.one) + '</div>' : '') +
-              (u.alias ? '<div class="unit-role" style="text-transform:none;letter-spacing:.02em;opacity:.7">was ' + esc(u.alias) + '</div>' : '') +
               '<div class="unit-desc">' + esc(u.desc) + '</div>' +
               '<div class="unit-tip">▸ ' + esc(u.tip) + '</div>' +
             '</div></div>';
         }).join('');
       }
       if (k === 'rules') {
-        const rules = [
-          ['The objective', 'Capture the enemy Nexus Core — by melee attack or by a Lancer barrage from two tiles away — and the match ends immediately. If a commander has no legal action left, they concede.'],
-          ['Movement', 'Every movable piece steps orthogonally. Astral Rifts are impassable terrain: nothing moves into or across them. The Strider slides any distance; the Valkyrie moves up to two; everything else moves one.'],
-          ['Combat', 'The attacker resolves the clash. Higher rank wins. The Archon (10) beats everything except a Mine, or a Wraith that strikes first. The Wraith kills the Archon or Paladin only when attacking.'],
-          ['Equal ranks', 'Depending on the match setting, either the attacker wins and loses one rank (Shield Break, never below 2), or both pieces are destroyed.'],
-          ['Mines and Cores', 'Both are immovable. Any attacker dies to a Mine except the Warp Sapper, which defuses and captures it. The Core can be captured by any attacking piece.'],
-          ['Revealing', 'A piece becomes revealed when it fights, when it is scanned, or when a Strider runs two or more tiles (and when a Valkyrie dashes two). Revealed ranks stay visible for the rest of the match.'],
-          ['Two-square rule', 'A piece may not shuttle between the same two squares more than three times in a row. The fourth reversal is illegal — this prevents endless stalling.'],
-          ['Abhimanyu — the breach', 'A scenario, not a duel. Eight raiders with no fort face a ten-piece wheel and must take the defender’s fort before round 24. Lose every raider, or run out of rounds, and the breach has failed.'],
-          ['The chakra turns', 'On the Chakravyuha wheel, rings 1 and 2 rotate one spoke clockwise at the start of every fifth round. Whatever they carry moves with them — and is revealed. The hub touches all eight spokes but exposes whoever stands on it.'],
-          ['No-capture draw', 'If neither side captures a piece for 60 orders, the engagement is declared a draw. The intel panel shows the countdown.'],
-          ['Deployment', 'Each army has 12 pieces placed anywhere in its own three-row zone. Swap any two squares before locking. Presets are starting points, not commitments.']
-        ];
-        return '<div class="rule-block">' + rules.map(function (r) {
-          return '<div class="rule-item"><h4>' + esc(r[0]) + '</h4><p>' + esc(r[1]) + '</p></div>';
-        }).join('') + '</div>';
+        return block([
+          ['The objective', 'Break the gate of the enemy Durg (fort), then take it. The first successful blow — or a volley — breaks the gate and reveals the fort; the second takes it and ends the battle. Leave the enemy with no legal move and they concede.'],
+          ['Movement', 'Pieces move along a cell’s lanes. Rifts on the square fields cannot be crossed, but arrows fly over them. The Rath slides any distance, the Ashvarohi up to two, everyone else one.'],
+          ['Combat', 'The attacker resolves the clash. Higher strength wins: rank, plus +1 in your hour, plus +1 for a Makara pincer — against rank plus +1 for a Padma guard. Bonuses never add more than +2.'],
+          ['Equal strength', 'Depending on the setting, either the attacker wins and its shield cracks (one rank lower, never below 2), or both pieces fall.'],
+          ['Traps and forts', 'Both never move — so an unmoved piece may be either. Any piece that strikes a Shataghni dies, unless it is a Yantrik. Fire (Agneyastra) burns traps too.'],
+          ['The Chara', 'The spy kills the Senapati or the Maharathi when it strikes first, whatever the hour and whatever guards them. Against anything else it loses.'],
+          ['Revealing', 'A piece is revealed when it fights, when it is seen by the Divyadrishti, when a Rath runs two or more cells or the Ashvarohi dashes two, when the rings carry it, and by fire or Brahmastra.'],
+          ['The turning field', 'On the Chakravyuha and the Padmavyuha, the two inner rings turn one cell clockwise every fifth round, carrying whatever stands on them — and revealing it.'],
+          ['Sunset and ceasefire', 'If no piece falls for 100 orders, or the sun sets on the field’s last round, the stronger army holds the field: the sum of fighting ranks, +5 for a fort whose gate still stands.'],
+          ['Abhimanyu', 'Eight raiders with no fort of their own must break into a closed wheel of ten and take its fort before round 28. They enter by day, with Shakti for two.'],
+          ['Two-cell rule', 'A piece may not shuttle between the same two cells more than three times in a row.']
+        ]);
       }
-      if (k === 'powers') {
-        const powers = [
-          ['Psionic Scan — Chrono Seer (5)', 'Reveals any enemy piece within two tiles (Manhattan distance) without fighting. The Seer stays put and is itself revealed. Information is the cheapest currency in this game.'],
-          ['Arc Barrage — Plasma Lancer (6)', 'Fires at exactly two tiles orthogonally, arcing over anything in between. Ranks 1–5 are vaporised; ranks 6 and above deflect the bolt (both pieces revealed); a Mine absorbs it; the Core is destroyed and you win. The Lancer never moves and can never be counter-attacked by the shot.'],
-          ['Phase Dash — Valkyrie Vanguard (7)', 'Moves up to two tiles in a straight line and may strike on arrival. This is the only piece that can attack from two squares away in melee, which lets it hit a second-rank defender in a single tempo.']
-        ];
-        return '<div class="rule-block">' + powers.map(function (p) {
-          return '<div class="rule-item"><h4>' + esc(p[0]) + '</h4><p>' + esc(p[1]) + '</p></div>';
-        }).join('') + '</div>';
+      if (k === 'astras') {
+        return '<p class="intel-note" style="margin-bottom:10px">Shakti grows by one for every piece you take, and by one for both armies each time the sky turns (five lamps at most). Each astra can be invoked once per battle and uses your whole turn. Astras strike within two cells of any of your pieces.</p>' +
+          E_ASTRAS().map(function (a) {
+            return '<div class="unit-row astra-row-codex">' +
+              '<div class="unit-emblem el-' + a.element + '">' + A.astraMark(a.key) + '<span class="rank-tag">' + a.cost + '</span></div>' +
+              '<div class="unit-body"><div class="unit-name">' + esc(a.name) + ' <span class="deva" style="font-size:15px;opacity:.9">' + esc(a.deva) + '</span>' +
+              ' <span class="unit-role">' + a.cost + ' Shakti</span></div>' +
+              '<div class="unit-one">' + esc(a.one) + '</div><div class="unit-desc">' + esc(a.desc) + '</div></div></div>';
+          }).join('') +
+          '<p class="intel-note" style="margin-top:10px">The astras are invoked, never shown: no deity is ever a piece on this board.</p>';
       }
-      return '<div class="rule-block">' +
-        '<div class="rule-item"><h4>What you actually know</h4><p>You see your own ranks, plus every enemy piece that has been revealed. Everything else is inference.</p></div>' +
-        '<div class="rule-item"><h4>The strongest single clue</h4><p>Core and Mine never move. So an enemy piece that has moved is <b>not</b> the Core and <b>not</b> a Mine. The Intel panel uses exactly this to build its odds.</p></div>' +
-        '<div class="rule-item"><h4>Odds, not guesses</h4><p>Select a target and the intel panel shows the probability of winning the clash, averaged over every rank the enemy could still be hiding. Tap a hidden enemy to see its full distribution.</p></div>' +
-        '<div class="rule-item"><h4>Probing</h4><p>Cheap pieces make good probes; commanders make bad ones. A Sapper is the only safe probe against a suspected Mine, and a Lancer barrage is the only probe that cannot be punished.</p></div>' +
-      '</div>';
+      if (k === 'sky') {
+        return block([
+          ['दिनमान · Dinman — the hour of Surya', 'By day, every Suryavansh strike lands at +1.'],
+          ['रात्रि · Ratri — the hour of Chandra', 'By night, every Chandravansh strike lands at +1. A duel opens in the last hour of night, which balances the first move.'],
+          ['When the sky turns', 'Every fifth round, at the same moment the rings turn. Both armies gain one Shakti. The HUD shows the hour and how many rounds remain.'],
+          ['मकर · Makara — the jaws', 'Strike an enemy that another of your fighting pieces already touches: +1 to your strike. Two jaws are enough; more do not add.'],
+          ['पद्म · Padma — the lotus', 'A piece touched by two or more of its own fighting pieces defends at +1. Strike where the petals are thin.'],
+          ['How far it goes', 'Hour and Makara stack; a Maharathi (9) in its hour, in a pincer, strikes as 11 — enough to topple a Senapati. No side ever gains more than +2.']
+        ]);
+      }
+      return block([
+        ['What you actually know', 'You see your own ranks, plus every enemy piece that has been revealed. Everything else is inference.'],
+        ['The strongest clue', 'Forts and traps never move. So an enemy piece that has moved is <b>not</b> the fort and <b>not</b> a trap. Every odds figure in the game uses exactly this.'],
+        ['Odds on the board', 'Select a piece and every target shows the chance your blow succeeds, averaged over every rank the enemy could still be hiding — with the hour and the formations included. Tap once to see it, twice to strike.'],
+        ['Probing', 'Cheap pieces make good probes; commanders make bad ones. A Yantrik is the only safe probe of a suspected trap, and a volley is the only probe that cannot be punished.'],
+        ['The opponent', 'The AI plays by the same information you have. It never looks at your hidden ranks or your fort — it guesses, exactly as you do.']
+      ]);
     }
 
     const m = modal({
-      kicker: 'Reference',
-      title: 'Codex & rules',
+      kicker: 'Granth · ग्रंथ',
+      title: 'Codex',
       wide: true,
       body: '<div class="codex-tabs">' + tabs.map(function (t) {
         return '<button class="codex-tab' + (t.k === active ? ' on' : '') + '" data-codex="' + t.k + '">' + t.label + '</button>';
@@ -821,6 +958,10 @@
     });
   }
 
+  function E_ASTRAS() {
+    return ['vayavya', 'sammohana', 'agneya', 'brahma'].map(function (k) { return U.ASTRA_DEFS[k]; });
+  }
+
   /* ── settings ────────────────────────────────────────────────── */
   function openSettings() {
     const s = app.settings;
@@ -830,11 +971,20 @@
           '<input type="range" min="0" max="100" value="' + Math.round(s.sfx * 100) + '" data-slider="sfx" /></div>' +
         '<div class="slider-row"><label>Ambient score <span id="lbl-music">' + Math.round(s.music * 100) + '%</span></label>' +
           '<input type="range" min="0" max="100" value="' + Math.round(s.music * 100) + '" data-slider="music" /></div>' +
+        '<div class="slider-row"><label>Sanjaya speaks in</label>' +
+          '<div class="seg" data-seg="narratorLang">' +
+            [['hinglish', 'Hinglish'], ['hi', 'हिन्दी'], ['en', 'English']].map(function (o) {
+              return '<button class="seg-btn' + ((s.narratorLang || 'hinglish') === o[0] ? ' on' : '') + '" data-segval="' + o[0] + '">' + o[1] + '</button>';
+            }).join('') +
+          '</div></div>' +
         '<div>' +
           toggleRow('Mute everything', 'muted', !!s.muted) +
-          toggleRow('Ambient score on', 'musicOn', s.musicOn !== false) +
+          toggleRow('Music on', 'musicOn', s.musicOn !== false) +
+          toggleRow('Sanjaya narrates', 'narrator', s.narrator !== false) +
+          toggleRow('Sanjaya’s voice (when recorded)', 'voice', s.voice !== false) +
+          toggleRow('Battle cinematics', 'cinematics', s.cinematics !== false) +
           toggleRow('Haptics', 'haptics', s.haptics !== false) +
-          toggleRow('Confirm every attack', 'confirmActions', s.confirmActions !== false) +
+          toggleRow('Tap twice to strike', 'confirmActions', s.confirmActions !== false) +
           toggleRow('Show intel panel', 'showIntel', s.showIntel !== false) +
           toggleRow('Board coordinates', 'coordinates', s.coordinates !== false) +
           toggleRow('Reduced motion', 'reducedMotion', !!s.reducedMotion) +
@@ -842,7 +992,7 @@
           toggleRow('High contrast', 'highContrast', !!s.highContrast) +
         '</div>' +
       '</div>' +
-      '<p class="fineprint">Audio is synthesised live in the browser — no sound files, no downloads. Everything here is stored on this device.</p>';
+      '<p class="fineprint">Every setting is stored on this device.</p>';
 
     const m = modal({
       kicker: 'Preferences',
@@ -865,6 +1015,17 @@
     });
 
     m.el.addEventListener('click', function (e) {
+      const segBtn = e.target.closest('[data-segval]');
+      if (segBtn) {
+        const seg = segBtn.closest('[data-seg]');
+        const p = {};
+        p[seg.getAttribute('data-seg')] = segBtn.getAttribute('data-segval');
+        patchSettings(p);
+        $$('.seg-btn', seg).forEach(function (n) { n.classList.toggle('on', n === segBtn); });
+        sfx('ui');
+        if (AC.sanjaya) AC.sanjaya.say('start_duel', { force: true });
+        return;
+      }
       const rowEl = e.target.closest('[data-toggle]');
       if (!rowEl) return;
       const key = rowEl.getAttribute('data-toggle');
@@ -875,6 +1036,9 @@
         if (patch.musicOn) AU.startMusic('menu'); else AU.stopMusic();
       } else if (key === 'haptics') patch.haptics = !app.settings.haptics;
       else if (key === 'confirmActions') patch.confirmActions = !(app.settings.confirmActions !== false);
+      else if (key === 'narrator') patch.narrator = app.settings.narrator === false;
+      else if (key === 'voice') patch.voice = app.settings.voice === false;
+      else if (key === 'cinematics') patch.cinematics = app.settings.cinematics === false;
       else if (key === 'showIntel') patch.showIntel = !(app.settings.showIntel !== false);
       else if (key === 'coordinates') patch.coordinates = !(app.settings.coordinates !== false);
       else if (key === 'reducedMotion') patch.reducedMotion = !app.settings.reducedMotion;
@@ -925,7 +1089,7 @@
       title: 'Saved games',
       wide: true,
       body: '<div class="save-list">' + ['auto', '1', '2', '3'].map(card).join('') + '</div>' +
-        '<p class="fineprint">Autosave keeps one rolling snapshot of your current match. Slots 1–3 are manual. Saves are device-local; use Export on the command deck to move them.</p>',
+        '<p class="fineprint">Autosave keeps one rolling snapshot of your current battle. Slots 1–3 are manual. Saves stay on this device; use Export on the home screen to move them.</p>',
       actions: [{ label: 'Close', cls: 'btn-ghost' }]
     });
 
@@ -998,11 +1162,11 @@
       body: '<div class="save-list">' +
         '<button class="advice-item" data-p="resume"><span class="advice-score">▶</span><span><span class="advice-label">Resume battle</span><span class="advice-note">Back to the board</span></span></button>' +
         '<button class="advice-item" data-p="save"><span class="advice-score">' + A.icon('save') + '</span><span><span class="advice-label">Save game</span><span class="advice-note">Write to a manual slot</span></span></button>' +
-        '<button class="advice-item" data-p="intel"><span class="advice-score">' + A.icon('eye') + '</span><span><span class="advice-label">Intel ledger</span><span class="advice-note">What you know about the enemy</span></span></button>' +
-        '<button class="advice-item" data-p="help"><span class="advice-score">' + A.icon('help') + '</span><span><span class="advice-label">How to play</span><span class="advice-note">Four things to know, in one screen</span></span></button>' +
-        '<button class="advice-item" data-p="codex"><span class="advice-score">' + A.icon('book') + '</span><span><span class="advice-label">Codex & rules</span><span class="advice-note">Ranks, powers and edge cases</span></span></button>' +
+        '<button class="advice-item" data-p="intel"><span class="advice-score">' + A.icon('eye') + '</span><span><span class="advice-label">Intel</span><span class="advice-note">What you know about the enemy, the hour, Shakti</span></span></button>' +
+        '<button class="advice-item" data-p="help"><span class="advice-score">' + A.icon('help') + '</span><span><span class="advice-label">How to play</span><span class="advice-note">Eight things to know, in one screen</span></span></button>' +
+        '<button class="advice-item" data-p="codex"><span class="advice-score">' + A.icon('book') + '</span><span><span class="advice-label">Codex</span><span class="advice-note">Pieces, astras, hours and formations</span></span></button>' +
         '<button class="advice-item" data-p="settings"><span class="advice-score">' + A.icon('settings') + '</span><span><span class="advice-label">Settings</span><span class="advice-note">Audio, motion, accessibility</span></span></button>' +
-        '<button class="advice-item" data-p="resign"><span class="advice-score">' + A.icon('flag') + '</span><span><span class="advice-label">Resign match</span><span class="advice-note">Concede and return to the command deck</span></span></button>' +
+        '<button class="advice-item" data-p="resign"><span class="advice-score">' + A.icon('flag') + '</span><span><span class="advice-label">Leave the field</span><span class="advice-note">Concede the battle and go home</span></span></button>' +
       '</div>',
       actions: [{ label: 'Resume', cls: 'btn-primary' }]
     });
@@ -1018,7 +1182,7 @@
       if (what === 'settings') { m.close(); openSettings(); return; }
       if (what === 'resign') {
         m.close();
-        confirm({ title: 'Resign the match?', message: 'This counts as a loss in your service record.', confirmLabel: 'Resign', danger: true })
+        confirm({ title: 'Leave the field?', message: 'This counts as a loss in your record.', confirmLabel: 'Concede', danger: true })
           .then(function (ok) { if (ok) AC.game.resign(); });
       }
     });
@@ -1065,12 +1229,31 @@
     if (session && session.profileId) profile = S.getProfile(session.profileId);
     if (!profile) profile = S.activeProfile();
 
+    const deepLink = function () {
+      const h = (root.location && root.location.hash) || '';
+      if (!AC.modes) return;
+      if (/^#daily/.test(h)) AC.modes.startDaily();
+      else if (/^#learn/.test(h)) AC.modes.startTutorial();
+    };
+
     setTimeout(function () {
       const bootEl = document.getElementById('boot');
       if (bootEl) bootEl.classList.add('done');
       if (profile) {
         app.profile = profile;
         show('home');
+        deepLink();
+      } else if (!S.listProfiles().length) {
+        // no login wall: a first-time player is a yoddha straight away and can
+        // rename or lock the profile later
+        S.createProfile({ name: 'Yoddha', sigil: 'sun', pin: '' }).then(function (p) {
+          app.profile = p;
+          app.guest = false;
+          S.setActiveProfile(p.id);
+          S.setSession({ profileId: p.id });
+          show('home');
+          deepLink();
+        }).catch(function () { show('auth'); });
       } else {
         show('auth');
       }

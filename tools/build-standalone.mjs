@@ -1,6 +1,6 @@
 /* Builds a single-file, fully offline copy of the game.
  *   node tools/build-standalone.mjs
- * Output: aetherfront-standalone.html — one file you can email, drop on a USB
+ * Output: vyuha-standalone.html — one file you can email, drop on a USB
  * stick, or open by double-clicking with no server and no network.
  */
 import fs from 'node:fs';
@@ -41,9 +41,9 @@ html = html.replace(/<link rel="apple-touch-icon" href="assets\/icon.svg" \/>/,
 html = html.replace(/<link rel="manifest" href="manifest.webmanifest" \/>\n?/, '');
 
 // 4. note in the head that this is the portable build
-html = html.replace('<title>', '<!-- Aetherfront single-file build — no server or network required -->\n<title>');
+html = html.replace('<title>', '<!-- VYUHA single-file build — no server or network required -->\n<title>');
 
-const out = path.join(root, 'aetherfront-standalone.html');
+const out = path.join(root, 'vyuha-standalone.html');
 fs.writeFileSync(out, html);
 const kb = (Buffer.byteLength(html) / 1024).toFixed(1);
-console.log('wrote aetherfront-standalone.html (' + kb + ' KB)');
+console.log('wrote vyuha-standalone.html (' + kb + ' KB)');

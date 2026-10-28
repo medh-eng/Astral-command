@@ -1,7 +1,8 @@
-/* VYUHA: Astral Command — audio
- * Every sound is synthesised at runtime with the Web Audio API, so the game
- * ships with no audio files and still has a full score + SFX suite.
- * Two layers: a short-lived SFX bus, and a procedural ambient score.
+/* VYUHA — audio
+ * Recorded music and one-shots where the files exist; every cue also has a
+ * synthesised Web Audio fallback, so a missing file never means silence.
+ * Two layers: a short-lived SFX bus, and the score (recorded tracks, with a
+ * procedural score as the fallback).
  */
 (function (root) {
   'use strict';
@@ -267,7 +268,71 @@
     warn: function () {
       tone({ freq: 660, dur: 0.1, type: 'square', gain: 0.06 });
       tone({ freq: 660, dur: 0.1, type: 'square', gain: 0.06, delay: 0.16 });
-    }
+    },
+
+    /* ── Chapter III: the sounds of the epic ── */
+    // the conch: a breathy horn that swells, bends up a hair and rings out
+    shankh: function () {
+      const f = 277;
+      [1, 1.004].forEach(function (d, i) {
+        tone({ freq: f * 0.94 * d, to: f * d, glide: 0.35, dur: 1.9, attack: 0.28, type: 'sawtooth', gain: 0.07, filter: 'lowpass', cutoff: 1500, q: 2, delay: i * 0.01 });
+      });
+      tone({ freq: f * 2, dur: 1.6, attack: 0.35, type: 'triangle', gain: 0.025 });
+      noise({ freq: 900, to: 1400, dur: 1.4, gain: 0.025, q: 3, attack: 0.3 });
+    },
+    // a gate cracking: wood split, a dull thud, a ringing bolt
+    breach: function () {
+      noise({ freq: 2600, to: 400, dur: 0.18, gain: 0.2, filter: 'highpass', q: 0.7 });
+      tone({ freq: 72, to: 48, dur: 0.7, type: 'sine', gain: 0.26 });
+      tone({ freq: 523, dur: 0.9, type: 'triangle', gain: 0.04, delay: 0.06 });
+      noise({ freq: 300, to: 80, dur: 0.5, gain: 0.12, filter: 'lowpass', delay: 0.04 });
+    },
+    // dawn: a temple bell and a rising light
+    dawn: function () {
+      [[660, 0.12], [660 * 2.76, 0.04], [660 * 5.4, 0.018]].forEach(function (p) {
+        tone({ freq: p[0], dur: 2.4, type: 'sine', gain: p[1], attack: 0.004 });
+      });
+      tone({ freq: 330, to: 495, glide: 1.6, dur: 1.9, type: 'triangle', gain: 0.04, attack: 0.6 });
+    },
+    // night: a low bell, a falling drone, crickets
+    dusk: function () {
+      [[392, 0.1], [392 * 2.76, 0.03]].forEach(function (p) {
+        tone({ freq: p[0], dur: 2.6, type: 'sine', gain: p[1], attack: 0.004 });
+      });
+      tone({ freq: 196, to: 147, glide: 2, dur: 2.2, type: 'sine', gain: 0.06, attack: 0.4 });
+      for (let i = 0; i < 6; i++) noise({ freq: 4600, dur: 0.05, gain: 0.02, q: 12, delay: 0.5 + i * 0.13 });
+    },
+    'astra-vayavya': function () {
+      noise({ freq: 300, to: 2200, dur: 0.7, gain: 0.12, q: 1.4, attack: 0.25 });
+      noise({ freq: 2200, to: 350, dur: 0.9, gain: 0.1, q: 1.4, delay: 0.55 });
+      tone({ freq: 880, to: 1320, dur: 0.6, type: 'sine', gain: 0.03, delay: 0.3 });
+    },
+    'astra-sammohana': function () {
+      [0, 7, 12].forEach(function (semi, i) {
+        const f = 523 * Math.pow(2, semi / 12);
+        tone({ freq: f, to: f / 2, glide: 1.4, dur: 1.5, type: 'sine', gain: 0.05, detune: i * 9, attack: 0.1 });
+      });
+      tone({ freq: 1046, to: 700, dur: 1.2, type: 'triangle', gain: 0.02, delay: 0.2 });
+    },
+    'astra-agneya': function () {
+      noise({ freq: 200, to: 3200, dur: 0.9, gain: 0.2, filter: 'lowpass', q: 0.8, attack: 0.08 });
+      for (let i = 0; i < 9; i++) noise({ freq: 2500 + Math.random() * 2000, dur: 0.03, gain: 0.07, q: 6, delay: 0.2 + Math.random() * 0.8 });
+      tone({ freq: 110, to: 60, dur: 0.9, type: 'sawtooth', gain: 0.08, filter: 'lowpass', cutoff: 500 });
+    },
+    'astra-brahma': function () {
+      tone({ freq: 46, to: 32, dur: 2.2, type: 'sine', gain: 0.32 });
+      noise({ freq: 120, to: 5000, dur: 1.1, gain: 0.16, filter: 'lowpass', q: 0.6, attack: 0.3 });
+      [261.6, 329.6, 392, 523.3, 659.3].forEach(function (f, i) {
+        tone({ freq: f, dur: 2.4, type: 'triangle', gain: 0.05, attack: 0.5, delay: 0.25 + i * 0.05 });
+      });
+      noise({ freq: 6000, to: 1500, dur: 1.6, gain: 0.05, delay: 1.0 });
+    },
+    // one more diya lit
+    shakti: function () {
+      tone({ freq: 1568, dur: 0.5, type: 'sine', gain: 0.05 });
+      tone({ freq: 2093, dur: 0.4, type: 'sine', gain: 0.03, delay: 0.07 });
+    },
+    arm: function () { tone({ freq: 980, to: 1180, dur: 0.06, type: 'triangle', gain: 0.07 }); }
   };
 
   function play(name) {
@@ -306,16 +371,32 @@
       clash: 'assets/audio/sfx/clash.mp3',
       volley: 'assets/audio/sfx/volley.mp3',
       chakra: 'assets/audio/sfx/chakra_turn.mp3',
-      place: 'assets/audio/sfx/piece_place.mp3'
+      place: 'assets/audio/sfx/piece_place.mp3',
+      // Chapter III slots — drop a file in and it replaces the synthesised cue
+      shankh: 'assets/audio/sfx/shankh.mp3',
+      breach: 'assets/audio/sfx/gate_breach.mp3',
+      dawn: 'assets/audio/sfx/dawn.mp3',
+      dusk: 'assets/audio/sfx/dusk.mp3',
+      vayavya: 'assets/audio/sfx/astra_vayavya.mp3',
+      sammohana: 'assets/audio/sfx/astra_sammohana.mp3',
+      agneya: 'assets/audio/sfx/astra_agneya.mp3',
+      brahma: 'assets/audio/sfx/astra_brahma.mp3',
+      shakti: 'assets/audio/sfx/shakti_diya.mp3',
+      trap: 'assets/audio/sfx/trap.mp3',
+      scan: 'assets/audio/sfx/divya_drishti.mp3'
     }
   };
 
   // game event -> recorded one-shot
   const SFX_SAMPLE = {
     'clash-win': 'clash', 'clash-lose': 'clash', 'clash-both': 'clash',
-    mine: 'clash', barrage: 'volley', laser: 'volley',
-    rotate: 'chakra', deploy: 'place', swap: 'place', lock: 'place', step: 'place'
+    mine: 'trap', barrage: 'volley', laser: 'volley',
+    rotate: 'chakra', deploy: 'place', swap: 'place', lock: 'place', step: 'place',
+    shankh: 'shankh', breach: 'breach', dawn: 'dawn', dusk: 'dusk', core: 'shankh',
+    'astra-vayavya': 'vayavya', 'astra-sammohana': 'sammohana', 'astra-agneya': 'agneya', 'astra-brahma': 'brahma',
+    shakti: 'shakti', scan: 'scan'
   };
+  const missing = {};
 
   const buffers = {};
   const sfxEls = {};
@@ -334,18 +415,22 @@
         if (typeof Audio === 'undefined' || sfxEls[key]) return;
         const el = new Audio(url);
         el.preload = 'auto';
+        el.onerror = function () { missing[key] = true; };
         sfxEls[key] = el;
       };
-      if (!ctx || typeof fetch !== 'function') { fallback(); return; }
-      fetch(url).then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+      if (!ctx || typeof fetch !== 'function' || (root.location && root.location.protocol === 'file:')) { fallback(); return; }
+      fetch(url).then(function (r) {
+        if (!r.ok) { missing[key] = true; return null; }
+        return r.arrayBuffer();
+      })
         .then(function (buf) {
           if (!buf) return null;
           return new Promise(function (res) {
             ctx.decodeAudioData(buf, res, function () { res(null); });
           });
         })
-        .then(function (decoded) { if (decoded) buffers[key] = decoded; else fallback(); })
-        .catch(fallback);
+        .then(function (decoded) { if (decoded) buffers[key] = decoded; })
+        .catch(function () { if (!missing[key]) fallback(); });
     });
   }
 
@@ -353,7 +438,7 @@
     const buf = buffers[key];
     if (!buf || !ctx) {
       const el = sfxEls[key];
-      if (!el) return false;
+      if (!el || missing[key] || el.error) return false;
       try {
         const copy = el.cloneNode();
         copy.volume = Math.min(1, Math.max(0.05, (opts && opts.gain != null ? opts.gain : 1) * 0.95));
@@ -548,6 +633,32 @@
     if (attempt && attempt.catch) attempt.catch(function () { /* stay silent */ });
   }
 
+  /* Lower the score while Sanjaya speaks, then bring it back. */
+  let duckTimer = null;
+  function duck(ms) {
+    const el = musicState.el;
+    if (!el) return;
+    const base = Math.max(0.02, settings.music * 0.55);
+    fade(el, base * 0.35, 200);
+    if (duckTimer) clearTimeout(duckTimer);
+    duckTimer = setTimeout(function () {
+      if (musicState.el === el) fade(el, base, 600);
+    }, ms || 2000);
+  }
+
+  /* Tension 0–2 quickens the battle score (tempo, not pitch) for the last
+   * rounds, a broken gate, or a sunset close at hand. */
+  let tension = 0;
+  function setTension(level) {
+    tension = Math.max(0, Math.min(2, level || 0));
+    const el = musicState.el;
+    if (!el) return;
+    try {
+      el.preservesPitch = true;
+      el.playbackRate = 1 + tension * 0.06;
+    } catch (e) { /* ignore */ }
+  }
+
   function stopMusic() {
     stopSynthMusic();
     const el = musicState.el;
@@ -565,6 +676,8 @@
     sting: sting,
     stopMusic: stopMusic,
     fadeTo: fadeTo,
+    duck: duck,
+    setTension: setTension,
     setSettings: setSettings,
     getSettings: getSettings,
     state: function () {

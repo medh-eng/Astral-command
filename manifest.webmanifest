@@ -1,13 +1,13 @@
 {
-  "name": "VYUHA — the seven formations",
+  "name": "VYUHA · व्यूह — the war of formations",
   "short_name": "VYUHA",
-  "description": "A hidden-rank sci-fi tactical duel for two commanders on one device, or against the Astral AI.",
+  "description": "A hidden-rank strategy game of the Indian epics. Break the Chakravyuha — and come back for the Daily.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#04060d",
-  "theme_color": "#05070f",
+  "theme_color": "#0b0810",
   "categories": ["games", "strategy"],
   "icons": [
     { "src": "assets/art/opt/app/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },

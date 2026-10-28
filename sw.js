@@ -1,8 +1,8 @@
-/* Aetherfront: Astral Command — offline cache
+/* VYUHA — offline cache
  * Network-first for navigation so updates land immediately, cache-first for
  * the static shell so the game still boots with no connection.
  */
-const CACHE = 'aetherfront-v11';
+const CACHE = 'vyuha-v12';
 const SHELL = [
   './',
   './index.html',
@@ -15,8 +15,11 @@ const SHELL = [
   './js/storage.js',
   './js/art.js',
   './js/fx.js',
+  './js/sanjaya.js',
   './js/ui.js',
+  './js/stage.js',
   './js/game.js',
+  './js/modes.js',
   './js/main.js',
   './manifest.webmanifest',
   './assets/icon.svg',

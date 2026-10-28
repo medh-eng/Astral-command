@@ -1,4 +1,4 @@
-/* Aetherfront: Astral Command — visual effects
+/* VYUHA — visual effects
  * A single fixed canvas for particles, floating combat numbers, and a CSS
  * screen-shake hook. Animation loop only runs while something is alive.
  */
@@ -48,7 +48,7 @@
         life: 1,
         decay: 0.012 + Math.random() * 0.02,
         size: (opts.size || 2.4) * (0.5 + Math.random()),
-        color: opts.color || '#22d3ee',
+        color: opts.color || '#e0a94a',
         glow: opts.glow !== false,
         gravity: opts.gravity == null ? 0.045 : opts.gravity
       });
@@ -59,7 +59,7 @@
   function burst(x, y, opts) {
     opts = opts || {};
     spawn(x, y, Object.assign({ count: 22, speed: 3.4, size: 2.8, color: '#fbbf24' }, opts));
-    if (!reduced) spawn(x, y, Object.assign({ count: 10, speed: 1.6, size: 5.2, color: opts.color || '#22d3ee', glow: true }, opts));
+    if (!reduced) spawn(x, y, Object.assign({ count: 10, speed: 1.6, size: 5.2, color: opts.color || '#e0a94a', glow: true }, opts));
   }
 
   function float(text, x, y, color) {
@@ -112,7 +112,7 @@
       ctx.shadowBlur = 8;
       ctx.shadowColor = f.color;
       ctx.fillStyle = f.color;
-      ctx.font = '700 ' + (root.innerWidth < 520 ? 14 : 18) + 'px Orbitron, Inter, sans-serif';
+      ctx.font = (root.innerWidth < 520 ? 15 : 19) + 'px "Rozha One", Georgia, serif';
       ctx.textAlign = 'center';
       ctx.fillText(f.text, f.x, f.y);
       return true;

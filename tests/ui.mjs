@@ -50,8 +50,9 @@ process.on('unhandledRejection', (e) => {
 let errors = [];
 console.error = (...a) => { errors.push(a.join(' ')); };
 
-const files = ['js/units.js', 'js/geometry.js', 'js/engine.js', 'js/ai.js', 'js/audio.js',
-  'js/storage.js', 'js/art.js', 'js/fx.js', 'js/ui.js', 'js/game.js', 'js/main.js'];
+// read the script list straight from index.html so the test never drifts
+const files = Array.from(fs.readFileSync(path.join(root, 'index.html'), 'utf8')
+  .matchAll(/<script src="(js\/[a-z]+\.js)"><\/script>/g)).map((m) => m[1]);
 files.forEach((f) => {
   try {
     w.eval(fs.readFileSync(path.join(root, f), 'utf8'));
@@ -79,17 +80,24 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function run() {
   await sleep(900);
   ok(!!AC, 'AC namespace loaded');
-  ok(!!$('#screen-auth') && !$('#screen-auth').hidden, 'auth screen shown on first run');
-  ok($('#sigil-picker').children.length === 8, 'sigil picker populated');
+  await sleep(200);
+  ok(!$('#screen-home').hidden, 'no login wall: a first-time player lands on home');
+  ok(AC.app.profile && AC.app.profile.name === 'Yoddha', 'and is a yoddha straight away');
+  ok(!!$('#btn-quick') && /Yuddh karo/.test($('#btn-quick').textContent), 'the quick battle button is the hero');
+  ok(/#\d+/.test($('#daily-title').textContent), 'the daily card shows today\u2019s number');
+  ok($('#btn-tutorial').classList.contains('card-pulse'), 'the first battle lesson calls for attention');
 
-  // create a commander
+  // a second player can still be created on the access screen
+  AC.ui.show('auth');
+  ok($('#sigil-picker').children.length === 8, 'sigil picker populated');
+  click($('#btn-new-profile'));
   $('#new-name').value = 'Test Vega';
   $('#new-pin').value = '1234';
   $('#form-new').dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
-  await sleep(120);
+  await sleep(160);
   ok(AC.app.profile && AC.app.profile.name === 'Test Vega', 'profile created and logged in');
   ok(!$('#screen-home').hidden, 'home screen after login');
-  ok(AC.storage.listProfiles()[0].hasPin, 'PIN stored as a hash');
+  ok(AC.storage.listProfiles().some((p) => p.name === 'Test Vega' && p.hasPin), 'PIN stored as a hash');
 
   // setup: square board first
   click($('#btn-new-match'));
@@ -218,14 +226,13 @@ async function run() {
   const capBefore = st3.captured[1].length;
   clickCell(from);
   ok(!!document.querySelector('.cell.selected'), 'own piece selects');
+  ok(!!document.querySelector('#board .odds-tag'), 'strike targets show odds on the board');
   clickCell(to);
-  const actionRows = document.querySelectorAll('.modal-actions');
-  const confirmBtn = actionRows[actionRows.length - 1]
-    ? actionRows[actionRows.length - 1].querySelector('[data-act="1"]')
-    : null;
-  ok(!!confirmBtn, 'a blind attack asks for confirmation with odds');
-  if (confirmBtn) click(confirmBtn);
-  ok(!!document.querySelector('.combat-arena'), 'combat result modal shown after the strike');
+  ok(!!document.querySelector('.cell.armed') && st3.board[from], 'the first tap arms the strike, nothing happens yet');
+  clickCell(to);
+  ok(!!document.querySelector('.stage'), 'the clash plays on the stage');
+  document.querySelectorAll('.stage').forEach((n) => n.click());
+  await sleep(10);
   const foeTile = st3.board[to];
   const attackerGone = !st3.board[from];
   ok(st3.captured[1].length > capBefore || (foeTile && foeTile.owner === 1) || attackerGone,
@@ -267,7 +274,7 @@ async function run() {
   ok(!document.querySelector('#setup-form [data-group="board"][data-val="small"]'), 'and hides the boards it cannot use');
   click($('#btn-start-match'));
   await sleep(60);
-  ok(game.state.scenario === 'abhimanyu' && game.state.turnLimit === 24, 'breach state starts with a round limit');
+  ok(game.state.scenario === 'abhimanyu' && game.state.turnLimit === 28, 'breach state starts with a round limit');
   ok($$('#board .cell').length === 37, 'the wheel renders for the breach');
   ok($$('#board .token').length === 18, 'eight raiders and ten defenders on the board');
   click(document.querySelector('#action-bar [data-deploy="lock"]'));
@@ -294,6 +301,53 @@ async function run() {
   click(document.querySelector('#curtain-go'));
   await sleep(20);
   ok(game.state.phase === 'battle' && game.state.viewer === 1, 'battle starts as player 1');
+
+  // ── Chapter III UI: astras ──
+  game.state = null;
+  AC.app.setup = { mode: 'pass', board: 'wheel', tie: 'attacker', difficulty: 'veteran', timer: 0, scenario: 'duel', ruleset: 'vyuha' };
+  game.start(AC.app.setup);
+  game.state.phase = 'battle';
+  AC.engine.beginBattle(game.state);
+  game.state.viewer = 1;
+  Array.prototype.forEach.call(document.querySelectorAll('.curtain'), (n) => n.remove());
+  AC.app.modals.slice().forEach((m) => m.close());
+  game.state.shakti[1] = 5;
+  game.render();
+  ok($$('#action-bar .astra-btn.ready').length === 4, 'four astras ready with five lamps lit');
+  ok($$('#strip-bottom .diya.lit').length === 5, 'the lamps are lit on the player strip');
+  click(document.querySelector('#action-bar [data-astra="sammohana"]'));
+  ok(game.mode === 'astra' && $$('#board .cell.target-astra').length > 0, 'an astra lights its targets');
+  const tgt = document.querySelector('#board .cell.target-astra').getAttribute('data-id');
+  clickCell(tgt);
+  clickCell(tgt);
+  ok(game.state.astrasUsed[1].sammohana && game.state.board[tgt].stun === 2, 'tapping twice invokes it');
+  document.querySelectorAll('.stage').forEach((n) => n.click());
+  Array.prototype.forEach.call(document.querySelectorAll('.curtain'), (n) => n.remove());
+  ok(!!$('#hud-sky') && !$('#hud-sky').hidden, 'the HUD shows the hour');
+
+  // ── Pehla Yuddh ──
+  AC.modes.startTutorial();
+  await sleep(30);
+  ok(game.state.scenario === 'shiksha' && !$('#coach').hidden, 'the first battle starts with its coach');
+  clickCell('5,0');
+  clickCell('3,0');
+  await sleep(20);
+  document.querySelectorAll('.stage').forEach((n) => n.click());
+  ok(/2 \/ 6/.test($('#coach').textContent), 'moving the chariot completes step one');
+  ok(game.state.owner === 1, 'the entranced enemy passes its turn');
+
+  // ── Daily Chakravyuha ──
+  AC.modes.startDaily();
+  await sleep(30);
+  ok(game.state.scenario === 'daily' && game.state.phase === 'battle', 'the daily wheel opens straight into battle');
+  ok($$('#board .token').length >= 18, 'raiders and defenders are on the wheel');
+  const a1 = AC.modes.buildDaily(AC.modes.dailyInfo());
+  const a2 = AC.modes.buildDaily(AC.modes.dailyInfo());
+  const sig = (s) => Object.keys(s.board).filter((k) => s.board[k]).sort().map((k) => k + s.board[k].key).join('|');
+  ok(sig(a1) === sig(a2), 'everyone gets the same wheel today');
+  const text = AC.modes.dailyShareText({ n: 3, label: '30 Oct', win: true, rounds: 14, limit: 24, taken: 6, lost: 3, astras: 2, grid: '🟨⬛🟥' });
+  ok(/Daily Chakravyuha #3/.test(text) && /Can you get out/.test(text), 'the share card reads well');
+  AC.app.modals.slice().forEach((m) => m.close());
 
   // jsdom has no media stack and no canvas backend; those notices are not
   // game errors (audio is verified in the browser instead)

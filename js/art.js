@@ -1,4 +1,4 @@
-/* Aetherfront: Astral Command — vector art
+/* VYUHA — vector art
  * Hand-built SVG emblems for the ten unit classes, plus faction sigils and a
  * small UI icon set. Everything is inline SVG: crisp at any size, tintable by
  * the faction colour, and zero image requests.
@@ -105,7 +105,11 @@
     ui: function (n) { return 'assets/art/opt/ui/' + n + '.jpg'; },
     banner: function (n) { return 'assets/art/banners/' + (n === '1' ? 'suryavansh' : 'chandravansh') + '.jpg'; },
     card: function (n) { return 'assets/art/opt/cards/' + n + '.jpg'; },
-    app: function () { return 'assets/art/opt/app/icon-512.png'; }
+    app: function () { return 'assets/art/opt/app/icon-512.png'; },
+    // Chapter III slots — optional; the vector marks stand in until art lands
+    astra: function (n) { return 'assets/art/opt/astras/' + n + '.webp'; },
+    portrait: function (n) { return 'assets/art/opt/portraits/' + n + '.webp'; },
+    sky: function (n) { return 'assets/art/opt/sky/' + n + '.jpg'; }
   };
 
   function slotPath(slot) {
@@ -206,7 +210,7 @@
     brain: '<path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-1 5.8V16a3 3 0 0 0 4 2.8V20a3 3 0 0 0 5 2.2V4.8A3 3 0 0 0 9 4z" ' + S + '/><path d="M15 4.8A3 3 0 0 1 19 7a3 3 0 0 1 1 5.8V16a3 3 0 0 1-4 2.8" ' + S + '/>',
     shield: '<path d="M12 3 L20 6v6c0 5-3.5 8-8 9.5C7.5 20 4 17 4 12V6z" ' + S + '/>',
     flag: '<path d="M5 21V4h9l-1.5 3H19v8h-6.5L11 18H5" ' + S + '/>',
-    sword: '<path d="M14.5 3.5 L20.5 9.5 L10 20 H4 v-6 z" ' + S + '/><path d="M4 20 L8 16" ' + S + '/>',
+    sword: '<path d="M20.2 3.8c-4.9 1.1-9.1 4.8-11.6 9.8" ' + S + ' stroke-width="1.9"/><path d="M6.2 11.6l6.2 6.2" ' + S + '/><path d="M9.3 14.7L5 19" ' + S + ' stroke-width="2.2"/><circle cx="4.4" cy="19.6" r="1.4" fill="currentColor"/>',
     eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" ' + S + '/><circle cx="12" cy="12" r="3" ' + S + '/>',
     play: '<path d="M7 4 L20 12 L7 20 Z" fill="currentColor"/>',
     pause: '<path d="M8 4v16M16 4v16" ' + S + ' stroke-width="3"/>',
@@ -225,7 +229,19 @@
     users: '<circle cx="9" cy="8" r="3.2" ' + S + '/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" ' + S + '/><path d="M16 5.5a3.2 3.2 0 0 1 0 6M17 14.8c2.4.6 4 2.5 4 5.2" ' + S + '/>',
     bolt: '<path d="M13 2 L5 13h6l-1 9 8-11h-6z" ' + S + '/>',
     grid: '<rect x="3" y="3" width="7" height="7" rx="1.5" ' + S + '/><rect x="14" y="3" width="7" height="7" rx="1.5" ' + S + '/><rect x="3" y="14" width="7" height="7" rx="1.5" ' + S + '/><rect x="14" y="14" width="7" height="7" rx="1.5" ' + S + '/>',
-    help: '<circle cx="12" cy="12" r="9" ' + S + '/><path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.8.4-1.1 1-1.1 1.9M12 17h.01" ' + S + '/>'
+    help: '<circle cx="12" cy="12" r="9" ' + S + '/><path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.8.4-1.1 1-1.1 1.9M12 17h.01" ' + S + '/>',
+    share: '<circle cx="18" cy="5.5" r="2.6" ' + S + '/><circle cx="6" cy="12" r="2.6" ' + S + '/><circle cx="18" cy="18.5" r="2.6" ' + S + '/><path d="M8.3 10.8 L15.7 6.8 M8.3 13.2 L15.7 17.2" ' + S + '/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5" ' + S + '/><path d="M3.5 10h17M8 3v4M16 3v4" ' + S + '/>',
+    // Chapter III — the sky, the lamps and the astras
+    sun: '<circle cx="12" cy="12" r="4.4" ' + S + ' fill="currentColor" fill-opacity="0.35"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8" ' + S + '/>',
+    moon: '<path d="M19.5 14.8A8 8 0 0 1 9.2 4.5a8 8 0 1 0 10.3 10.3z" ' + S + ' fill="currentColor" fill-opacity="0.3"/>',
+    diya: '<path d="M3.5 13.5c1.2 3.6 4.6 5.5 8.5 5.5s7.3-1.9 8.5-5.5z" ' + S + ' fill="currentColor" fill-opacity="0.25"/><path d="M12 12.6c-1.9-1.3-2.2-3.3-.6-5.6.4 1.4 1.4 2 1.9 2.7.7 1 .5 2.1-1.3 2.9z" fill="currentColor"/>',
+    vayavya: '<path d="M3 8.5h11.5a3 3 0 1 0-3-3" ' + S + '/><path d="M3 12.5h16a3 3 0 1 1-3 3" ' + S + '/><path d="M3 16.5h7" ' + S + '/>',
+    sammohana: '<path d="M12 12.2a1.4 1.4 0 1 1 1.4-1.4c0 2.1-2.5 3.3-4.3 2.2-2.4-1.4-2-5.2.6-6.4 3.4-1.6 7.3.9 7.2 4.6-.1 5-6.2 7.6-10 4.4" ' + S + '/>',
+    agneya: '<path d="M12 21c-4.1 0-6.5-2.7-6.5-6 0-3.7 3.2-5.5 3.4-9 2.3 1.6 3.3 3.8 3.1 6.1 1-.8 1.6-2 1.7-3.5 2.6 2.1 3.8 4.4 3.8 6.6 0 3.3-2.3 5.8-5.5 5.8z" ' + S + ' fill="currentColor" fill-opacity="0.25"/><path d="M12 21c-1.7 0-2.8-1.1-2.8-2.6 0-1.6 1.5-2.4 1.9-4 1.6 1.1 3.6 2.4 3.6 4.1 0 1.5-1.1 2.5-2.7 2.5z" fill="currentColor"/>',
+    brahma: '<circle cx="12" cy="12" r="2.2" fill="currentColor"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5M4.9 4.9l3.5 3.5M15.6 15.6l3.5 3.5M19.1 4.9l-3.5 3.5M8.4 15.6l-3.5 3.5" ' + S + '/><circle cx="12" cy="12" r="6.2" ' + S + ' stroke-opacity="0.45"/>',
+    gate: '<path d="M4 21V9l8-5 8 5v12" ' + S + '/><path d="M9 21v-6a3 3 0 0 1 6 0v6" ' + S + '/>',
+    whatsapp: '<path d="M4 20l1.2-3.9A8 8 0 1 1 8 19.1z" ' + S + '/><path d="M9.2 8.6c.4 2.6 2.4 4.8 5.2 5.6l1-1.3-1.8-1-.8.8c-1-.5-1.8-1.3-2.3-2.3l.8-.8-1-1.8z" fill="currentColor"/>'
   };
 
   function icon(name, cls) {
@@ -244,7 +260,7 @@
     geo.cells.forEach(function (cell) {
       const v = compact.cells[cell.id];
       if (!v) return;
-      const fill = v[0] === 1 ? '#22d3ee' : '#f43f5e';
+      const fill = v[0] === 1 ? '#e0a94a' : '#8b8ff0';
       const op = v[2] ? 0.95 : 0.5;
       if (cell.shape === 'sector') {
         out += '<path d="' + cell.path + '" fill="' + fill + '" fill-opacity="' + op + '"/>';
@@ -259,8 +275,27 @@
     return out;
   }
 
+  /* An astra badge: painted art if supplied, else the vector mark. */
+  function astraMark(key, cls) {
+    const painted = artFor('astra:' + key);
+    if (painted) return '<img class="astra-art ' + (cls || '') + '" src="' + painted + '" alt="" draggable="false">';
+    return icon(key, 'astra-ico ' + (cls || ''));
+  }
+
+  /* Sanjaya's face on the narration strip (painted portrait or a mark). */
+  function sanjayaMark() {
+    const painted = artFor('portrait:sanjaya');
+    if (painted) return '<img class="sanjaya-art" src="' + painted + '" alt="" draggable="false">';
+    return '<svg class="sanjaya-mark" viewBox="0 0 32 32" aria-hidden="true">' +
+      '<path d="M3 16 C8 9 12 7 16 7 C20 7 24 9 29 16 C24 23 20 25 16 25 C12 25 8 23 3 16 Z" ' + S + '/>' +
+      '<circle cx="16" cy="16" r="4.2" ' + S + '/><circle cx="16" cy="16" r="1.6" fill="currentColor"/>' +
+      '<path d="M16 2.5v2.5M16 27v2.5M7 5l1.4 2M25 5l-1.4 2" ' + S + ' stroke-opacity="0.6"/></svg>';
+  }
+
   AC.art = {
     emblem: emblem,
+    astraMark: astraMark,
+    sanjayaMark: sanjayaMark,
     sigil: sigil,
     icon: icon,
     SIGILS: SIGILS,

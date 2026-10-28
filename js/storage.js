@@ -1,4 +1,4 @@
-/* Aetherfront: Astral Command — local persistence
+/* VYUHA — local persistence
  * Profiles, PINs, stats, saved games, formations and settings.
  *
  * Everything lives in this browser (localStorage). There is no server and no
@@ -25,7 +25,14 @@
     coordinates: true,
     confirmActions: true,
     showIntel: true,
-    musicOn: true
+    musicOn: true,
+    // Chapter III
+    narrator: true,
+    narratorLang: 'hinglish',
+    voice: true,
+    cinematics: true,
+    stories: true,
+    tutorialDone: false
   };
 
   function nowIso() {
@@ -163,7 +170,7 @@
     const db = loadDb();
     const name = (opts.name || 'Commander').trim().slice(0, 18) || 'Commander';
     if (db.profiles.some(function (p) { return p.name.toLowerCase() === name.toLowerCase(); })) {
-      return Promise.reject(new Error('That callsign is already registered on this device.'));
+      return Promise.reject(new Error('That name is already taken on this device.'));
     }
     const salt = randomSalt();
     const pin = String(opts.pin || '');

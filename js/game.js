@@ -1,6 +1,8 @@
-/* VYUHA: Astral Command — battle screen (v3)
- * Renders any cell graph as SVG, so the square arenas and the Chakravyuha
- * wheel share one renderer, one input path and one set of animations.
+/* VYUHA — battle screen (v4)
+ * Renders any cell graph as SVG, so the square arenas, the Chakravyuha wheel
+ * and the Padmavyuha lotus share one renderer, one input path and one set of
+ * animations. Chapter III adds the sky, Shakti and astras, formation links,
+ * odds on the board, tap-twice strikes, the stage beats and Sanjaya.
  */
 (function (root) {
   'use strict';
@@ -13,11 +15,16 @@
   const FX = AC.fx;
   const S = AC.storage;
   const G = AC.geometry;
+  const ST = AC.stage;
+  const SJ = AC.sanjaya;
 
   const g = (AC.game = AC.game || {});
   g.state = null;
   g.sel = null;
   g.mode = 'move';
+  g.astra = null;
+  g.astraFirst = null;
+  g.armed = null;
   g.thinking = false;
   g.focus = null;
   g.slot = null;
@@ -27,6 +34,8 @@
   g.busy = false;
   g.over = false;
   g.hinted = false;
+  g.links = null;
+  g.said = {};
 
   const $ = function (s) { return document.querySelector(s); };
   const esc = function (s) { return AC.ui.esc(s); };
@@ -34,48 +43,93 @@
   const buzz = function (p) { AU.buzz(p); };
 
   function settings() { return AC.app.settings; }
+  function modes() { return AC.modes || null; }
+  function modeHook(name, arg) {
+    const m = modes();
+    if (m && typeof m[name] === 'function') return m[name](g.state, arg);
+    return undefined;
+  }
 
   const TIPS = [
     'A piece that has never moved can still be the fort or a trap. Probe with something cheap.',
-    'The archer kills from two cells away — keep your fort out of a clear spoke.',
-    'Tap a hidden enemy to see the odds before you commit. The panel is honest.',
-    'Every fifth round the inner rings turn, and anything they carry is exposed.',
-    'The hub touches every spoke: fastest crossing on the board, worst place to stand.',
-    'Losing the spy early costs you your best answer to the enemy commander.',
-    'Two quiet rounds is a threat, not a rest. Watch what your opponent is massing.',
-    'Ranks are hidden until they fight. A refused attack tells you something too.',
-    'The engineer is the only piece that can clear a trap. Do not spend it on a guess.',
-    'Scenarios run on a clock. In the breach, tempo is worth more than material.'
+    'The archer kills from two cells away — keep your fort out of a clear lane.',
+    'Select a piece and every target shows your odds. Tap a target twice to strike.',
+    'Every fifth round the sky turns. In your hour your blows land at +1.',
+    'Two of your pieces touching one enemy make Makara — the jaws. +1 to the strike.',
+    'A piece with two friends beside it is Padma — the petals. It defends at +1.',
+    'A fort’s gate breaks on the first blow. The second blow takes it.',
+    'Shakti grows with every piece you take. Spend it on astras — each once per match.',
+    'Brahmastra destroys any one fighting piece within two cells of yours. Choose well.',
+    'The hub touches every spoke: fastest crossing on the wheel, worst place to stand.',
+    'Losing the Chara early costs you your best answer to the enemy Senapati.',
+    'At sunset the stronger army holds the field — count what is left, not what you lost.'
   ];
   let tipTimer = null;
   let tipIndex = 0;
+  let lastLineAt = 0;
+
+  function paintStrip(html, kind) {
+    const el = document.getElementById('tip-text');
+    const bar = document.getElementById('tip-bar');
+    if (!el) return;
+    el.style.opacity = '0';
+    setTimeout(function () {
+      el.innerHTML = html;
+      el.style.opacity = '1';
+      if (bar) bar.className = 'tip-bar' + (kind ? ' ' + kind : '');
+    }, 160);
+  }
 
   function startTips() {
-    const el = document.getElementById('tip-text');
-    if (!el) return;
-    const paint = function () {
-      el.style.opacity = '0';
-      setTimeout(function () {
-        el.textContent = TIPS[tipIndex % TIPS.length];
-        tipIndex++;
-        el.style.opacity = '1';
-      }, 220);
-    };
     if (tipTimer) clearInterval(tipTimer);
     tipIndex = Math.floor(Math.random() * TIPS.length);
+    const paint = function () {
+      // Sanjaya's latest line stays up for a while before tips return
+      if (Date.now() - lastLineAt < 12000) return;
+      paintStrip('<span class="tip-ico">◆</span>' + esc(TIPS[tipIndex % TIPS.length]), '');
+      tipIndex++;
+    };
     paint();
     tipTimer = setInterval(paint, 14000);
+  }
+
+  // Sanjaya speaks through the strip under the board
+  if (SJ) {
+    SJ.onLine(function (text) {
+      lastLineAt = Date.now();
+      paintStrip('<span class="sanjaya-face">' + A.sanjayaMark() + '</span><span class="sanjaya-text"><b>Sanjaya</b> ' + esc(text) + '</span>', 'sanjaya');
+    });
+  }
+  let sayQueue = [];
+  let sayTimer = null;
+  function speak(keys) {
+    if (!SJ || settings().narrator === false) return;
+    keys = keys.filter(Boolean);
+    if (!keys.length) return;
+    sayQueue = sayQueue.concat(keys).slice(0, 3);
+    const pump = function () {
+      if (!sayQueue.length) { sayTimer = null; return; }
+      const k = sayQueue.shift();
+      SJ.say(k, { force: true });
+      sayTimer = setTimeout(pump, 2600);
+    };
+    if (!sayTimer) pump();
+  }
+  function speakOnce(key) {
+    if (g.said[key]) return;
+    g.said[key] = true;
+    speak([key]);
   }
 
   /* ── the legend that opens a match ── */
   const LEGEND = {
     duel: {
-      title: 'Two houses, one wheel',
-      text: 'Neither army knows the other\u2019s order of battle. Twelve pieces a side, ten hidden ranks, and one fort that ends everything. Read the enemy before the enemy reads you.'
+      title: 'Two houses, one field',
+      text: 'Neither army knows the other’s order of battle. Twelve pieces a side, ten hidden ranks, and one fort whose gate must be broken before it falls. The battle opens in the last hour of night — Chandra’s hour.'
     },
     abhimanyu: {
       title: 'The wheel is closed',
-      text: 'A single breach, eight companions, and the formation sealing behind you. Break the fort before the rounds run out \u2014 or be remembered as the one who nearly did.'
+      text: 'A single breach, eight companions, and the formation sealing behind you. Break the gate and take the fort before the rounds run out — or be remembered as the one who nearly did.'
     }
   };
 
@@ -83,10 +137,10 @@
     const st = g.state;
     const sc = U.SCENARIOS[st.scenario] || U.SCENARIOS.duel;
     const legend = LEGEND[st.scenario] || LEGEND.duel;
-    if (settings().stories === false) { if (done) done(); return; }
+    if (settings().stories === false || !U.SCENARIOS[st.scenario]) { if (done) done(); return; }
     const art = A.artFor('card:' + st.scenario);
     const m = AC.ui.modal({
-      kicker: sc.label,
+      kicker: sc.label + (sc.deva ? ' · ' + sc.deva : ''),
       title: legend.title,
       art: art,
       wide: false,
@@ -94,12 +148,11 @@
         '<div class="legend-facts">' +
           '<span><b>' + st.rosters[1].length + '</b> your pieces</span>' +
           '<span><b>' + st.rosters[2].length + '</b> theirs</span>' +
-          '<span><b>' + (st.turnLimit || '\u2014') + '</b> rounds</span>' +
+          '<span><b>' + (st.turnLimit || '—') + '</b> rounds</span>' +
         '</div>',
       actions: [
         { label: 'Skip stories', cls: 'btn-ghost', onClick: function () {
-            settings().stories = false;
-            if (AC.storage && AC.storage.saveSettings) AC.storage.saveSettings({ stories: false });
+            AC.ui.patchSettings({ stories: false });
           } },
         { label: 'Take the field', cls: 'btn-primary', onClick: function () { if (done) done(); } }
       ],
@@ -133,6 +186,16 @@
   function isPass() { return g.state && g.state.config.mode === 'pass'; }
   function isAi() { return g.state && g.state.config.mode === 'ai'; }
   function board() { return G.build(g.state.boardKey); }
+  function viewerOf(st) { return st.viewer === 3 || st.viewer === 0 ? 1 : st.viewer; }
+
+  function oppName(st) {
+    st = st || g.state;
+    if (!st) return '';
+    if (st.config.mode !== 'ai') return 'Commander 2';
+    const d = U.DIFFICULTIES[st.config.difficulty] || U.DIFFICULTIES.veteran;
+    return d.label;
+  }
+  g.oppName = oppName;
 
   /* ══ lifecycle ═════════════════════════════════════════════════ */
 
@@ -144,34 +207,71 @@
       const p = document.getElementById(id);
       if (p) p.classList.remove('open');
     });
+    if (ST) ST.close(false);
+    const coach = document.getElementById('coach');
+    if (coach && !(g.state && modeHook('wantsCoach'))) coach.hidden = true;
   }
   g.clearOverlays = clearOverlays;
 
-  g.start = function (config) {
-    clearTimers();
-    clearOverlays();
-    g.state = E.newState(Object.assign({}, config, {
-      playerName: AC.app.profile ? AC.app.profile.name : 'Commander'
-    }));
+  function resetSelection() {
     g.sel = null;
     g.mode = 'move';
+    g.astra = null;
+    g.astraFirst = null;
+    g.armed = null;
     g.focus = null;
+  }
+
+  function resetMatchFlags() {
+    resetSelection();
     g.slot = null;
     g.over = false;
     g.busy = false;
     g.thinking = false;
     g.hinted = false;
+    g.links = null;
+    g.said = {};
+    g.lastShakti = { 1: 0, 2: 0 };
+    sayQueue = [];
+    if (sayTimer) { clearTimeout(sayTimer); sayTimer = null; }
+    lastLineAt = 0;
+  }
+
+  g.start = function (config) {
+    clearTimers();
+    if (AC.modes && AC.modes.clear) AC.modes.clear();
+    clearOverlays();
+    if (AC.app.configFromSetup && !config.rules) config = AC.app.configFromSetup(config);
+    g.state = E.newState(Object.assign({}, config, {
+      playerName: AC.app.profile ? AC.app.profile.name : 'Commander'
+    }));
+    resetMatchFlags();
     AC.ui.show('game');
     render();
     startTips();
-    showStory();
+    showStory(function () { speak([g.state.scenario === 'abhimanyu' ? 'start_abhimanyu' : 'start_duel']); });
     autosave();
-    const st0 = g.state;
-    FX.toast(st0.turnLimit
-      ? 'Abhimanyu — break the fort before round ' + st0.turnLimit + '. Eight raiders, no fort of your own.'
-      : (st0.boardKey === 'wheel'
-        ? 'Deploy on your half of the wheel. Every fifth round the inner rings turn.'
-        : 'Army deployed. Arrange your formation, then lock it in.'), 'info');
+    FX.toast(g.state.turnLimit
+      ? 'Abhimanyu — break in and take the fort before round ' + g.state.turnLimit + '.'
+      : 'Arrange your formation, then lock it in.', 'info');
+  };
+
+  /* Start from a state a mode has already prepared (tutorial, daily). */
+  g.startPrepared = function (state, opts) {
+    opts = opts || {};
+    clearTimers();
+    clearOverlays();
+    g.state = state;
+    resetMatchFlags();
+    AC.ui.show('game');
+    render();
+    startTips();
+    if (opts.line) speak([opts.line]);
+    if (g.state.phase === 'battle') {
+      banner(opts.bannerTitle || 'Battle begins', opts.bannerSub || '', 'gold', 1500);
+      if (g.state.owner === 2 && isAi()) scheduleAi();
+    }
+    if (opts.save !== false) autosave();
   };
 
   g.load = function (raw, slot) {
@@ -183,17 +283,14 @@
       FX.toast('That save could not be read.', 'error');
       return;
     }
-    g.sel = null;
-    g.mode = 'move';
-    g.focus = null;
+    resetMatchFlags();
+    if (AC.modes && AC.modes.resume) AC.modes.resume(g.state);
     g.slot = slot || null;
-    g.hinted = false;
     g.over = g.state.phase === 'over';
-    g.busy = false;
-    g.thinking = false;
     if (g.state.phase === 'deploy2') g.state.viewer = 2;
     else if (g.state.phase === 'battle') g.state.viewer = isPass() ? g.state.owner : 1;
     else if (g.state.phase === 'deploy1') g.state.viewer = 1;
+    g.lastShakti = { 1: g.state.shakti[1], 2: g.state.shakti[2] };
     AC.ui.show('game');
     render();
     startTips();
@@ -203,18 +300,12 @@
 
   g.onShow = function () { render(); };
   g.isActive = function () { return !!g.state; };
-  g.canSave = function () { return !!g.state && g.state.phase !== 'over'; };
+  g.canSave = function () { return !!g.state && g.state.phase !== 'over' && !modeHook('noSave'); };
   g.onSettingsChange = function () { render(); };
   g.updateResumeState = function () { /* home reads storage directly */ };
 
-  g.saveTo = function (slot) {
-    if (!g.canSave()) return null;
-    const st = g.state;
-    const label = (U.BOARDS[st.boardKey] || U.BOARDS.small).label + ' · ' +
-      (st.config.mode === 'pass' ? 'Pass & play' : 'vs ' + U.DIFFICULTIES[st.config.difficulty].label) +
-      ' · turn ' + st.turn;
-    const entry = S.saveGame(slot, st, {
-      label: label,
+  function saveMeta(st) {
+    return {
       mode: st.config.mode,
       board: st.boardKey,
       difficulty: st.config.difficulty,
@@ -222,26 +313,27 @@
       timer: st.config.timer,
       turn: st.turn,
       phase: st.phase,
-      owner: st.owner
-    });
+      owner: st.owner,
+      scenario: st.scenario
+    };
+  }
+
+  g.saveTo = function (slot) {
+    if (!g.canSave()) return null;
+    const st = g.state;
+    const label = (U.BOARDS[st.boardKey] || U.BOARDS.small).label + ' · ' +
+      (st.config.mode === 'pass' ? 'Pass & play' : 'vs ' + oppName(st)) +
+      ' · round ' + st.turn;
+    const entry = S.saveGame(slot, st, Object.assign({ label: label }, saveMeta(st)));
     return entry ? label : null;
   };
 
   function autosave() {
     if (!g.canSave()) return;
     const st = g.state;
-    S.saveGame('auto', st, {
-      label: 'Autosave',
-      mode: st.config.mode,
-      board: st.boardKey,
-      difficulty: st.config.difficulty,
-      tie: st.config.tie,
-      timer: st.config.timer,
-      turn: st.turn,
-      phase: st.phase,
-      owner: st.owner
-    });
+    S.saveGame('auto', st, Object.assign({ label: 'Autosave' }, saveMeta(st)));
   }
+  g.autosave = autosave;
 
   function clearTimers() {
     if (g.timerId) { clearInterval(g.timerId); g.timerId = null; }
@@ -262,55 +354,73 @@
     renderIntel();
     renderLog();
     startClockIfNeeded();
+    modeHook('afterRender');
   }
+
+  function skyIcon(hour) { return A.icon(hour === 'day' ? 'sun' : 'moon'); }
 
   function renderHud() {
     const st = g.state;
     const pill = $('#hud-turn');
     const sub = $('#hud-sub');
     const clock = $('#hud-clock');
+    const skyEl = $('#hud-sky');
     $('#btn-game-menu').innerHTML = A.icon('menu');
     $('#btn-hud-intel').innerHTML = A.icon('eye');
     $('#btn-hud-log').innerHTML = A.icon('book');
     $('#btn-hud-settings').innerHTML = A.icon('settings');
     $('#btn-log-close').innerHTML = A.icon('close');
 
+    const hour = E.hourOf(st);
+    if (skyEl) {
+      if (hour && st.phase === 'battle') {
+        const left = E.roundsUntilHourTurns(st);
+        const mine = E.hourOwner(st) === viewerOf(st);
+        skyEl.hidden = false;
+        skyEl.className = 'sky-chip ' + hour + (mine ? ' mine' : '');
+        skyEl.innerHTML = skyIcon(hour) + '<span>' + left + '</span>';
+        skyEl.title = (hour === 'day' ? 'Dinman — the hour of Surya' : 'Ratri — the hour of Chandra') +
+          '. The sky turns in ' + left + ' round' + (left === 1 ? '' : 's') + '.';
+      } else {
+        skyEl.hidden = true;
+      }
+    }
+
     pill.className = 'turn-pill';
     if (st.phase === 'deploy1' || st.phase === 'deploy2') {
       const owner = st.phase === 'deploy1' ? 1 : 2;
       pill.classList.add(owner === 1 ? 'solar' : 'void');
-      pill.textContent = 'Deployment · ' + U.FACTIONS[owner].short;
-      sub.textContent = 'Swap any two cells in your deployment zone, then lock the formation.';
+      pill.textContent = 'Vyuha rachna · ' + U.FACTIONS[owner].short;
+      sub.textContent = 'Arrange your formation: tap two cells to swap them, then lock it.';
     } else if (st.phase === 'battle') {
       const roundsLeft = st.turnLimit ? Math.max(0, st.turnLimit - st.turn + 1) : 0;
       if (g.thinking) {
         pill.classList.add('void');
-        pill.textContent = 'Astral AI is calculating';
-        sub.textContent = 'Weighing beliefs, probes and your last move.';
+        pill.textContent = oppName(st) + ' is thinking';
+        sub.textContent = 'Weighing what it has seen of your army.';
       } else {
         const owner = st.owner;
         pill.classList.add(owner === 1 ? 'solar' : 'void');
         const narrow = (window.innerWidth || 900) < 560;
         if (st.turnLimit) {
           pill.textContent = narrow
-            ? 'Breach ' + st.turn + '/' + st.turnLimit
-            : 'Breach · round ' + st.turn + '/' + st.turnLimit + ' · ' + U.FACTIONS[owner].short;
+            ? 'Round ' + st.turn + '/' + st.turnLimit
+            : 'Round ' + st.turn + '/' + st.turnLimit + ' · ' + U.FACTIONS[owner].short;
         } else {
-          pill.textContent = 'Turn ' + st.turn + (narrow ? '' : ' · ' + U.FACTIONS[owner].short);
+          pill.textContent = 'Round ' + st.turn + (narrow ? '' : ' · ' + U.FACTIONS[owner].short);
         }
-        let extra = '';
-        if (st.boardKey === 'wheel') {
-          const until = E.turnsUntilRotation(st);
-          extra = ' · chakra turns in ' + until;
-        }
-        if (st.turnLimit) extra = ' · ' + roundsLeft + ' rounds left' + extra;
-        sub.textContent = (isPass()
-          ? (owner === 1 ? 'Suryavansh' : 'Chandravansh') + ' to move — tap a unit.'
-          : (owner === 1 ? 'Your move — tap a unit to command it.' : 'Chandravansh is moving.')) + extra;
+        const bits = [];
+        if (st.turnLimit) bits.push(roundsLeft + ' rounds left');
+        if (E.hasRotation(st)) bits.push((board().kind === 'hex' ? 'lotus' : 'chakra') + ' turns in ' + E.turnsUntilRotation(st));
+        else if (hour) bits.push('sky turns in ' + E.roundsUntilHourTurns(st));
+        const who = isPass()
+          ? U.FACTIONS[owner].name + ' to move'
+          : (owner === 1 ? 'Your move' : oppName(st) + ' is moving');
+        sub.textContent = who + (bits.length ? ' · ' + bits.join(' · ') : '');
       }
     } else {
       pill.classList.add('gold');
-      pill.textContent = st.winner === 0 ? 'Stalemate' : (st.winner === 1 ? 'Suryavansh victory' : 'Chandravansh victory');
+      pill.textContent = st.winner === 0 ? 'The field is shared' : (st.winner === 1 ? 'Suryavansh victory' : 'Chandravansh victory');
       sub.textContent = 'Match complete — all ranks revealed.';
     }
 
@@ -333,12 +443,22 @@
     return n;
   }
 
+  /* Five lamps: lit ones are Shakti in hand. */
+  function diyas(owner) {
+    const st = g.state;
+    if (!E.rules(st).astras) return '';
+    const n = (st.shakti && st.shakti[owner]) || 0;
+    let out = '<span class="diyas" title="Shakti ' + n + ' of 5">';
+    for (let i = 0; i < E.SHAKTI_MAX; i++) {
+      out += '<span class="diya' + (i < n ? ' lit' : '') + '">' + A.icon('diya') + '</span>';
+    }
+    return out + '</span>';
+  }
+
   function renderStrips() {
     const st = g.state;
-    const topLabel = st.config.mode === 'ai' ? 'Chandravansh · Astral AI' : 'Chandravansh · Commander 2';
-    const botLabel = st.config.mode === 'ai'
-      ? 'Suryavansh · ' + (AC.app.profile ? AC.app.profile.name : 'You')
-      : 'Suryavansh · Commander 1';
+    const topLabel = 'Chandravansh · ' + (st.config.mode === 'ai' ? oppName(st) : 'Commander 2');
+    const botLabel = 'Suryavansh · ' + (st.config.mode === 'ai' ? (AC.app.profile ? AC.app.profile.name : 'You') : 'Commander 1');
 
     $('#strip-top').className = 'player-strip' + (st.phase === 'battle' && st.owner === 2 ? ' active-void' : '');
     $('#strip-bottom').className = 'player-strip' + (st.phase === 'battle' && st.owner === 1 ? ' active-solar' : '') +
@@ -346,10 +466,10 @@
 
     $('#strip-top').innerHTML = A.banner(2) +
       '<span class="strip-name" style="color:var(--void)">' + esc(topLabel) + '</span>' +
-      '<span class="strip-count">' + aliveCount(2) + '/' + E.rosterOf(st, 2).length + '</span>' + captureTray(2);
+      '<span class="strip-count">' + aliveCount(2) + '/' + E.rosterOf(st, 2).length + '</span>' + diyas(2) + captureTray(2);
     $('#strip-bottom').innerHTML = A.banner(1) +
       '<span class="strip-name" style="color:var(--solar)">' + esc(botLabel) + '</span>' +
-      '<span class="strip-count">' + aliveCount(1) + '/' + E.rosterOf(st, 1).length + '</span>' + captureTray(1);
+      '<span class="strip-count">' + aliveCount(1) + '/' + E.rosterOf(st, 1).length + '</span>' + diyas(1) + captureTray(1);
   }
 
   function captureTray(victimOwner) {
@@ -382,10 +502,25 @@
     return geo('cell-fill') + (withTexture ? geo('cell-tex') : '');
   }
 
+  function statusMarks(u, R) {
+    let out = '';
+    if (u.stun > 0) {
+      out += '<g class="tok-trance"><circle r="' + (R * 1.12) + '"/>' +
+        '<path d="M0 ' + (-R * 0.95) + ' A' + (R * 0.95) + ' ' + (R * 0.95) + ' 0 1 1 ' + (-R * 0.6) + ' ' + (R * 0.74) + '"/></g>' +
+        (u.stun <= 9 ? '<text class="tok-stun" x="' + (-R * 0.62) + '" y="' + (-R * 0.5) + '" font-size="' + (R * 0.5) + '" text-anchor="middle">' + u.stun + '</text>' : '');
+    }
+    if (u.key === 'F' && u.breached) {
+      out += '<g class="tok-crack"><path d="M' + (-R * 0.2) + ' ' + (-R * 0.9) + ' L' + (R * 0.08) + ' ' + (-R * 0.3) + ' L' + (-R * 0.16) + ' ' + (R * 0.1) +
+        ' L' + (R * 0.22) + ' ' + (R * 0.85) + '"/><circle r="' + (R * 1.1) + '"/></g>';
+    }
+    return out;
+  }
+
   function tokenSvg(u, cell, isSel) {
     const R = cell.tr;
     const cls = u.owner === 1 ? 'solar' : 'void';
     const moved = u.hasMoved ? '<circle class="tok-moved" cx="' + (-R * 0.62) + '" cy="' + (R * 0.62) + '" r="' + (R * 0.14) + '"/>' : '';
+    const extra = (u.stun > 0 ? ' entranced' : '') + (u.key === 'F' && u.breached ? ' breached' : '');
     if (!visibleToViewer(u)) {
       const back = A.artFor('faction:' + u.owner);
       const face = back
@@ -394,27 +529,61 @@
           '<text class="tok-rank" x="' + (R * 0.46) + '" y="' + (R * 0.74) + '" font-size="' + (R * 0.52) +
           '" text-anchor="middle">?</text>'
         : '<text class="tok-q" y="' + (R * 0.33) + '" font-size="' + (R * 0.92) + '" text-anchor="middle">?</text>';
-      return '<g class="token hidden-unit ' + cls + '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
-        '<circle class="tok-disc" r="' + R + '"/>' + face + moved + '</g>';
+      return '<g class="token hidden-unit ' + cls + extra + '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
+        '<circle class="tok-disc" r="' + R + '"/>' + face + moved + statusMarks(u, R) + '</g>';
     }
     const sel = isSel ? '<circle class="sel-ring" r="' + (R * 1.14) + '"/>' : '';
     const eye = (u.revealed && u.owner === g.state.viewer && g.state.phase !== 'over')
       ? '<circle class="tok-eye" cx="' + (R * 0.6) + '" cy="' + (-R * 0.6) + '" r="' + (R * 0.15) + '"/>' : '';
-    return '<g class="token ' + cls + (isSel ? ' selected-token' : '') + (u.shieldBroken ? ' shield-broken' : '') +
+    return '<g class="token ' + cls + extra + (isSel ? ' selected-token' : '') + (u.shieldBroken ? ' shield-broken' : '') +
       '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
       '<circle class="tok-disc" r="' + R + '"/>' +
       sel +
       A.tokenInner(u.key, R) +
       '<text class="tok-rank" x="' + (R * 0.46) + '" y="' + (R * 0.74) + '" font-size="' + (R * 0.52) + '" text-anchor="middle">' +
       esc(u.badge) + '</text>' +
-      moved + eye + '</g>';
+      moved + eye + statusMarks(u, R) + '</g>';
   }
 
   function targetMarker(type, R) {
     if (type === 'move') return '<circle class="target-dot" r="' + (R * 0.3) + '"/>';
-    const glyph = type === 'attack' ? '×' : type === 'scan' ? '◉' : '⌖';
+    const glyph = type === 'attack' ? '×' : type === 'scan' ? '◉' : type === 'astra' ? '✦' : '⌖';
     return '<circle class="target-ring" r="' + (R * 1.0) + '"/>' +
       '<text class="target-glyph" y="' + (R * 0.34) + '" font-size="' + (R * 1.05) + '" text-anchor="middle">' + glyph + '</text>';
+  }
+
+  /* A small odds tag above a strike target: the chance this blow succeeds. */
+  function oddsTag(cell, odds, armed) {
+    if (!odds) return '';
+    const good = odds.win + odds.core + odds.breach;
+    const pct = Math.round(good * 100);
+    const tone = pct >= 60 ? 'good' : pct >= 35 ? 'even' : 'bad';
+    const R = cell.tr;
+    const w = R * (armed ? 2.6 : 1.7);
+    const h = R * 0.62;
+    const y = cell.y - R * 1.55;
+    const label = armed ? pct + '% · tap again' : pct + '%';
+    return '<g class="odds-tag ' + tone + (armed ? ' armed' : '') + '" transform="translate(' + cell.x + ',' + y + ')">' +
+      '<rect x="' + (-w / 2) + '" y="' + (-h / 2) + '" width="' + w + '" height="' + h + '" rx="' + (h / 2) + '"/>' +
+      '<text y="' + (h * 0.18) + '" font-size="' + (h * 0.56) + '" text-anchor="middle">' + label + '</text></g>';
+  }
+
+  function currentTargets() {
+    const st = g.state;
+    const out = {};
+    if (st.phase !== 'battle' || g.thinking) return out;
+    if (g.mode === 'astra' && g.astra) {
+      if (g.astra === 'vayavya' && !g.astraFirst) {
+        E.astraTargets(st, st.owner, 'vayavya').forEach(function (id) { out[id] = 'pick'; });
+      } else {
+        E.astraTargets(st, st.owner, g.astra, g.astraFirst).forEach(function (id) { out[id] = 'astra'; });
+      }
+      return out;
+    }
+    if (g.sel) {
+      E.computeValidTargets(st, g.sel, g.mode).forEach(function (t) { out[t.id] = t.type; });
+    }
+    return out;
   }
 
   function renderBoard() {
@@ -426,17 +595,23 @@
     svg.setAttribute('viewBox', bounds.x + ' ' + bounds.y + ' ' + bounds.w + ' ' + bounds.h);
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-    const targets = {};
-    if (g.sel && st.phase === 'battle' && !g.thinking) {
-      E.computeValidTargets(st, g.sel, g.mode).forEach(function (t) { targets[t.id] = t.type; });
+    // the field takes the colour of the hour
+    const shell = $('#board-shell');
+    if (shell) {
+      const hour = st.phase === 'battle' ? E.hourOf(st) : null;
+      shell.classList.toggle('sky-day', hour === 'day');
+      shell.classList.toggle('sky-night', hour === 'night');
+      shell.classList.toggle('astra-mode', g.mode === 'astra');
+      shell.setAttribute('data-astra', g.mode === 'astra' && g.astra ? g.astra : '');
     }
 
+    const targets = currentTargets();
+    const viewer = viewerOf(st);
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
     const last = st.lastMove;
     let out = '';
+    let tags = '';
 
-    // the painted stone surface is applied per cell, so the board reads as
-    // inlaid tiles rather than a second, competing mandala underneath
     const tex = A.artFor('board:' + st.boardKey);
     if (tex) {
       out += '<defs><pattern id="af-tex" patternUnits="userSpaceOnUse" patternContentUnits="objectBoundingBox" ' +
@@ -445,18 +620,24 @@
     }
 
     // the yantra frame: rings, ticks and kolam dots around the chakra
-    if (b.kind === 'wheel') {
-      const R0 = (bounds.w / 2) - 0.05;
-      let y = '<g class="yantra" aria-hidden="true">';
+    if (b.kind === 'wheel' || b.kind === 'hex') {
+      const R0 = Math.min(bounds.w, bounds.h) / 2 - (b.kind === 'hex' ? 0.12 : 0.05);
+      const cx = bounds.x + bounds.w / 2;
+      const cy = bounds.y + bounds.h / 2;
+      const n = b.kind === 'hex' ? 6 : 12;
+      let y = '<g class="yantra" aria-hidden="true" transform="translate(' + cx.toFixed(3) + ',' + cy.toFixed(3) + ')">';
       [1.02, 1.07, 1.14].forEach(function (f) {
         y += '<circle cx="0" cy="0" r="' + (R0 * f).toFixed(3) + '"/>';
       });
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+      for (let i = 0; i < n * 2; i++) {
+        const a = (i / (n * 2)) * Math.PI * 2 - Math.PI / 2;
+        const long = i % 2 === 0;
         y += '<line x1="' + (Math.cos(a) * R0 * 1.02).toFixed(3) + '" y1="' + (Math.sin(a) * R0 * 1.02).toFixed(3) +
-          '" x2="' + (Math.cos(a) * R0 * 1.07).toFixed(3) + '" y2="' + (Math.sin(a) * R0 * 1.07).toFixed(3) + '"/>';
-        y += '<circle class="dot" cx="' + (Math.cos(a) * R0 * 1.105).toFixed(3) + '" cy="' +
-          (Math.sin(a) * R0 * 1.105).toFixed(3) + '" r="0.018"/>';
+          '" x2="' + (Math.cos(a) * R0 * (long ? 1.07 : 1.045)).toFixed(3) + '" y2="' + (Math.sin(a) * R0 * (long ? 1.07 : 1.045)).toFixed(3) + '"/>';
+        if (long) {
+          y += '<circle class="dot" cx="' + (Math.cos(a) * R0 * 1.105).toFixed(3) + '" cy="' +
+            (Math.sin(a) * R0 * 1.105).toFixed(3) + '" r="' + (R0 * 0.012).toFixed(3) + '"/>';
+        }
       }
       y += '</g>';
       out += y;
@@ -467,20 +648,22 @@
       const id = cell.id;
       const u = st.board[id] || null;
       const rift = E.isRift(st, id);
-      const isSel = g.sel === id;
+      const isSel = g.sel === id || g.astraFirst === id;
       const isFocus = g.focus === id;
       const target = targets[id];
       const inZone = deployOwner && cell.zone === deployOwner;
       const isLast = last && (last.from === id || last.to === id);
 
       let cls = 'cell';
-      if (cell.shape === 'hub') cls += ' hub';
+      if (cell.shape === 'hub' || (b.kind === 'hex' && cell.ring === 0)) cls += ' hub';
       if (rift) cls += ' rift';
       if (inZone) cls += ' zone-' + deployOwner;
       if (isSel) cls += ' selected';
       if (isFocus && !isSel) cls += ' hint';
       if (isLast) cls += ' last-move';
       if (target) cls += ' target-' + target;
+      if (target === 'astra' || target === 'pick') cls += ' astra-' + g.astra;
+      if (g.armed === id) cls += ' armed';
 
       const label = rift ? 'rift'
         : u ? (visibleToViewer(u) ? u.name + ', rank ' + u.badge : 'unknown enemy piece')
@@ -494,17 +677,44 @@
             '" width="' + (cell.r * 1.44) + '" height="' + (cell.r * 1.44) + '" opacity="1" preserveAspectRatio="xMidYMid meet"/>';
         }
       }
+      const markerType = target === 'pick' ? 'astra' : target;
       const markup = '<g class="' + cls + '" data-id="' + id + '" tabindex="0" role="gridcell" aria-label="' + esc(label) + '">' +
         shapeSvg(cell, !!tex) + hubArt +
-        (u ? tokenSvg(u, cell, isSel)
-          : (target ? '<g transform="translate(' + cell.x + ',' + cell.y + ')">' + targetMarker(target, cell.tr) + '</g>' : '')) +
+        (u ? tokenSvg(u, cell, isSel) : '') +
+        (markerType && (markerType !== 'move' || !u) ? '<g transform="translate(' + cell.x + ',' + cell.y + ')">' + targetMarker(markerType, cell.tr) + '</g>' : '') +
         '</g>';
       if (cell.ring === 1 || cell.ring === 2) rings[cell.ring] += markup;
       else out += markup;
+
+      // odds over every strike target
+      if (g.sel && u && (target === 'attack' || target === 'barrage') && u.owner !== st.owner) {
+        tags += oddsTag(cell, E.strikeOdds(st, viewer, g.sel, id, target === 'barrage'), g.armed === id);
+      } else if (g.armed === id && (target === 'astra')) {
+        const R = cell.tr;
+        tags += '<g class="odds-tag even armed" transform="translate(' + cell.x + ',' + (cell.y - R * 1.55) + ')">' +
+          '<rect x="' + (-R * 1.6) + '" y="' + (-R * 0.31) + '" width="' + (R * 3.2) + '" height="' + (R * 0.62) + '" rx="' + (R * 0.31) + '"/>' +
+          '<text y="' + (R * 0.11) + '" font-size="' + (R * 0.35) + '" text-anchor="middle">tap again to invoke</text></g>';
+      }
     });
     // the inner rings live in their own groups so the wheel can turn
     if (rings[2]) out += '<g class="ring ring-2">' + rings[2] + '</g>';
     if (rings[1]) out += '<g class="ring ring-1">' + rings[1] + '</g>';
+
+    // formation links from the last clash: the jaws, the petals
+    if (g.links && Date.now() < g.links.until) {
+      const to = b.byId[g.links.to];
+      if (to) {
+        (g.links.jaws || []).forEach(function (j) {
+          const c = b.byId[j];
+          if (c) out += '<line class="vyuha-link jaws" x1="' + c.x + '" y1="' + c.y + '" x2="' + to.x + '" y2="' + to.y + '"/>';
+        });
+        (g.links.petals || []).forEach(function (j) {
+          const c = b.byId[j];
+          if (c) out += '<line class="vyuha-link petals" x1="' + c.x + '" y1="' + c.y + '" x2="' + to.x + '" y2="' + to.y + '"/>';
+        });
+      }
+    }
+    out += tags;
 
     (b.labels || []).forEach(function (l) {
       if (settings().coordinates === false) return;
@@ -526,6 +736,23 @@
 
   /* ── action bar ────────────────────────────────────────────── */
 
+  function astraButtons(owner) {
+    const st = g.state;
+    if (!E.rules(st).astras) return '';
+    return '<span class="astra-row">' + E.ASTRA_ORDER.map(function (key) {
+      const def = U.ASTRA_DEFS[key];
+      const used = st.astrasUsed[owner] && st.astrasUsed[owner][key];
+      const ready = E.astraReady(st, owner, key);
+      const cls = used ? 'spent' : ready ? 'ready' : 'locked';
+      let pips = '';
+      for (let i = 0; i < def.cost; i++) pips += '<i></i>';
+      return '<button class="astra-btn ' + cls + ' el-' + def.element + '" data-astra="' + key + '"' +
+        ' title="' + esc(def.name + ' — ' + def.one + ' Costs ' + def.cost + ' Shakti' + (used ? ' (used)' : '')) + '"' +
+        ' aria-label="' + esc(def.name) + '"' + (used ? ' disabled' : '') + '>' +
+        A.astraMark(key) + '<span class="astra-cost">' + pips + '</span></button>';
+    }).join('') + '</span>';
+  }
+
   function renderActionBar() {
     const st = g.state;
     const bar = $('#action-bar');
@@ -537,11 +764,11 @@
       bar.innerHTML =
         '<div class="action-info">' +
           '<span class="sel-badge ' + (owner === 1 ? 'solar' : 'void') + '">' + A.icon('grid') + '</span>' +
-          '<span class="sel-text"><span class="sel-name">' + U.FACTIONS[owner].name + ' deployment</span>' +
-          '<span class="sel-desc">Tap two cells in your zone to swap them. Presets are a starting point.</span></span>' +
+          '<span class="sel-text"><span class="sel-name">' + U.FACTIONS[owner].name + ' · vyuha rachna</span>' +
+          '<span class="sel-desc">Tap two cells in your ground to swap them. Presets are a starting point.</span></span>' +
         '</div>' +
         '<div class="action-buttons">' +
-          presetBtn('citadel', 'Citadel') + presetBtn('blitz', 'Blitz') + presetBtn('lattice', 'Lattice') + presetBtn('shuffle', 'Shuffle') +
+          presetBtn('citadel', 'Durg') + presetBtn('blitz', 'Aakraman') + presetBtn('lattice', 'Jaal') + presetBtn('shuffle', 'Shuffle') +
           (formations.length ? '<button class="mode-btn" data-formation="1">' + A.icon('folder') + 'Saved</button>' : '') +
           '<button class="mode-btn" data-deploy="save">' + A.icon('save') + 'Keep</button>' +
           '<button class="btn btn-primary btn-sm" data-deploy="lock">' + (st.phase === 'deploy1' && isPass() ? 'Lock &amp; pass' : 'Lock formation') + '</button>' +
@@ -552,11 +779,11 @@
     if (st.phase === 'over') {
       bar.innerHTML =
         '<div class="action-info"><span class="sel-text"><span class="sel-name">Match complete</span>' +
-        '<span class="sel-desc">All ranks are revealed. Review the board, or start a new engagement.</span></span></div>' +
+        '<span class="sel-desc">All ranks are revealed. Review the board, or fight again.</span></span></div>' +
         '<div class="action-buttons">' +
           '<button class="mode-btn" data-over="codex">' + A.icon('book') + 'Codex</button>' +
-          '<button class="mode-btn" data-over="home">' + A.icon('back') + 'Command deck</button>' +
-          '<button class="btn btn-primary btn-sm" data-over="rematch">' + A.icon('refresh') + 'Rematch</button>' +
+          '<button class="mode-btn" data-over="home">' + A.icon('back') + 'Home</button>' +
+          (modeHook('noRematch') ? '' : '<button class="btn btn-primary btn-sm" data-over="rematch">' + A.icon('refresh') + 'Rematch</button>') +
         '</div>';
       return;
     }
@@ -564,27 +791,44 @@
     const selUnit = g.sel ? st.board[g.sel] : null;
     const isHumanTurn = !g.thinking && (isPass() || st.owner === 1);
     let info;
-    if (selUnit) {
-      const def = U.UNIT_DEFS[selUnit.key];
-      info = '<span class="sel-badge ' + (selUnit.owner === 1 ? 'solar' : 'void') + '">' + A.emblem(selUnit.key) + '</span>' +
-        '<span class="sel-text"><span class="sel-name">' + esc(selUnit.name) + ' · rank ' + esc(selUnit.badge) + '</span>' +
-        '<span class="sel-desc">' + esc(def.desc) + '</span></span>';
-    } else {
-      info = '<span class="sel-badge">' + A.icon('sword') + '</span>' +
-        '<span class="sel-text"><span class="sel-name">' + (isHumanTurn ? 'Select a unit' : 'Waiting') + '</span>' +
-        '<span class="sel-desc">' + (isHumanTurn
-          ? 'Tap one of your pieces, then tap a highlighted cell to move or strike.'
-          : 'The Chandravansh is choosing its move.') + '</span></span>';
+    let buttons = '';
+
+    if (isHumanTurn && g.mode === 'astra' && g.astra) {
+      const def = U.ASTRA_DEFS[g.astra];
+      const hint = g.astra === 'vayavya'
+        ? (g.astraFirst ? 'Now tap the second piece to trade places with.' : 'Tap the first of your pieces to move.')
+        : (g.armed ? 'Tap the target again to invoke.' : 'Tap a glowing target within two cells of your army.');
+      info = '<span class="sel-badge astra el-' + def.element + '">' + A.astraMark(g.astra) + '</span>' +
+        '<span class="sel-text"><span class="sel-name">' + esc(def.name) + ' <span class="deva">' + esc(def.deva) + '</span></span>' +
+        '<span class="sel-desc">' + esc(hint) + '</span></span>';
+      buttons = '<button class="mode-btn" data-act="cancel-astra">' + A.icon('close') + 'Cancel</button>';
+      bar.innerHTML = '<div class="action-info">' + info + '</div><div class="action-buttons">' + buttons + '</div>';
+      return;
     }
 
-    let buttons = '';
+    if (selUnit) {
+      const def = U.UNIT_DEFS[selUnit.key];
+      const trance = selUnit.stun > 0 ? ' Entranced for ' + selUnit.stun + ' more turn' + (selUnit.stun === 1 ? '' : 's') + '.' : '';
+      info = '<span class="sel-badge ' + (selUnit.owner === 1 ? 'solar' : 'void') + '">' + A.emblem(selUnit.key) + '</span>' +
+        '<span class="sel-text"><span class="sel-name">' + esc(selUnit.name) + ' · rank ' + esc(selUnit.badge) + '</span>' +
+        '<span class="sel-desc">' + esc(g.armed ? 'Tap the target again to strike.' : def.desc + trance) + '</span></span>';
+    } else {
+      info = '<span class="sel-badge">' + A.icon('sword') + '</span>' +
+        '<span class="sel-text"><span class="sel-name">' + (isHumanTurn ? 'Your move' : 'Waiting') + '</span>' +
+        '<span class="sel-desc">' + (isHumanTurn
+          ? 'Tap a piece, then a glowing cell. Or invoke an astra.'
+          : oppName(st) + ' is choosing a move.') + '</span></span>';
+    }
+
     if (isHumanTurn) {
       if (selUnit) {
         buttons += '<button class="mode-btn' + (g.mode === 'move' ? ' on' : '') + '" data-mode="move">' + A.icon('sword') + 'Move / Strike</button>';
         const def = U.UNIT_DEFS[selUnit.key];
-        if (def.hasScan) buttons += '<button class="mode-btn special' + (g.mode === 'special' ? ' on' : '') + '" data-mode="special">' + A.icon('eye') + 'Scan</button>';
+        if (def.hasScan) buttons += '<button class="mode-btn special' + (g.mode === 'special' ? ' on' : '') + '" data-mode="special">' + A.icon('eye') + 'Drishti</button>';
         if (def.hasRanged) buttons += '<button class="mode-btn special' + (g.mode === 'special' ? ' on' : '') + '" data-mode="special">' + A.icon('bolt') + 'Volley</button>';
-        buttons += '<button class="mode-btn" data-act="deselect">' + A.icon('close') + '</button>';
+        buttons += '<button class="mode-btn" data-act="deselect" aria-label="Deselect">' + A.icon('close') + '</button>';
+      } else {
+        buttons += astraButtons(st.owner);
       }
       buttons += '<button class="mode-btn" data-act="advisor">' + A.icon('brain') + 'Advisor</button>';
     }
@@ -602,17 +846,17 @@
     if (!host) return;
     const st = g.state;
     if (st.viewer === 0) {
-      host.innerHTML = '<div class="intel-head"><span class="intel-title">Intel ledger</span></div>' +
+      host.innerHTML = '<div class="intel-head"><span class="intel-title">Intel</span></div>' +
         '<p class="intel-note">Sealed by the privacy curtain.</p>';
       return;
     }
     if (settings().showIntel === false || st.phase === 'over') {
-      host.innerHTML = '<div class="intel-head"><span class="intel-title">Intel ledger</span></div>' +
-        '<p class="intel-note">Intel panel is hidden in settings.</p>';
+      host.innerHTML = '<div class="intel-head"><span class="intel-title">Intel</span></div>' +
+        '<p class="intel-note">' + (st.phase === 'over' ? 'The match is over — every rank is on the board.' : 'Intel panel is hidden in settings.') + '</p>';
       return;
     }
 
-    const viewer = st.viewer === 3 ? 1 : st.viewer;
+    const viewer = viewerOf(st);
     const foe = viewer === 1 ? 2 : 1;
     const pool = E.unknownPool(st, viewer);
     const unknowns = Object.keys(pool).filter(function (k) { return pool[k] > 0; });
@@ -624,8 +868,40 @@
       if (u.owner === viewer && u.revealed) exposed.push(u);
     });
 
-    let html = '<div class="intel-head"><span class="intel-title">Intel ledger</span>' +
+    let html = '<div class="intel-head"><span class="intel-title">Intel</span>' +
       '<span class="chip chip-' + (viewer === 1 ? 'solar' : 'void') + '">' + U.FACTIONS[foe].short + '</span></div>';
+
+    const odds = oddsBlock();
+    if (odds) html += odds;
+
+    // the hour, the formations, the strength
+    if (st.phase === 'battle') {
+      const hour = E.hourOf(st);
+      if (hour) {
+        const mine = E.hourOwner(st) === viewer;
+        const left = E.roundsUntilHourTurns(st);
+        html += '<div class="intel-section"><div class="intel-label">The sky</div>' +
+          '<div class="intel-sky ' + hour + '">' + skyIcon(hour) + '<span><b>' + (hour === 'day' ? 'Dinman · दिनमान' : 'Ratri · रात्रि') + '</b>' +
+          (mine ? 'Your hour: your strikes land at +1.' : 'Their hour: their strikes land at +1.') +
+          ' Turns in ' + left + ' round' + (left === 1 ? '' : 's') + '.</span></div></div>';
+      }
+      if (E.rules(st).vyuha) {
+        html += '<div class="intel-section"><div class="intel-label">Formations</div>' +
+          '<p class="intel-note"><b>Makara</b> — strike a piece another of yours already touches: +1.<br><b>Padma</b> — a piece touched by two friends defends at +1.</p></div>';
+      }
+      if (E.rules(st).astras) {
+        html += '<div class="intel-section"><div class="intel-label">Shakti</div>' +
+          '<div class="odds-row"><span style="color:var(--solar)">' + U.FACTIONS[1].short + '</span>' +
+          '<span class="odds-bar"><span style="width:' + (st.shakti[1] * 20) + '%;background:var(--solar)"></span></span><span class="odds-val">' + st.shakti[1] + '/5</span></div>' +
+          '<div class="odds-row"><span style="color:var(--void)">' + U.FACTIONS[2].short + '</span>' +
+          '<span class="odds-bar"><span style="width:' + (st.shakti[2] * 20) + '%;background:var(--void)"></span></span><span class="odds-val">' + st.shakti[2] + '/5</span></div>' +
+          '<p class="intel-note">One per piece taken, one each time the sky turns.</p></div>';
+      }
+      const s1 = E.strengthOf(st, viewer);
+      const s2 = E.strengthOf(st, foe);
+      html += '<div class="intel-section"><div class="intel-label">Strength on the field (bala)</div>' +
+        '<p class="intel-note">You <b style="color:var(--txt)">' + s1 + '</b> · They <b style="color:var(--txt)">' + s2 + '</b> — sum of ranks, +5 for a fort whose gate stands. It decides a ceasefire.</p></div>';
+    }
 
     html += '<div class="intel-section"><div class="intel-label">Still hidden (' +
       unknowns.reduce(function (a, k) { return a + pool[k]; }, 0) + ' pieces)</div>' +
@@ -651,80 +927,78 @@
         }).join('') + '</div><p class="intel-note">These ranks are known to the enemy.</p></div>';
     }
 
-    const odds = oddsBlock();
-    if (odds) html += odds;
-
     if (st.phase === 'battle') {
       const left = E.drawCountdown(st);
       const limit = st.config.drawAfter || 100;
-      html += '<div class="intel-section"><div class="intel-label">No-capture clock</div>' +
-        '<div class="odds-row"><span style="color:var(--dim)">Draw in</span>' +
+      html += '<div class="intel-section"><div class="intel-label">Ceasefire clock</div>' +
+        '<div class="odds-row"><span style="color:var(--dim)">Orders left</span>' +
         '<span class="odds-bar"><span style="width:' + Math.round((left / limit) * 100) + '%;background:' +
         (left <= 10 ? 'var(--void)' : 'linear-gradient(90deg,var(--solar),var(--green))') + '"></span></span>' +
-        '<span class="odds-val">' + left + '</span></div></div>';
+        '<span class="odds-val">' + left + '</span></div>' +
+        '<p class="intel-note">If no piece falls for ' + limit + ' orders, or the sun sets on round ' + capOf(st) + ', the stronger army holds the field.</p></div>';
 
-      if (st.boardKey === 'wheel') {
+      if (E.hasRotation(st)) {
         const until = E.turnsUntilRotation(st);
-        html += '<div class="intel-section"><div class="intel-label">The chakra</div>' +
-          '<p class="intel-note">Rings 1 and 2 turn one spoke every 5 rounds, carrying whatever stands on them — and exposing it. Turns until the wheel moves: <b style="color:var(--gold)">' +
+        html += '<div class="intel-section"><div class="intel-label">The ' + (board().kind === 'hex' ? 'lotus' : 'chakra') + '</div>' +
+          '<p class="intel-note">The two inner rings turn one cell every 5 rounds, carrying whatever stands on them — and exposing it. Turns in <b style="color:var(--gold)">' +
           until + '</b>.</p></div>';
       }
     }
 
     html += '<div class="intel-section">' +
       '<button class="mode-btn" data-act="advisor" style="width:100%;justify-content:center">' + A.icon('brain') + 'Ask the advisor</button>' +
-      '<p class="intel-note">Odds are averaged over every rank the enemy could still be hiding. A piece that has moved can no longer be a fort or a trap.</p>' +
+      '<p class="intel-note">Odds are averaged over every rank the enemy could still be hiding, and include the hour and the formations. A piece that has moved can no longer be a fort or a trap.</p>' +
       '</div>';
 
     host.innerHTML = html;
   }
 
+  function capOf(st) {
+    if (st.turnLimit) return st.turnLimit;
+    if (st.config.roundCap) return st.config.roundCap;
+    return (U.BOARDS[st.boardKey] && U.BOARDS[st.boardKey].roundCap) || 40;
+  }
+
   function oddsBlock() {
     const st = g.state;
-    const viewer = st.viewer === 3 ? 1 : st.viewer;
+    const viewer = viewerOf(st);
     const selUnit = g.sel ? st.board[g.sel] : null;
-    const focus = g.focus ? st.board[g.focus] : null;
+    const focusId = g.armed || g.focus;
+    const focus = focusId ? st.board[focusId] : null;
     if (!focus || focus.owner === viewer) return '';
 
-    if (selUnit && selUnit.owner === viewer) {
+    if (selUnit && selUnit.owner === viewer && g.mode !== 'astra') {
       const isBarrage = g.mode === 'special' && U.UNIT_DEFS[selUnit.key].hasRanged;
-      const dist = focus.revealed
-        ? (function () { const o = {}; o[focus.key] = 1; return o; })()
-        : E.beliefFor(st, viewer, g.focus);
-      if (!dist) return '';
-      let win = 0, lose = 0, both = 0, core = 0;
-      Object.keys(dist).forEach(function (k) {
-        const p = dist[k];
-        const res = AI.predict(selUnit.key, k, st.config.tie, isBarrage);
-        if (res.out === 'core') core += p;
-        else if (res.out === 'att') win += p;
-        else if (res.out === 'def' || res.out === 'mine') lose += p;
-        else if (res.out === 'both') both += p;
-      });
+      const o = E.strikeOdds(st, viewer, g.sel, focusId, isBarrage);
+      if (!o) return '';
       const rows = [];
-      if (core > 0.001) rows.push(['Objective', core, 'var(--gold)']);
-      if (win > 0.001) rows.push(['You win', win, 'var(--green)']);
-      if (both > 0.001) rows.push(['Both fall', both, 'var(--gold)']);
-      if (lose > 0.001) rows.push(['You lose', lose, 'var(--void)']);
-      return '<div class="intel-section"><div class="intel-label">' + (isBarrage ? 'Volley odds' : 'Clash odds') +
-        ' · ' + esc(selUnit.short) + ' → unknown</div><div class="intel-odds">' +
+      if (o.core > 0.001) rows.push(['Take fort', o.core, 'var(--gold)']);
+      if (o.breach > 0.001) rows.push(['Break gate', o.breach, 'var(--gold)']);
+      if (o.win > 0.001) rows.push(['You win', o.win, 'var(--green)']);
+      if (o.both > 0.001) rows.push(['Both fall', o.both, 'var(--gold)']);
+      if (o.lose > 0.001) rows.push(['You lose', o.lose, 'var(--void)']);
+      if (o.noop > 0.001) rows.push(['No effect', o.noop, 'var(--dim)']);
+      const parts = (o.ctx.attParts || []).map(function (p) { return '+' + p.v + ' ' + p.key; })
+        .concat((o.ctx.defParts || []).map(function (p) { return 'them +' + p.v + ' ' + p.key; }));
+      return '<div class="intel-section"><div class="intel-label">' + (isBarrage ? 'Volley odds' : 'Strike odds') +
+        ' · ' + esc(selUnit.short) + ' → ' + (focus.revealed ? esc(focus.name) : 'unknown') + '</div><div class="intel-odds">' +
         rows.map(function (r) {
           return '<div class="odds-row"><span style="color:' + r[2] + '">' + r[0] + '</span>' +
             '<span class="odds-bar"><span style="width:' + Math.round(r[1] * 100) + '%"></span></span>' +
             '<span class="odds-val">' + Math.round(r[1] * 100) + '%</span></div>';
         }).join('') + '</div>' +
-        (focus.revealed ? '' : '<div class="intel-note">Identity odds: ' + topBeliefs(st, viewer, g.focus) + '</div>') +
+        (parts.length ? '<div class="intel-note">Bonuses: ' + esc(parts.join(' · ')) + '</div>' : '') +
+        (focus.revealed ? '' : '<div class="intel-note">It could be: ' + topBeliefs(st, viewer, focusId) + '</div>') +
         '</div>';
     }
 
     if (!focus.revealed) {
-      const dist = E.beliefFor(st, viewer, g.focus);
+      const dist = E.beliefFor(st, viewer, focusId);
       if (!dist) return '';
-      return '<div class="intel-section"><div class="intel-label">Tapped piece — identity odds</div>' +
-        '<div class="intel-note">' + topBeliefs(st, viewer, g.focus) + '</div>' +
+      return '<div class="intel-section"><div class="intel-label">Tapped piece — what it could be</div>' +
         '<div class="intel-odds">' + Object.keys(dist).sort(function (a, b) { return dist[b] - dist[a]; })
           .slice(0, 4).map(function (k) {
-            return '<div class="odds-row"><span>' + esc(U.UNIT_DEFS[k].badge) + '</span>' +
+            return '<div class="odds-row"><span>' + esc(U.UNIT_DEFS[k].short) + '</span>' +
               '<span class="odds-bar"><span style="width:' + Math.round(dist[k] * 100) + '%"></span></span>' +
               '<span class="odds-val">' + Math.round(dist[k] * 100) + '%</span></div>';
           }).join('') + '</div></div>';
@@ -750,7 +1024,7 @@
       return;
     }
     host.innerHTML = st.log.slice(-60).reverse().map(function (l) {
-      return '<div class="log-entry kind-' + esc(l.kind) + '"><span class="log-turn">T' + l.turn + '</span>' + esc(l.text) + '</div>';
+      return '<div class="log-entry kind-' + esc(l.kind) + '"><span class="log-turn">R' + l.turn + '</span>' + esc(l.text) + '</div>';
     }).join('');
   }
 
@@ -764,7 +1038,7 @@
     if (st.phase === 'deploy1' || st.phase === 'deploy2') {
       const owner = st.phase === 'deploy1' ? 1 : 2;
       if (!E.inDeployZone(st, owner, id)) {
-        FX.toast('Deploy inside your own zone.', 'warn');
+        FX.toast('Deploy inside your own ground.', 'warn');
         sfx('error');
         return;
       }
@@ -789,6 +1063,12 @@
     const humanTurn = isPass() || st.owner === 1;
     if (!humanTurn) return;
 
+    /* astra targeting */
+    if (g.mode === 'astra' && g.astra) {
+      onAstraCell(id);
+      return;
+    }
+
     // a highlighted target wins over everything else
     if (g.sel) {
       const hit = E.computeValidTargets(st, g.sel, g.mode).filter(function (t) { return t.id === id; })[0];
@@ -801,18 +1081,25 @@
     const unit = st.board[id];
     if (unit && unit.owner !== st.owner) {
       g.focus = id;
+      g.armed = null;
       renderIntel();
+      render();
       sfx('ui');
       return;
     }
 
     if (unit && unit.owner === st.owner) {
+      g.armed = null;
       if (!E.isMovable(unit)) {
-        FX.toast(unit.name + ' is immovable — it can never leave that cell.', 'warn');
+        FX.toast(unit.name + ' never moves — it holds that cell for the whole battle.', 'warn');
         sfx('error');
         g.sel = null;
         render();
         return;
+      }
+      if (unit.stun > 0) {
+        FX.toast('Entranced — this piece cannot act for ' + unit.stun + ' more turn' + (unit.stun === 1 ? '' : 's') + '.', 'warn');
+        sfx('error');
       }
       if (g.sel === id) {
         g.sel = null;
@@ -826,7 +1113,7 @@
       buzz(8);
       if (!g.hinted) {
         g.hinted = true;
-        FX.toast('Cyan dot = move. Red ring = attack. Tap the cell to commit.', 'info');
+        FX.toast('Gold dot = move. Ring = strike, with your odds above it.', 'info');
       }
       render();
       return;
@@ -834,67 +1121,91 @@
 
     g.sel = null;
     g.focus = null;
+    g.armed = null;
     render();
   }
 
+  /* Strikes on a hidden piece arm on the first tap and land on the second,
+   * so a slip of the thumb never throws away a Senapati. */
   function commitAction(from, to, type) {
     const st = g.state;
     const target = st.board[to];
-    const risky = type === 'attack' && target && !target.revealed && settings().confirmActions !== false;
-    if (risky) { showOddsConfirm(from, to, type); return; }
+    const risky = (type === 'attack' || type === 'barrage') && target && settings().confirmActions !== false;
+    if (risky && g.armed !== to) {
+      g.armed = to;
+      g.focus = to;
+      sfx('arm');
+      buzz(6);
+      render();
+      return;
+    }
+    g.armed = null;
     performAction({ from: from, to: to, type: type });
   }
 
-  function showOddsConfirm(from, to, type) {
+  function enterAstra(key) {
     const st = g.state;
-    const attacker = st.board[from];
-    const target = st.board[to];
-    const viewer = st.viewer === 3 ? 1 : st.viewer;
-    const dist = E.beliefFor(st, viewer, to) || { '2': 1 };
-    let win = 0, lose = 0, both = 0, core = 0;
-    Object.keys(dist).forEach(function (k) {
-      const p = dist[k];
-      const res = AI.predict(attacker.key, k, st.config.tie, false);
-      if (res.out === 'core') core += p;
-      else if (res.out === 'att') win += p;
-      else if (res.out === 'def' || res.out === 'mine') lose += p;
-      else if (res.out === 'both') both += p;
-    });
-    const row = function (label, p, color) {
-      return '<div class="odds-row"><span style="color:' + color + '">' + label + '</span>' +
-        '<span class="odds-bar"><span style="width:' + Math.round(p * 100) + '%"></span></span>' +
-        '<span class="odds-val">' + Math.round(p * 100) + '%</span></div>';
-    };
-    AC.ui.modal({
-      kicker: 'Commit attack',
-      title: 'Strike an unknown piece?',
-      sub: 'You are attacking blind. These odds are averaged over every rank this piece could still be.',
-      body:
-        '<div class="combat-arena">' +
-          '<div class="combat-card ' + (attacker.owner === 1 ? 'solar' : 'void') + '">' +
-            '<div class="combat-emblem">' + A.emblem(attacker.key) + '</div>' +
-            '<div class="combat-faction">' + U.FACTIONS[attacker.owner].short + '</div>' +
-            '<div class="combat-name">' + esc(attacker.name) + '</div>' +
-            '<div class="combat-rank">rank ' + esc(attacker.badge) + '</div></div>' +
-          '<div class="combat-vs">VS</div>' +
-          '<div class="combat-card void">' +
-            '<div class="combat-emblem">' + A.emblem('F') + '</div>' +
-            '<div class="combat-faction">unknown</div>' +
-            '<div class="combat-name">Hidden piece</div>' +
-            '<div class="combat-rank">rank ?</div></div>' +
-        '</div>' +
-        '<div class="intel-odds">' +
-          (core > 0.001 ? row('Objective', core, 'var(--gold)') : '') +
-          row('You win', win, 'var(--green)') +
-          (both > 0.001 ? row('Both fall', both, 'var(--gold)') : '') +
-          row('You lose', lose, 'var(--void)') +
-        '</div>',
-      actions: [
-        { label: 'Hold back', cls: 'btn-ghost', onClick: function () { g.sel = null; render(); } },
-        { label: 'Attack', cls: 'btn-primary', onClick: function () { performAction({ from: from, to: to, type: type }); } }
-      ],
-      onClose: function () { g.sel = null; render(); }
-    });
+    if (!st || st.phase !== 'battle' || g.thinking) return;
+    if (!E.astraReady(st, st.owner, key)) {
+      const def = U.ASTRA_DEFS[key];
+      const used = st.astrasUsed[st.owner] && st.astrasUsed[st.owner][key];
+      FX.toast(used ? def.name + ' has already been used this match.' : def.name + ' needs ' + def.cost + ' Shakti — you have ' + st.shakti[st.owner] + '.', 'warn');
+      sfx('error');
+      return;
+    }
+    if (!E.astraTargets(st, st.owner, key).length) {
+      FX.toast('No target in reach — astras strike within two cells of your army.', 'warn');
+      sfx('error');
+      return;
+    }
+    g.sel = null;
+    g.armed = null;
+    g.mode = 'astra';
+    g.astra = key;
+    g.astraFirst = null;
+    sfx('select');
+    render();
+  }
+
+  function cancelAstra() {
+    g.mode = 'move';
+    g.astra = null;
+    g.astraFirst = null;
+    g.armed = null;
+    sfx('deselect');
+    render();
+  }
+
+  function onAstraCell(id) {
+    const st = g.state;
+    const key = g.astra;
+    if (key === 'vayavya' && !g.astraFirst) {
+      if (E.astraTargets(st, st.owner, key).indexOf(id) === -1) { sfx('error'); return; }
+      g.astraFirst = id;
+      sfx('select');
+      render();
+      return;
+    }
+    const legal = E.astraTargets(st, st.owner, key, g.astraFirst);
+    if (legal.indexOf(id) === -1) {
+      if (key === 'vayavya' && id === g.astraFirst) { g.astraFirst = null; render(); return; }
+      sfx('error');
+      return;
+    }
+    if (g.armed !== id) {
+      g.armed = id;
+      sfx('arm');
+      render();
+      return;
+    }
+    const action = key === 'vayavya'
+      ? { type: 'astra', astra: key, from: g.astraFirst, to: id }
+      : { type: 'astra', astra: key, to: id };
+    g.mode = 'move';
+    g.astra = null;
+    g.astraFirst = null;
+    g.armed = null;
+    performAction(action);
   }
 
   function cellCenter(id) {
@@ -902,138 +1213,171 @@
     return FX.centerOf(el);
   }
 
+  /* Which line Sanjaya says for a batch of events, from the point of view of
+   * `me` (the human in an AI game; the acting side in pass & play). */
+  function narrate(events, me, st) {
+    const keys = [];
+    events.forEach(function (ev) {
+      if (ev.kind === 'clash') {
+        const att = ev.unit;
+        const def = ev.target;
+        if (ev.core) keys.push(att.owner === me ? 'fort_won' : 'fort_lost');
+        else if (ev.assassinate) keys.push('assassinate');
+        else if (ev.mine) keys.push(ev.outcome === 'def' ? 'trap_hit' : 'trap_defused');
+        else if (ev.outcome === 'att' && (ev.attParts || []).some(function (p) { return p.key === 'makara'; })) keys.push('makara');
+        else if (ev.outcome === 'def' && (ev.defParts || []).length) keys.push('padma');
+        else if (ev.shieldBreak) keys.push('shield_break');
+        else if (ev.outcome === 'both') keys.push('both_fell');
+        else if (ev.outcome === 'att') keys.push(att.owner === me ? 'win_capture' : 'lose_capture');
+        else if (ev.outcome === 'def') keys.push(def.owner === me ? 'win_capture' : 'lose_capture');
+      } else if (ev.kind === 'core') {
+        keys.push(ev.unit && ev.unit.owner === me ? 'fort_won' : 'fort_lost');
+      } else if (ev.kind === 'barrage') {
+        keys.push(ev.kill ? 'volley_kill' : 'volley_turned');
+      } else if (ev.kind === 'scan') {
+        if (Math.random() < 0.5) keys.push('scan');
+      } else if (ev.kind === 'breach') {
+        keys.push(ev.target.owner === me ? 'breach_own' : 'breach_enemy');
+      } else if (ev.kind === 'astra') {
+        keys.push('astra_' + ev.astra + (ev.owner === me ? '' : '_enemy'));
+      } else if (ev.kind === 'rotate') {
+        keys.push(board().kind === 'hex' ? 'rotate_padma' : 'rotate');
+      } else if (ev.kind === 'sky') {
+        const mine = (ev.hour === 'day' ? 1 : 2) === me;
+        keys.push(ev.hour === 'day' ? (mine ? 'dawn' : 'dawn_enemy') : (mine ? 'dusk' : 'dusk_enemy'));
+      } else if (ev.kind === 'pass') {
+        keys.push('entranced_pass');
+      }
+    });
+    if (st.shakti && st.shakti[me] >= 5 && !g.said.shakti_full && E.rules(st).astras && !(st.astrasUsed[me] || {}).brahma) {
+      g.said.shakti_full = true;
+      keys.push('shakti_full');
+    }
+    if (st.phase === 'battle') {
+      if (st.turnLimit && st.turnLimit - st.turn === 4) speakOnce('last_rounds');
+      else if (!st.turnLimit && capOf(st) - st.turn === 3) speakOnce('sunset_near');
+    }
+    return keys;
+  }
+
+  function updateTension() {
+    const st = g.state;
+    if (!st || st.phase !== 'battle') { AU.setTension(0); return; }
+    let level = 0;
+    E.forEachUnit(st, function (u) { if (u.key === 'F' && u.breached) level = Math.max(level, 1); });
+    if (st.turnLimit && st.turnLimit - st.turn <= 4) level = 2;
+    else if (!st.turnLimit && capOf(st) - st.turn <= 3) level = Math.max(level, 1);
+    AU.setTension(level);
+    const shell = $('#board-shell');
+    if (shell) shell.classList.toggle('tension', level > 0);
+  }
+
+  function shaktiChime(st) {
+    if (!st.shakti || !g.lastShakti) return;
+    [1, 2].forEach(function (o) {
+      if (st.shakti[o] > (g.lastShakti[o] || 0) && (o === 1 || isPass())) sfx('shakti');
+      g.lastShakti[o] = st.shakti[o];
+    });
+  }
+
   function performAction(action) {
     const st = g.state;
-    const mover = st.board[action.from];
-    const moverWasAi = isAi() && mover && mover.owner === 2;
+    const mover = action.from ? st.board[action.from] : null;
+    const actor = st.owner;
+    const moverWasAi = isAi() && actor === 2;
     g.busy = true;
     const res = E.applyAction(st, action);
     if (!res.ok) {
       g.busy = false;
-      FX.toast('That action is not legal.', 'error');
+      FX.toast(res.error || 'That action is not legal.', 'error');
       sfx('error');
       render();
       return;
     }
-    g.sel = null;
-    g.focus = null;
+    resetSelection();
     stopClock();
 
-    const at = cellCenter(action.to);
-    let dramatic = null;
+    const me = isAi() ? 1 : actor;
+    const at = action.to ? cellCenter(action.to) : FX.centerOf($('#board'));
+    const beats = [];
     let rotated = false;
+    let skyEv = null;
 
     res.events.forEach(function (ev) {
       if (ev.sfx) sfx(ev.sfx);
       if (ev.kind === 'rotate') {
         rotated = true;
-        FX.burst(FX.centerOf($('#board')).x, FX.centerOf($('#board')).y, { count: 40, color: '#f2cf8b', speed: 6, size: 3 });
+        const c = FX.centerOf($('#board'));
+        FX.burst(c.x, c.y, { count: 40, color: '#f2cf8b', speed: 6, size: 3 });
         FX.shake(8);
-        FX.float('THE CHAKRA TURNS', FX.centerOf($('#board')).x, FX.centerOf($('#board')).y - 40, '#f2cf8b');
       }
-      if (ev.kind === 'clash' || ev.kind === 'barrage' || ev.kind === 'scan' || ev.kind === 'core') {
-        dramatic = ev;
+      if (ev.kind === 'sky') skyEv = ev;
+      if (ev.kind === 'clash' || ev.kind === 'barrage' || ev.kind === 'scan' || ev.kind === 'breach' || ev.kind === 'astra' || ev.kind === 'core') {
+        beats.push(ev);
       }
       if (ev.kind === 'clash') {
         const win = ev.outcome === 'att';
-        const color = win ? '#fbbf24' : ev.outcome === 'def' ? '#f43f5e' : '#a855f7';
+        const color = win ? '#f2cf8b' : ev.outcome === 'def' ? '#8b8ff0' : '#c8452b';
         FX.burst(at.x, at.y, { count: win ? 26 : 20, color: color, speed: 4 });
         FX.shake(win ? 7 : 5);
-        FX.float(win ? 'CAPTURE' : ev.outcome === 'def' ? 'REPELLED' : 'CLASH', at.x, at.y - 16, color);
-        buzz(win ? [12, 30, 12] : 22);
+        if ((ev.jaws && ev.jaws.length) || (ev.petals && ev.petals.length)) {
+          g.links = { jaws: ev.attParts.some(function (p) { return p.key === 'makara'; }) ? ev.jaws : [], petals: ev.petals || [], to: ev.at, until: Date.now() + 2200 };
+          setTimeout(function () { if (g.state === st) renderBoard(); }, 2300);
+        }
       } else if (ev.kind === 'barrage') {
-        FX.burst(at.x, at.y, { count: 22, color: ev.kill ? '#fbbf24' : '#a855f7', speed: 5 });
+        FX.burst(at.x, at.y, { count: 22, color: ev.kill ? '#f2cf8b' : '#8b8ff0', speed: 5 });
         FX.shake(4);
-        if (ev.kill) FX.float('CUT DOWN', at.x, at.y - 16, '#fbbf24');
       } else if (ev.kind === 'scan') {
-        FX.spawn(at.x, at.y, { count: 26, color: '#a855f7', speed: 2.4, size: 3 });
-        FX.float('REVEALED', at.x, at.y - 16, '#c4b5fd');
+        FX.spawn(at.x, at.y, { count: 26, color: '#b9a8ff', speed: 2.4, size: 3 });
       } else if (ev.kind === 'move') {
-        FX.spawn(at.x, at.y, { count: 8, color: '#22d3ee', speed: 1.4, size: 1.8, gravity: 0.02 });
+        FX.spawn(at.x, at.y, { count: 8, color: '#e0a94a', speed: 1.4, size: 1.8, gravity: 0.02 });
+      } else if (ev.kind === 'breach') {
+        FX.burst(at.x, at.y, { count: 34, color: '#c8452b', speed: 5 });
+        FX.shake(10);
       }
     });
 
+    shaktiChime(st);
     render();
-    if (rotated) {
-      spinRings();
-      FX.toast('The inner rings turned — everything they carried is exposed.', 'warn');
+    updateTension();
+    if (rotated) spinRings();
+    if (moverWasAi && !beats.length && mover) {
+      FX.toast(oppName(st) + ' moved a ' + (mover.revealed ? mover.name : 'piece') + '.', 'info');
     }
-    if (moverWasAi && !dramatic) {
-      FX.toast('Chandravansh moved a ' + (mover.revealed ? mover.name : 'piece') + '.', 'info');
-    }
+    speak(narrate(res.events, me, st));
+    modeHook('onEvents', { events: res.events, actor: actor, action: action });
 
     const finish = function () {
       g.busy = false;
       autosave();
       render();
+      if (skyEv && ST) ST.sky(skyEv.hour, E.hourOwner(st) === viewerOf(st));
       if (st.phase === 'over') { handleGameOver(); return; }
       if (isAi() && st.owner === 2) scheduleAi();
       else if (isPass()) showCurtain(st.owner, 'battle');
-      else banner('Your turn', U.FACTIONS[st.owner].deva + ' · turn ' + st.turn, st.owner === 1 ? 'solar' : 'void');
-      if (st.boardKey === 'wheel' && st.phase === 'battle' && E.turnsUntilRotation(st) === 1 && g.warnedAt !== st.turn) {
+      else banner('Your turn', U.FACTIONS[st.owner].deva + ' · round ' + st.turn, st.owner === 1 ? 'solar' : 'void');
+      if (E.hasRotation(st) && st.phase === 'battle' && E.turnsUntilRotation(st) === 1 && g.warnedAt !== st.turn) {
         g.warnedAt = st.turn;
-        FX.toast('The chakra turns next round — the inner rings will shift and expose what they carry.', 'warn');
+        FX.toast('The ' + (board().kind === 'hex' ? 'lotus' : 'chakra') + ' turns next round — the inner rings will shift and expose what they carry.', 'warn');
       }
       startClockIfNeeded();
     };
 
-    if (dramatic) showCombatModal(dramatic, finish);
-    else finish();
+    playBeats(beats, me, finish);
   }
 
-  /* ── combat modal ──────────────────────────────────────────── */
-
-  function showCombatModal(ev, done) {
-    const st = g.state;
-    const viewer = st.viewer === 3 ? 1 : st.viewer;
-    const att = ev.unit;
-    const def = ev.target;
-
-    const card = function (u, dead) {
-      const show = u.owner === viewer || u.revealed || st.phase === 'over' || u.owner !== viewer;
-      return '<div class="combat-card ' + (u.owner === 1 ? 'solar' : 'void') + (dead ? ' dead' : '') + '">' +
-        '<div class="combat-emblem">' + A.emblem(show ? u.key : 'F') + '</div>' +
-        '<div class="combat-faction">' + U.FACTIONS[u.owner].short + '</div>' +
-        '<div class="combat-name">' + (show ? esc(u.name) : 'Hidden piece') + '</div>' +
-        '<div class="combat-rank">rank ' + (show ? esc(u.badge) : '?') + '</div></div>';
-    };
-
-    let title = 'Astral clash';
-    let kicker = 'Combat resolved';
-    let outcomeCls = '';
-    let attDead = false;
-    let defDead = false;
-
-    if (ev.kind === 'clash') {
-      if (ev.core) { title = 'The fort is taken'; outcomeCls = 'win'; defDead = true; }
-      else if (ev.outcome === 'att') { title = 'Attacker prevails'; outcomeCls = 'win'; defDead = true; }
-      else if (ev.outcome === 'def') { title = 'Defender holds'; outcomeCls = 'lose'; attDead = true; }
-      else { title = 'Mutual destruction'; outcomeCls = 'both'; attDead = true; defDead = true; }
-    } else if (ev.kind === 'barrage') {
-      kicker = 'Shara-varsha · two cells';
-      if (ev.kill) { title = 'Target cut down'; outcomeCls = 'win'; defDead = true; }
-      else if (ev.deflect) { title = 'Volley turned'; outcomeCls = 'lose'; }
-      else { title = 'The trap absorbed it'; outcomeCls = 'both'; }
-    } else if (ev.kind === 'scan') {
-      kicker = 'Divya-drishti';
-      title = 'Identity revealed';
-      outcomeCls = 'win';
-    }
-
-    let fired = false;
-    const fire = function () { if (!fired) { fired = true; if (done) done(); } };
-
-    AC.ui.modal({
-      kicker: kicker,
-      title: title,
-      art: A.artFor('ui:combat'),
-      body: '<div class="combat-arena">' + card(att, attDead) + '<div class="combat-vs">' +
-        (ev.kind === 'scan' ? '◎' : 'VS') + '</div>' + card(def, defDead) + '</div>' +
-        '<div class="combat-outcome ' + outcomeCls + '">' + esc(ev.text) + '</div>',
-      dismissible: false,
-      actions: [{ label: 'Continue', cls: 'btn-primary', onClick: fire }],
-      onClose: fire
-    });
+  /* Play the stage beats one after another, then carry on. */
+  function playBeats(list, viewer, done) {
+    if (!ST || !list.length || settings().cinematics === false) { done(); return; }
+    const ev = list.shift();
+    const next = function () { playBeats(list, viewer, done); };
+    if (ev.kind === 'clash') ST.clash(ev, viewer, next);
+    else if (ev.kind === 'barrage') ST.volley(ev, viewer, next);
+    else if (ev.kind === 'scan') ST.scan(ev, viewer, next);
+    else if (ev.kind === 'breach') ST.breach(ev, viewer, next);
+    else if (ev.kind === 'astra') ST.astra(ev, viewer, next);
+    else if (ev.kind === 'core') ST.clash(Object.assign({ outcome: 'att', core: true }, ev), viewer, next);
+    else next();
   }
 
   /* ── AI turn ───────────────────────────────────────────────── */
@@ -1048,7 +1392,7 @@
       g.aiTimer = null;
       const st = g.state;
       if (!st || st.phase !== 'battle' || st.owner !== 2) { g.thinking = false; render(); return; }
-      const act = AI.chooseAction(st, 2, diff);
+      const act = AI.chooseAction(st, 2, diff, modeHook('aiRng'));
       g.thinking = false;
       if (!act) {
         render();
@@ -1097,6 +1441,7 @@
     if (!act) return;
     FX.toast('Time — the advisor played your best move.', 'warn');
     sfx('warn');
+    resetSelection();
     performAction(act);
   }
 
@@ -1107,7 +1452,7 @@
     st.viewer = 0;
     render();
     const isDeploy = kind === 'deploy';
-    const title = isDeploy ? 'Pass to ' + U.FACTIONS[nextOwner].name : 'Pass to ' + U.FACTIONS[nextOwner].short + ' — turn ' + st.turn;
+    const title = isDeploy ? 'Pass to ' + U.FACTIONS[nextOwner].name : 'Pass to ' + U.FACTIONS[nextOwner].short + ' — round ' + st.turn;
     const sub = isDeploy
       ? 'The previous commander has locked their formation. Hand the device over before continuing.'
       : 'Hide the screen from your opponent, then hand over the device.';
@@ -1117,7 +1462,7 @@
     overlay.innerHTML =
       '<div class="curtain-card">' +
         '<div class="curtain-icon">' + A.icon('lock') + '</div>' +
-        '<div class="curtain-count">PRIVACY CURTAIN</div>' +
+        '<div class="curtain-count">PARDA · पर्दा</div>' +
         '<div class="curtain-title">' + esc(title) + '</div>' +
         '<div class="curtain-sub">' + esc(sub) + '</div>' +
         '<button class="btn btn-gold" id="curtain-go">I am ' + esc(U.FACTIONS[nextOwner].short) + ' — reveal</button>' +
@@ -1131,7 +1476,7 @@
       startClockIfNeeded();
       sfx('unlock');
       if (kind !== 'deploy') {
-        banner('Your turn', U.FACTIONS[nextOwner].deva + ' · turn ' + st.turn, nextOwner === 1 ? 'solar' : 'void');
+        banner('Your turn', U.FACTIONS[nextOwner].deva + ' · round ' + st.turn, nextOwner === 1 ? 'solar' : 'void');
       }
     };
     overlay.querySelector('#curtain-go').addEventListener('click', reveal);
@@ -1140,6 +1485,8 @@
 
   /* ── deployment actions ──────────────────────────────────── */
 
+  const PRESET_NAMES = { citadel: 'Durg (guard the fort)', blitz: 'Aakraman (strike first)', lattice: 'Jaal (the net)', shuffle: 'Shuffle' };
+
   function deployPreset(style) {
     const st = g.state;
     const owner = st.phase === 'deploy1' ? 1 : 2;
@@ -1147,7 +1494,7 @@
     g.sel = null;
     sfx('deploy');
     render();
-    FX.toast(style.charAt(0).toUpperCase() + style.slice(1) + ' formation applied.', 'info');
+    FX.toast((PRESET_NAMES[style] || style) + ' formation applied.', 'info');
   }
 
   function lockFormation() {
@@ -1161,10 +1508,10 @@
         showCurtain(2, 'deploy');
       } else {
         E.beginBattle(st);
-        FX.toast('Formation locked. Battle stations.', 'success');
+        sfx('shankh');
         render();
-        banner(st.turnLimit ? 'The breach begins' : 'Battle begins',
-          U.FACTIONS[1].deva + ' moves first · ' + (st.turnLimit ? st.turnLimit + ' rounds to break the fort' : 'take the fort'), 'gold');
+        banner(st.turnLimit ? 'The breach begins' : 'Yuddh aarambh',
+          (st.turnLimit ? st.turnLimit + ' rounds to take the fort' : 'break the gate, take the fort'), 'gold', 1600);
         autosave();
         startClockIfNeeded();
       }
@@ -1174,6 +1521,7 @@
       if (!E.armyComplete(st, 2)) { FX.toast('Your army is not complete.', 'error'); return; }
       sfx('lock');
       E.beginBattle(st);
+      sfx('shankh');
       render();
       autosave();
       if (isPass()) showCurtain(1, 'battle');
@@ -1189,7 +1537,7 @@
       const u = st.board[id];
       if (u && u.owner === owner) map[id] = u.key;
     });
-    AC.ui.promptText({ kicker: 'Formation', title: 'Save this formation', label: 'Formation name', value: 'My formation' })
+    AC.ui.promptText({ kicker: 'Formation', title: 'Save this formation', label: 'Formation name', value: 'My vyuha' })
       .then(function (name) {
         if (!name) return;
         S.saveFormation(name, map, st.boardKey);
@@ -1262,9 +1610,9 @@
     const advice = AI.advise(st, st.owner, 3);
     if (!advice.length) { FX.toast('No legal moves available.', 'warn'); return; }
     const m = AC.ui.modal({
-      kicker: 'Advisor · ' + U.FACTIONS[st.owner].short,
-      title: 'Recommended orders',
-      sub: 'Ranked by the same belief model the AI uses. Tap one to see it on the board.',
+      kicker: 'Mantri · ' + U.FACTIONS[st.owner].short,
+      title: 'Three good orders',
+      sub: 'Ranked by the same reading of the field the AI uses. Tap one to see it on the board.',
       body: '<div class="advice-list">' + advice.map(function (a, i) {
         return '<button class="advice-item" data-adv="' + i + '">' +
           '<span class="advice-score">' + (i === 0 ? '★' : (i + 1)) + '</span>' +
@@ -1278,10 +1626,17 @@
       if (!btn) return;
       const a = advice[Number(btn.getAttribute('data-adv'))];
       if (!a) return;
-      g.sel = a.action.from;
-      g.mode = (a.action.type === 'scan' || a.action.type === 'barrage') ? 'special' : 'move';
       m.close();
-      render();
+      if (a.action.type === 'astra') {
+        enterAstra(a.action.astra);
+        if (a.action.astra === 'vayavya' && a.action.from) g.astraFirst = a.action.from;
+        g.armed = a.action.to;
+        render();
+      } else {
+        g.sel = a.action.from;
+        g.mode = (a.action.type === 'scan' || a.action.type === 'barrage') ? 'special' : 'move';
+        render();
+      }
       const at = cellCenter(a.action.to);
       FX.spawn(at.x, at.y, { count: 14, color: '#34d399', speed: 2 });
     });
@@ -1289,18 +1644,20 @@
 
   function openHelp() {
     const st = g.state;
-    const wheel = st && st.boardKey === 'wheel';
+    const turning = st && E.hasRotation(st);
     const cards = [
-      ['व्यूह रचना', 'Deploy', 'Twelve pieces in your own zone. Tap one, then another, to swap them. Presets are only a starting point.'],
-      ['चाल', 'Move', 'Tap your piece, then tap a glowing cell. One step, or a whole lane for the chariot.'],
-      ['संघर्ष', 'Strike', 'Tap your piece, then tap a red-ringed enemy. Both ranks stay hidden until the blow lands — the odds panel tells you the risk first.'],
-      ['दिव्य शक्ति', 'Powers', 'Three classes act without moving: the seer scans, the archer shoots two cells, the cavalry dashes two. The bar appears when you select one.'],
-      wheel ? ['चक्र', 'The turn', 'Every fifth round the inner rings turn one cell, and whatever they carry is exposed. Fast lanes, public cost.'] : ['चक्र', 'The clock', 'Sixty orders without a capture is a draw. The countdown is always on the intel tab.'],
-      ['विजय', 'Win', 'Take the enemy fort, or leave them with no legal move. Lose your own fort and it is over.']
+      ['व्यूह रचना', 'Deploy', 'Twelve pieces in your own ground. Tap one, then another, to swap them. Presets are only a starting point.'],
+      ['चाल', 'Move', 'Tap your piece, then a glowing cell. One step, two for the cavalry, a whole lane for the chariot.'],
+      ['संघर्ष', 'Strike', 'Tap a ringed enemy to see your odds, tap again to strike. Ranks stay hidden until the blow lands.'],
+      ['दुर्ग', 'The fort', 'The first blow breaks its gate and reveals it. The second blow takes it — and the match.'],
+      ['पहर', 'The hours', 'Every fifth round the sky turns. Suryavansh strikes at +1 by day, Chandravansh at +1 by night.'],
+      ['व्यूह', 'Formations', 'Makara: strike a piece another of yours touches, +1. Padma: a piece with two friends beside it defends at +1.'],
+      ['शक्ति', 'Shakti & astras', 'Every piece you take lights a lamp. Spend lamps on four divine weapons — each once per match.'],
+      turning ? ['चक्र', 'The turn', 'Every fifth round the inner rings turn one cell, and whatever they carry is exposed.'] : ['सूर्यास्त', 'Sunset', 'If the war runs long, at sunset the stronger army holds the field.']
     ];
     AC.ui.modal({
       kicker: 'Learn in one screen',
-      title: 'Six things to know',
+      title: 'Eight things to know',
       wide: true,
       body: '<div class="learn-grid">' + cards.map(function (c) {
         return '<div class="learn-card"><span class="deva">' + c[0] + '</span><b>' + esc(c[1]) + '</b><p>' + esc(c[2]) + '</p></div>';
@@ -1323,11 +1680,19 @@
 
   /* ── game over ────────────────────────────────────────────── */
 
+  function shareLine(st, outcome) {
+    const b = U.BOARDS[st.boardKey] || U.BOARDS.wheel;
+    if (outcome === 'win') return 'I broke ' + oppName(st) + '’s army on the ' + b.label + ' in ' + st.turn + ' rounds. Can you?';
+    if (outcome === 'loss') return oppName(st) + ' took my fort on the ' + b.label + '. Avenge me.';
+    return 'The field was shared on the ' + b.label + ' after ' + st.turn + ' rounds.';
+  }
+
   function handleGameOver() {
     if (g.over) return;
     g.over = true;
     stopClock();
     clearTimers();
+    AU.setTension(0);
     const st = g.state;
     st.viewer = 3;
     render();
@@ -1338,7 +1703,7 @@
     if (winner === 1) outcome = 'win';
     else if (winner === 2) outcome = 'loss';
 
-    if (isAiGame && AC.app.profile && !AC.app.guest) {
+    if (isAiGame && AC.app.profile && !AC.app.guest && !modeHook('noRecord')) {
       S.recordResult(AC.app.profile.id, {
         outcome: outcome,
         captures: (st.captured[1] || []).length,
@@ -1349,41 +1714,57 @@
     }
     S.deleteSave('auto');
 
-    const title = winner === 0 ? 'Stalemate' : (winner === 1 ? 'Suryavansh triumphs' : 'Chandravansh conquers');
-    const cls = winner === 0 ? 'draw' : winner === 1 ? 'win' : 'lose';
+    const title = winner === 0 ? 'The field is shared' : (winner === 1 ? 'Suryavansh triumphs' : 'Chandravansh conquers');
+    const deva = winner === 0 ? 'समान' : ((isAiGame ? outcome === 'win' : true) ? 'विजय' : 'पराजय');
+    const cls = winner === 0 ? 'draw' : (isAiGame ? (outcome === 'win' ? 'win' : 'lose') : 'win');
     sfx(winner === 0 ? 'draw' : isAiGame ? (outcome === 'win' ? 'win' : 'lose') : 'win');
     if (winner === 0) AU.sting('defeat');
-    else if (!isAiGame || outcome === 'win') AU.sting('victory');
+    else if (!isAiGame || outcome === 'win') { AU.sting('victory'); sfx('shankh'); }
     else AU.sting('defeat');
     if (winner !== 0) FX.shake(9);
+    speak([winner === 0 ? 'draw' : (isAiGame ? (outcome === 'win' ? 'victory' : 'defeat') : 'victory')]);
+
+    const extra = modeHook('resultExtras', { outcome: outcome }) || null;
+    const astrasUsed = (st.astraLog || []).filter(function (a) { return a.owner === 1; }).length;
+    const actions = [
+      { label: 'Home', cls: 'btn-ghost', onClick: function () { g.state = null; AC.ui.show('home'); } },
+      { label: 'Review board', cls: 'btn-ghost', onClick: function () { render(); } }
+    ];
+    if (extra && extra.actions) extra.actions.forEach(function (a) { actions.push(a); });
+    else {
+      if (isAiGame && outcome !== 'draw' && AC.share) {
+        actions.push({ label: 'Share', cls: 'btn-ghost', icon: 'share', close: false, onClick: function () { AC.share.text(shareLine(st, outcome)); } });
+      }
+      actions.push({ label: 'Rematch', cls: 'btn-primary', onClick: function () { g.start(st.config); } });
+    }
 
     AC.ui.modal({
-      kicker: 'Engagement complete',
+      kicker: 'Yuddh samaapt',
       title: '',
-      art: A.artFor(winner === 1 ? 'ui:victory' : winner === 2 ? 'ui:defeat' : 'ui:combat'),
+      art: A.artFor(cls === 'win' ? 'ui:victory' : cls === 'lose' ? 'ui:defeat' : 'ui:combat'),
       dismissible: false,
+      wide: !!(extra && extra.wide),
       body:
         '<div class="result-hero">' +
+          '<div class="result-deva deva ' + cls + '">' + deva + '</div>' +
           '<div class="result-title ' + cls + '">' + esc(title) + '</div>' +
           '<div class="result-reason">' + esc(st.reason || '') + '</div>' +
         '</div>' +
         '<div class="result-stats">' +
-          '<div class="result-stat"><b>' + st.turn + '</b><span>turns</span></div>' +
-          '<div class="result-stat"><b>' + st.stats.actions + '</b><span>orders</span></div>' +
-          '<div class="result-stat"><b>' + (st.captured[1] || []).length + '</b><span>captures</span></div>' +
-        '</div>',
-      actions: [
-        { label: 'Command deck', cls: 'btn-ghost', onClick: function () { g.state = null; AC.ui.show('home'); } },
-        { label: 'Review board', cls: 'btn-ghost', onClick: function () { render(); } },
-        { label: 'Rematch', cls: 'btn-primary', onClick: function () { g.start(st.config); } }
-      ]
+          '<div class="result-stat"><b>' + st.turn + '</b><span>rounds</span></div>' +
+          '<div class="result-stat"><b>' + (st.captured[1] || []).length + '</b><span>taken</span></div>' +
+          '<div class="result-stat"><b>' + (st.captured[2] || []).length + '</b><span>lost</span></div>' +
+          '<div class="result-stat"><b>' + astrasUsed + '</b><span>astras</span></div>' +
+        '</div>' +
+        (extra && extra.html ? extra.html : ''),
+      actions: actions
     });
   }
 
   g.resign = function () {
     if (!g.state || g.state.phase === 'over') return;
     const loser = g.state.owner;
-    E.endGame(g.state, loser === 1 ? 2 : 1, U.FACTIONS[loser].name + ' resigned the engagement.', []);
+    E.endGame(g.state, loser === 1 ? 2 : 1, U.FACTIONS[loser].name + ' left the field.', []);
     handleGameOver();
   };
 
@@ -1401,7 +1782,7 @@
       if (!cell || !g.state || g.state.phase !== 'battle') return;
       const id = cell.getAttribute('data-id');
       const u = g.state.board[id];
-      const viewer = g.state.viewer === 3 ? 1 : g.state.viewer;
+      const viewer = viewerOf(g.state);
       if (u && u.owner !== viewer && !u.revealed && g.focus !== id) {
         g.focus = id;
         renderIntel();
@@ -1457,12 +1838,15 @@
         return;
       }
       if (e.target.closest('[data-formation]')) { applySavedFormation(); return; }
+      const astraBtn = e.target.closest('[data-astra]');
+      if (astraBtn) { enterAstra(astraBtn.getAttribute('data-astra')); return; }
       const mode = e.target.closest('[data-mode]');
-      if (mode) { g.mode = mode.getAttribute('data-mode'); sfx('ui'); render(); return; }
+      if (mode) { g.mode = mode.getAttribute('data-mode'); g.armed = null; sfx('ui'); render(); return; }
       const act = e.target.closest('[data-act]');
       if (act) {
         const what = act.getAttribute('data-act');
-        if (what === 'deselect') { g.sel = null; g.mode = 'move'; sfx('deselect'); render(); }
+        if (what === 'deselect') { resetSelection(); sfx('deselect'); render(); }
+        if (what === 'cancel-astra') cancelAstra();
         if (what === 'advisor') { sfx('ui'); openAdvisor(); }
         return;
       }
@@ -1501,13 +1885,17 @@
       document.getElementById('intel-panel').classList.remove('open');
       document.getElementById('scrim').classList.remove('on');
     });
+    const sky = document.getElementById('hud-sky');
+    if (sky) sky.addEventListener('click', function () { sfx('ui'); g.openIntel(); });
   }
 
   g.wire = wire;
   g.render = render;
   g.tile = onCell;
   g.advisor = openAdvisor;
-  g.autosave = autosave;
+  g.perform = performAction;
+  g.enterAstra = enterAstra;
+  g.speak = speak;
 
   AC.game = g;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

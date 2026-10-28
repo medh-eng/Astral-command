@@ -4,16 +4,19 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#05070f" />
-<meta name="description" content="VYUHA — a hidden-rank duel of war formations on a field that turns. Two commanders on one device, or against the Astral AI." />
+<meta name="description" content="VYUHA — a hidden-rank war of formations from the Indian epics. Break the Chakravyuha, play the Daily puzzle, challenge your friends." />
+<meta property="og:title" content="VYUHA · व्यूह — Abhimanyu got in. Can you get out?" />
+<meta property="og:description" content="A hidden-rank strategy game of the epics: formations, the hours of Surya and Chandra, astras, and a Daily Chakravyuha for all of India." />
+<meta property="og:image" content="assets/art/opt/ui/hero.jpg" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>VYUHA · व्यूह — the seven formations</title>
+<title>VYUHA · व्यूह — the war of formations</title>
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="assets/art/opt/app/icon-512.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rozha+One&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="css/app.css" />
 </head>
 <body>
@@ -22,13 +25,16 @@
   <!-- ══ boot ══════════════════════════════════════════════════════ -->
   <div id="boot" class="boot">
     <div class="boot-mark">
-      <svg viewBox="0 0 32 32" class="boot-crystal" aria-hidden="true">
-        <path d="M16 2.5 L26 9.5 L23.5 24 L16 30 L8.5 24 L6 9.5 Z" fill="none" stroke="currentColor" stroke-width="1.2"/>
-        <path d="M16 2.5 V30 M6 9.5 L16 14 L26 9.5" fill="none" stroke="currentColor" stroke-width="0.9" opacity="0.6"/>
+      <svg viewBox="0 0 64 64" class="boot-crystal boot-chakra" aria-hidden="true">
+        <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <circle cx="32" cy="32" r="19" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.7"/>
+        <circle cx="32" cy="32" r="9" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <circle cx="32" cy="32" r="3" fill="currentColor"/>
+        <path d="M32 4V23M32 41V60M4 32H23M41 32H60M12.2 12.2L25.6 25.6M38.4 38.4L51.8 51.8M51.8 12.2L38.4 25.6M25.6 38.4L12.2 51.8" stroke="currentColor" stroke-width="1.2" opacity="0.8"/>
       </svg>
     </div>
-    <h1 class="boot-title">AETHERFRONT</h1>
-    <p class="boot-sub">ASTRAL COMMAND</p>
+    <h1 class="boot-title">VYUHA</h1>
+    <p class="boot-sub deva">व्यूह · the war of formations</p>
     <div class="boot-bar"><span></span></div>
   </div>
 
@@ -38,22 +44,22 @@
     <div class="auth-veil" aria-hidden="true"></div>
     <div class="auth-grid">
       <div class="auth-hero">
-        <div class="hero-kicker">HIDDEN-RANK TACTICAL DUEL</div>
-        <h1 class="hero-title">VYUHA<span class="deva">व्यूह</span><em>the seven formations</em></h1>
+        <div class="hero-kicker">A WAR OF FORMATIONS FROM THE EPICS</div>
+        <h1 class="hero-title">VYUHA<span class="deva">व्यूह</span><em>Abhimanyu got in. Can you get out?</em></h1>
         <p class="hero-lede">
-          Twelve pieces. Ten hidden ranks. One fort.
-          Read the silence, probe the dark, and break the enemy line.
+          Twelve pieces. Ten hidden ranks. One fort with a gate.
+          Read the silence, wait for your hour, close the jaws — and break the wheel.
         </p>
         <ul class="hero-points">
-          <li><b>Blind ranks</b> — you never see what you are attacking until you commit.</li>
-          <li><b>Intel over luck</b> — scans, beliefs and odds replace guesswork.</li>
-          <li><b>Two commanders, one slate</b> — pass-and-play with a privacy curtain.</li>
+          <li><b>Hidden ranks</b> — you never see what you strike until the blow lands.</li>
+          <li><b>Surya &amp; Chandra</b> — every fifth round the sky turns, and the hour decides the fight.</li>
+          <li><b>Astras</b> — Shakti from every piece you take powers four divine weapons.</li>
         </ul>
       </div>
 
       <div class="auth-card glass">
         <div class="auth-card-head">
-          <div class="auth-card-title">Commander access</div>
+          <div class="auth-card-title">Choose your yoddha</div>
           <div class="auth-card-sub" id="auth-sub">Select a profile, or commission a new one.</div>
         </div>
 
@@ -72,8 +78,8 @@
 
         <form id="form-new" class="new-profile" autocomplete="off" hidden>
           <div class="field">
-            <label for="new-name">Callsign</label>
-            <input id="new-name" name="name" maxlength="18" placeholder="e.g. Commander Vega" required />
+            <label for="new-name">Your name</label>
+            <input id="new-name" name="name" maxlength="18" placeholder="e.g. Arjun" required />
           </div>
           <div class="field">
             <label>Sigil</label>
@@ -84,13 +90,13 @@
             <input id="new-pin" name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="Leave blank for no lock" />
           </div>
           <div class="new-actions">
-            <button class="btn btn-primary" type="submit">Commission commander</button>
+            <button class="btn btn-primary" type="submit">Enter the field</button>
             <button class="btn btn-ghost" type="button" id="btn-cancel-new">Back</button>
           </div>
         </form>
 
         <div class="auth-foot">
-          <button class="btn btn-ghost btn-sm" id="btn-new-profile" type="button">+ New commander</button>
+          <button class="btn btn-ghost btn-sm" id="btn-new-profile" type="button">+ New player</button>
           <button class="btn btn-ghost btn-sm" id="btn-guest" type="button">Play as guest</button>
         </div>
         <p class="fineprint" id="auth-fineprint">
@@ -119,16 +125,41 @@
 
     <div class="home-wrap">
       <div class="home-main">
-        <div class="home-headline">
-          <div class="kicker" id="home-greeting">Welcome back</div>
-          <h2>Command deck</h2>
+        <div class="home-hero">
+          <div class="home-chakra" aria-hidden="true">
+            <svg viewBox="-50 -50 100 100">
+              <g class="hc-outer"><circle r="46"/><circle r="41"/></g>
+              <g class="hc-spokes"></g>
+              <g class="hc-inner"><circle r="24"/><circle r="12"/><circle class="hc-bindu" r="3.2"/></g>
+            </svg>
+          </div>
+          <div class="home-hero-text">
+            <div class="kicker" id="home-greeting">Pranam</div>
+            <h2 class="home-title">VYUHA <span class="deva">व्यूह</span></h2>
+            <p class="home-tag">Abhimanyu got in. Can you get out?</p>
+            <button class="btn btn-primary btn-hero" id="btn-quick">
+              <span class="btn-hero-main" id="ci-quick"></span>
+              <span class="btn-hero-sub" id="quick-sub">Chakravyuha · vs Dronacharya</span>
+            </button>
+          </div>
         </div>
 
         <div class="action-grid">
-          <button class="card-action card-primary" id="btn-new-match">
+          <button class="card-action card-daily" id="btn-daily">
+            <span class="card-icon" id="ci-daily"></span>
+            <span class="card-title" id="daily-title">Daily Chakravyuha</span>
+            <span class="card-sub" id="daily-sub">Today's wheel is waiting</span>
+            <span class="card-badge" id="daily-badge"></span>
+          </button>
+          <button class="card-action" id="btn-tutorial">
+            <span class="card-icon" id="ci-tutorial"></span>
+            <span class="card-title">Pehla Yuddh <span class="deva">पहला युद्ध</span></span>
+            <span class="card-sub" id="tutorial-sub">Learn the field in two minutes</span>
+          </button>
+          <button class="card-action" id="btn-new-match">
             <span class="card-icon" id="ci-new"></span>
-            <span class="card-title">New engagement</span>
-            <span class="card-sub">Choose board, mode and difficulty</span>
+            <span class="card-title">Custom battle</span>
+            <span class="card-sub">Board, opponent, scenario and rules</span>
           </button>
           <button class="card-action" id="btn-resume">
             <span class="card-icon" id="ci-resume"></span>
@@ -142,38 +173,28 @@
           </button>
           <button class="card-action" id="btn-codex">
             <span class="card-icon" id="ci-codex"></span>
-            <span class="card-title">Codex &amp; rules</span>
-            <span class="card-sub">Every rank, power and edge case</span>
+            <span class="card-title">Codex <span class="deva">ग्रंथ</span></span>
+            <span class="card-sub">Pieces, astras, hours and formations</span>
           </button>
-        </div>
-
-        <div class="panel manual-panel">
-          <div class="panel-head"><span>Field manual</span></div>
-          <ol class="manual-list">
-            <li><b>Deploy</b> — twelve pieces in your back three rows. Swap any two squares; presets are starting points.</li>
-            <li><b>Probe</b> — cheap pieces learn. Immovable enemy pieces are a Mine or the Core.</li>
-            <li><b>Reveal</b> — fights, scans and long Strider runs expose ranks permanently.</li>
-            <li><b>Break the core</b> — capture it, or leave the enemy with no legal move.</li>
-          </ol>
         </div>
 
         <div class="panel stat-panel">
           <div class="panel-head">
-            <span>Service record</span>
+            <span>Your record</span>
             <button class="link-btn" id="btn-reset-stats">reset</button>
           </div>
           <div class="stat-grid" id="stat-grid"></div>
           <div class="winrate">
             <div class="winrate-bar"><span id="winrate-fill"></span></div>
-            <div class="winrate-label" id="winrate-label">No matches yet</div>
+            <div class="winrate-label" id="winrate-label">No battles yet</div>
           </div>
         </div>
       </div>
 
       <aside class="home-side">
-        <div class="panel">
-          <div class="panel-head"><span>Intel briefing</span></div>
-          <p class="briefing" id="home-briefing">The Astral Rifts split the field into lanes. Anything immovable is either a Mine or the Core — probe with cheap pieces first.</p>
+        <div class="panel sanjaya-panel">
+          <div class="panel-head"><span>Sanjaya says</span></div>
+          <div class="sanjaya-says"><span class="sanjaya-face" id="home-sanjaya"></span><p class="briefing" id="home-briefing">The armies are gathering, Maharaj.</p></div>
         </div>
         <div class="panel">
           <div class="panel-head"><span>Quick settings</span></div>
@@ -186,7 +207,7 @@
             <button class="btn btn-ghost btn-sm" id="btn-import">Import backup</button>
             <input type="file" id="file-import" accept="application/json,.json" hidden />
           </div>
-          <p class="fineprint">Backups contain profiles (with hashed codes), saved games and settings.</p>
+          <p class="fineprint">Your profile, saves and settings stay on this device. Backups move them to another.</p>
         </div>
       </aside>
     </div>
@@ -196,26 +217,26 @@
   <section id="screen-setup" class="screen setup-screen" hidden>
     <header class="top-bar">
       <button class="icon-btn" id="btn-setup-back" aria-label="Back"></button>
-      <div class="top-name">New engagement</div>
+      <div class="top-name">Custom battle</div>
       <div class="top-actions"></div>
     </header>
     <div class="setup-wrap">
       <div class="setup-form" id="setup-form"></div>
       <aside class="setup-side">
         <div class="panel">
-          <div class="panel-head"><span>Match summary</span></div>
+          <div class="panel-head"><span>Your battle</span></div>
           <div id="setup-summary" class="setup-summary"></div>
           <button class="btn btn-primary btn-block" id="btn-start-match">Deploy army</button>
           <button class="btn btn-ghost btn-block btn-sm" id="btn-how-to" style="margin-top:8px">How to play</button>
         </div>
         <div class="panel panel-quiet">
-          <div class="panel-head"><span>Rules quick reference</span></div>
+          <div class="panel-head"><span>The rules in five lines</span></div>
           <ul class="rules-list">
-            <li>Move along a cell's lanes. Rifts block movement, never the archer's volley.</li>
-            <li>Attacker resolves first: ties depend on the tie rule you pick.</li>
-            <li>Immovable pieces are a Shataghni or the fort — probe them cheaply.</li>
-            <li>On the wheel, rings 1 and 2 turn every fifth round and expose what they carry.</li>
-            <li>Take the enemy fort, or leave them with no legal move.</li>
+            <li>Ranks are hidden until pieces fight. Higher strength wins.</li>
+            <li>The fort's gate breaks on the first blow; the second blow takes it.</li>
+            <li>Every fifth round the sky turns: your hour gives your strikes +1.</li>
+            <li>Makara (a pincer) +1 to strike; Padma (two friends beside) +1 to defend.</li>
+            <li>Shakti from every piece you take powers four astras, each once per match.</li>
           </ul>
         </div>
       </aside>
@@ -231,6 +252,7 @@
         <div class="hud-sub" id="hud-sub">Arrange your army</div>
       </div>
       <div class="hud-right">
+        <button class="sky-chip" id="hud-sky" hidden aria-label="The hour"></button>
         <div class="clock hidden" id="hud-clock">1:00</div>
         <button class="icon-btn" id="btn-hud-intel" aria-label="Intel"></button>
         <button class="icon-btn" id="btn-hud-log" aria-label="Battle log"></button>
@@ -243,6 +265,7 @@
 
       <main class="board-column">
         <div class="player-strip" id="strip-top"></div>
+        <div class="coach" id="coach" hidden></div>
         <div class="board-shell" id="board-shell">
           <span class="boss tl" aria-hidden="true"></span><span class="boss tr" aria-hidden="true"></span>
           <span class="boss bl" aria-hidden="true"></span><span class="boss br" aria-hidden="true"></span>
@@ -253,14 +276,14 @@
 
       <aside class="log-panel" id="log-panel" aria-label="Battle log">
         <div class="log-head">
-          <span>Battle log</span>
+          <span>Yuddh-vritant · battle log</span>
           <button class="icon-btn icon-btn-xs" id="btn-log-close" aria-label="Close log"></button>
         </div>
         <div class="battle-log" id="battle-log"></div>
       </aside>
     </div>
 
-    <div class="tip-bar" id="tip-bar"><span class="tip-ico">◆</span><span id="tip-text"></span></div>
+    <div class="tip-bar" id="tip-bar"><span id="tip-text"></span></div>
   <footer class="action-bar" id="action-bar"></footer>
     <div class="scrim" id="scrim"></div>
   </section>
@@ -285,8 +308,11 @@
 <script src="js/storage.js"></script>
 <script src="js/art.js"></script>
 <script src="js/fx.js"></script>
+<script src="js/sanjaya.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/stage.js"></script>
 <script src="js/game.js"></script>
+<script src="js/modes.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
