@@ -101,6 +101,7 @@
     faction: function (n) { return 'assets/art/opt/factions/' + (n === '1' ? 'suryavansh' : 'chandravansh') + '.webp'; },
     board: function (k) { return 'assets/art/opt/boards/' + k + '.jpg'; },
     ui: function (n) { return 'assets/art/opt/ui/' + n + '.jpg'; },
+    banner: function (n) { return 'assets/art/banners/' + (n === '1' ? 'suryavansh' : 'chandravansh') + '.jpg'; },
     app: function () { return 'assets/art/opt/app/icon-512.png'; }
   };
 
@@ -155,6 +156,13 @@
     const painted = IMG['faction:' + faction];
     if (!painted) return '';
     return '<img class="crest" src="' + painted + '" alt="" draggable="false">';
+  }
+
+  /* The player-strip nameplate: a wide banner if one exists, else the crest. */
+  function banner(faction) {
+    const art = artFor('banner:' + faction);
+    if (art) return '<img class="strip-banner" src="' + art + '" alt="" draggable="false">';
+    return crest(faction);
   }
 
   /* ---------- faction sigils (used for avatars) ---------- */
@@ -256,6 +264,7 @@
     artFor: artFor,
     tokenInner: tokenInner,
     crest: crest,
+    banner: banner,
     onArtLoaded: function (fn) { onArt = fn; }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

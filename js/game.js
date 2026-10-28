@@ -174,6 +174,9 @@
 
   function render() {
     if (!g.state) return;
+    // deployment gets the tabla score, battle gets the war drums
+    if (g.state.phase === 'deploy1' || g.state.phase === 'deploy2') AU.startMusic('tabla');
+    else if (g.state.phase === 'battle') AU.startMusic('battle');
     renderHud();
     renderStrips();
     renderBoard();
@@ -257,10 +260,10 @@
     $('#strip-bottom').className = 'player-strip' + (st.phase === 'battle' && st.owner === 1 ? ' active-solar' : '') +
       (st.phase === 'deploy1' ? ' active-solar' : '');
 
-    $('#strip-top').innerHTML = A.crest(2) +
+    $('#strip-top').innerHTML = A.banner(2) +
       '<span class="strip-name" style="color:var(--void)">' + esc(topLabel) + '</span>' +
       '<span class="strip-count">' + aliveCount(2) + '/' + E.rosterOf(st, 2).length + '</span>' + captureTray(2);
-    $('#strip-bottom').innerHTML = A.crest(1) +
+    $('#strip-bottom').innerHTML = A.banner(1) +
       '<span class="strip-name" style="color:var(--solar)">' + esc(botLabel) + '</span>' +
       '<span class="strip-count">' + aliveCount(1) + '/' + E.rosterOf(st, 1).length + '</span>' + captureTray(1);
   }
@@ -404,7 +407,7 @@
         const icon = A.artFor('app');
         if (icon) {
           hubArt = '<image href="' + icon + '" x="' + (-cell.r * 0.72) + '" y="' + (-cell.r * 0.72) +
-            '" width="' + (cell.r * 1.44) + '" height="' + (cell.r * 1.44) + '" opacity="0.9" preserveAspectRatio="xMidYMid meet"/>';
+            '" width="' + (cell.r * 1.44) + '" height="' + (cell.r * 1.44) + '" opacity="1" preserveAspectRatio="xMidYMid meet"/>';
         }
       }
       const markup = '<g class="' + cls + '" data-id="' + id + '" tabindex="0" role="gridcell" aria-label="' + esc(label) + '">' +
@@ -1269,6 +1272,9 @@
     const title = winner === 0 ? 'Stalemate' : (winner === 1 ? 'Suryavansh triumphs' : 'Chandravansh conquers');
     const cls = winner === 0 ? 'draw' : winner === 1 ? 'win' : 'lose';
     sfx(winner === 0 ? 'draw' : isAiGame ? (outcome === 'win' ? 'win' : 'lose') : 'win');
+    if (winner === 0) AU.sting('defeat');
+    else if (!isAiGame || outcome === 'win') AU.sting('victory');
+    else AU.sting('defeat');
     if (winner !== 0) FX.shake(9);
 
     AC.ui.modal({

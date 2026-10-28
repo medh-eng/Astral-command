@@ -67,6 +67,7 @@
   function unlock() {
     init();
     if (ctx && ctx.state === 'suspended') ctx.resume();
+    loadSfx();
     return ctx;
   }
 
@@ -80,6 +81,7 @@
     sfxBus.gain.setTargetAtTime(settings.sfx, now(), 0.05);
     if (!musicPlaying) musicBus.gain.setTargetAtTime(0, now(), 0.05);
     else musicBus.gain.setTargetAtTime(settings.music * 0.5, now(), 0.08);
+    if (musicState.el) musicState.el.volume = Math.max(0.02, settings.music * 0.55);
   }
 
   function setSettings(s) {
@@ -270,6 +272,11 @@
 
   function play(name) {
     if (!ready || settings.muted) return;
+    const key = SFX_SAMPLE[name];
+    if (key && buffers[key]) {
+      const jitter = 0.94 + Math.random() * 0.12;
+      if (playBuffer(key, { rate: jitter, gain: 0.9 })) return;
+    }
     const fn = SFX[name];
     if (!fn) return;
     try { fn(); } catch (e) { /* audio must never break the game */ }
@@ -282,6 +289,119 @@
     if (navigator && typeof navigator.vibrate === 'function') {
       try { navigator.vibrate(pattern); } catch (e) { /* ignore */ }
     }
+  }
+
+  /* ---------- recorded audio ----------
+     Real tracks and one-shots, with the synthesiser kept as the fallback so
+     the game still has a score if a file is missing or blocked. */
+  const SAMPLE_PATHS = {
+    music: {
+      menu: 'assets/audio/music/menu.mp3',
+      tabla: 'assets/audio/music/tabla.mp3',
+      battle: 'assets/audio/music/battle.mp3',
+      victory: 'assets/audio/music/victory.mp3',
+      defeat: 'assets/audio/music/defeat.mp3'
+    },
+    sfx: {
+      clash: 'assets/audio/sfx/clash.mp3',
+      volley: 'assets/audio/sfx/volley.mp3',
+      chakra: 'assets/audio/sfx/chakra_turn.mp3',
+      place: 'assets/audio/sfx/piece_place.mp3'
+    }
+  };
+
+  // game event -> recorded one-shot
+  const SFX_SAMPLE = {
+    'clash-win': 'clash', 'clash-lose': 'clash', 'clash-both': 'clash',
+    mine: 'clash', barrage: 'volley', laser: 'volley',
+    rotate: 'chakra', deploy: 'place', swap: 'place', lock: 'place', step: 'place'
+  };
+
+  const buffers = {};
+  const sfxEls = {};
+  const musicEls = {};
+  let musicState = { mode: null, el: null };
+  let sfxLoading = false;
+
+  function loadSfx() {
+    if (sfxLoading) return;
+    sfxLoading = true;
+    Object.keys(SAMPLE_PATHS.sfx).forEach(function (key) {
+      const url = SAMPLE_PATHS.sfx[key];
+      // Preferred: decode into a buffer for lowest latency and free polyphony.
+      // Fallback (file://, no fetch): a preloaded <audio> element per sound.
+      const fallback = function () {
+        if (typeof Audio === 'undefined' || sfxEls[key]) return;
+        const el = new Audio(url);
+        el.preload = 'auto';
+        sfxEls[key] = el;
+      };
+      if (!ctx || typeof fetch !== 'function') { fallback(); return; }
+      fetch(url).then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+        .then(function (buf) {
+          if (!buf) return null;
+          return new Promise(function (res) {
+            ctx.decodeAudioData(buf, res, function () { res(null); });
+          });
+        })
+        .then(function (decoded) { if (decoded) buffers[key] = decoded; else fallback(); })
+        .catch(fallback);
+    });
+  }
+
+  function playBuffer(key, opts) {
+    const buf = buffers[key];
+    if (!buf || !ctx) {
+      const el = sfxEls[key];
+      if (!el) return false;
+      try {
+        const copy = el.cloneNode();
+        copy.volume = Math.min(1, Math.max(0.05, (opts && opts.gain != null ? opts.gain : 1) * 0.95));
+        copy.playbackRate = opts && opts.rate ? opts.rate : 1;
+        const p = copy.play();
+        if (p && p.catch) p.catch(function () { /* ignore */ });
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+    const src = ctx.createBufferSource();
+    const g = ctx.createGain();
+    src.buffer = buf;
+    src.playbackRate.value = opts && opts.rate ? opts.rate : 1;
+    g.gain.value = opts && opts.gain != null ? opts.gain : 1;
+    src.connect(g);
+    g.connect(sfxBus);
+    src.start();
+    return true;
+  }
+
+  function getMusicEl(mode) {
+    if (musicEls[mode]) return musicEls[mode];
+    if (typeof Audio === 'undefined') return null;
+    const el = new Audio();
+    el.src = SAMPLE_PATHS.music[mode];
+    el.loop = true;
+    el.preload = 'auto';
+    el.volume = 0;
+    musicEls[mode] = el;
+    return el;
+  }
+
+  function fade(el, target, ms) {
+    return new Promise(function (resolve) {
+      if (!el) { resolve(); return; }
+      const from = el.volume;
+      const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      const tick = function () {
+        const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+        const k = Math.min(1, (now - t0) / ms);
+        el.volume = Math.max(0, Math.min(1, from + (target - from) * k));
+        if (k < 1) requestAnimationFrame(tick);
+        else resolve();
+      };
+      tick();
+    });
   }
 
   /* ---------- procedural score ---------- */
@@ -347,7 +467,7 @@
     }
   }
 
-  function startMusic(mode) {
+  function startSynthMusic(mode) {
     init();
     if (!ctx) return;
     mode = mode || 'menu';
@@ -375,7 +495,7 @@
     }, 200);
   }
 
-  function stopMusic() {
+  function stopSynthMusic() {
     if (!ctx) return;
     musicPlaying = false;
     if (schedulerId) { clearInterval(schedulerId); schedulerId = null; }
@@ -388,6 +508,53 @@
     musicMode = mode;
   }
 
+  function startMusic(mode) {
+    mode = mode || 'menu';
+    init();
+    if (settings.muted || settings.musicOn === false) return;
+    if (musicState.mode === mode) return;
+    const el = getMusicEl(mode);
+    if (!el) { startSynthMusic(mode); return; }
+
+    const old = musicState.el;
+    musicState = { mode: mode, el: el };
+    stopSynthMusic();
+    try { el.currentTime = 0; } catch (e) { /* not loaded yet */ }
+    el.volume = 0;
+    let attempt = null;
+    try { attempt = el.play(); } catch (e) { attempt = null; }
+    if (attempt && attempt.catch) {
+      attempt.catch(function () { musicState = { mode: null, el: null }; startSynthMusic(mode); });
+    }
+    fade(el, Math.max(0.02, settings.music * 0.55), 900);
+    if (old && old !== el) fade(old, 0, 500).then(function () { try { old.pause(); } catch (e) { /* ignore */ } });
+  }
+
+  /* A one-off cue (victory / defeat) that ducks the score while it plays. */
+  function sting(kind) {
+    if (settings.muted || settings.musicOn === false) return;
+    init();
+    const el = getMusicEl(kind);
+    if (!el) return;
+    const current = musicState.el;
+    musicState = { mode: null, el: null };
+    if (current) fade(current, 0, 350).then(function () { try { current.pause(); } catch (e) { /* ignore */ } });
+    const once = musicEls[kind];
+    if (once) once.loop = false;
+    try { el.currentTime = 0; } catch (e) { /* ignore */ }
+    el.volume = Math.max(0.05, settings.music * 0.7);
+    let attempt = null;
+    try { attempt = el.play(); } catch (e) { attempt = null; }
+    if (attempt && attempt.catch) attempt.catch(function () { /* stay silent */ });
+  }
+
+  function stopMusic() {
+    stopSynthMusic();
+    const el = musicState.el;
+    musicState = { mode: null, el: null };
+    if (el) fade(el, 0, 400).then(function () { try { el.pause(); } catch (e) { /* ignore */ } });
+  }
+
   AC.audio = {
     supported: supported,
     init: init,
@@ -395,10 +562,22 @@
     play: play,
     buzz: buzz,
     startMusic: startMusic,
+    sting: sting,
     stopMusic: stopMusic,
     fadeTo: fadeTo,
     setSettings: setSettings,
     getSettings: getSettings,
-    state: function () { return { ready: ready, playing: musicPlaying, mode: musicMode }; }
+    state: function () {
+      const el = musicState.el;
+      return {
+        ready: ready,
+        mode: musicState.mode || (musicPlaying ? musicMode : null),
+        sample: !!el,
+        playing: el ? !el.paused : musicPlaying,
+        time: el ? Math.round(el.currentTime * 10) / 10 : 0,
+        volume: el ? Math.round(el.volume * 100) / 100 : 0,
+        sfxLoaded: Object.keys(buffers).length + Object.keys(sfxEls).length
+      };
+    }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -1372,11 +1372,11 @@ html.cb {
 }
 .btn-gold { background: linear-gradient(135deg, #fde9c0, #f2cf8b); color: #2b1d02; }
 
-.cell .cell-fill { fill: rgba(40, 34, 45, 0.94); stroke: rgba(224, 169, 74, 0.24); }
+.cell .cell-fill { fill: rgba(34, 29, 40, 0.95); stroke: rgba(224, 169, 74, 0.3); }
 .cell:nth-child(even) .cell-fill { fill: rgba(34, 29, 39, 0.94); }
 .cell.zone-1 .cell-fill { stroke: rgba(224, 169, 74, 0.34); }
 .cell.zone-2 .cell-fill { stroke: rgba(139, 143, 240, 0.34); }
-.cell.hub .cell-fill { fill: rgba(242, 207, 139, 0.1); stroke: rgba(242, 207, 139, 0.5); }
+.cell.hub .cell-fill { fill: rgba(242, 207, 139, 0.12); stroke: rgba(242, 207, 139, 0.62); stroke-width: 0.026; }
 .cell.selected .cell-fill { fill: rgba(224, 169, 74, 0.18); stroke: var(--solar); }
 .cell.target-move .cell-fill { fill: rgba(224, 169, 74, 0.15); stroke: rgba(224, 169, 74, 0.5); }
 .cell.target-attack .cell-fill { fill: rgba(139, 143, 240, 0.2); stroke: rgba(139, 143, 240, 0.75); }
@@ -1492,9 +1492,23 @@ html.cb {
   background-repeat: no-repeat;
 }
 
-.cell-tex { fill: url(#af-tex); opacity: 0.3; pointer-events: none; }
+.cell-tex { fill: url(#af-tex); opacity: 0.19; pointer-events: none; }
 .token .tok-crest { filter: brightness(1.55) saturate(1.05); }
 .cell.rift .cell-tex { opacity: 0.12; }
 .yantra circle { fill: none; stroke: rgba(242, 207, 139, 0.16); stroke-width: 0.008; }
 .yantra circle.dot { fill: rgba(242, 207, 139, 0.5); stroke: none; }
 .yantra line { stroke: rgba(242, 207, 139, 0.22); stroke-width: 0.01; }
+
+/* player-strip nameplate: the painted banner if supplied, else the crest */
+.strip-banner {
+  height: 34px;
+  width: auto;
+  flex: none;
+  border-radius: 8px;
+  margin-right: 4px;
+  border: 1px solid rgba(224, 169, 74, 0.28);
+  filter: brightness(1.22) contrast(1.05) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+@media (max-width: 780px) {
+  .strip-banner { height: 28px; border-radius: 6px; margin-right: 2px; }
+}

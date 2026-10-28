@@ -286,7 +286,9 @@ async function run() {
   await sleep(20);
   ok(game.state.phase === 'battle' && game.state.viewer === 1, 'battle starts as player 1');
 
-  const realErrors = errors.filter((e) => !/Not implemented: (window\.|HTMLCanvas)/.test(e));
+  // jsdom has no media stack and no canvas backend; those notices are not
+  // game errors (audio is verified in the browser instead)
+  const realErrors = errors.filter((e) => !/Not implemented: (window\.|HTMLCanvas|HTMLMediaElement)/.test(e));
   ok(realErrors.length === 0, 'no runtime errors' + (realErrors.length ? ': ' + realErrors.slice(0, 3).join(' | ') : ''));
 
   console.log('\n' + pass + ' passed, ' + fail + ' failed');

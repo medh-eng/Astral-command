@@ -58,8 +58,8 @@
     if (name === 'home') renderHome();
     if (name === 'setup') renderSetup();
     if (name === 'game' && AC.game) AC.game.onShow();
-    const musicMode = name === 'game' ? 'battle' : name === 'auth' ? 'menu' : 'menu';
-    if (app.settings.musicOn !== false) AU.startMusic(musicMode);
+    const musicMode = name === 'setup' ? 'tabla' : 'menu';
+    if (app.settings.musicOn !== false && name !== 'game') AU.startMusic(musicMode);
   }
 
   /* ── modal system ────────────────────────────────────────────── */

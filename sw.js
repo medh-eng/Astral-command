@@ -2,7 +2,7 @@
  * Network-first for navigation so updates land immediately, cache-first for
  * the static shell so the game still boots with no connection.
  */
-const CACHE = 'aetherfront-v8';
+const CACHE = 'aetherfront-v9';
 const SHELL = [
   './',
   './index.html',
@@ -32,7 +32,12 @@ const SHELL = [
   './assets/art/opt/units/shataghni.webp',
   './assets/art/opt/units/durg.webp',
   './assets/art/opt/factions/suryavansh.webp',
-  './assets/art/opt/factions/chandravansh.webp'
+  './assets/art/opt/factions/chandravansh.webp',
+  './assets/audio/sfx/clash.mp3',
+  './assets/audio/sfx/volley.mp3',
+  './assets/audio/sfx/chakra_turn.mp3',
+  './assets/audio/sfx/piece_place.mp3',
+  './assets/art/banners/chandravansh.jpg'
 ];
 
 self.addEventListener('install', (event) => {
