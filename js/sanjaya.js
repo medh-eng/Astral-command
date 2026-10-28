@@ -3,7 +3,8 @@
  * everything that happened on the battlefield. Here he tells you.
  *
  * Every line has an id. If a recorded voice file exists at
- *   assets/audio/voice/<lang>/<id>.mp3     (lang: hinglish | hi | en)
+ *   assets/audio/voice/hi/<id>.mp3   (Hindi voice — used with Hinglish or Hindi text)
+ *   assets/audio/voice/en/<id>.mp3   (English voice — used with English text)
  * it plays; otherwise the line is shown as text only. The full script, ready
  * for Sarvam AI's text-to-speech, is generated from this table into
  * docs/voice/sanjaya-lines.csv by tools/voice-script.mjs.
@@ -170,7 +171,8 @@
    * a game without voice files never asks twice. */
   function playVoice(line) {
     if (!voiceOn || typeof Audio === 'undefined') return;
-    const vlang = lang === 'en' ? 'en' : lang === 'hi' ? 'hi' : 'hinglish';
+    // one Hindi recording serves both the Hinglish and the Hindi text
+    const vlang = lang === 'en' ? 'en' : 'hi';
     const url = 'assets/audio/voice/' + vlang + '/' + line[0] + '.mp3';
     if (voiceMissing[url]) return;
     const settings = AC.audio && AC.audio.getSettings ? AC.audio.getSettings() : {};

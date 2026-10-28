@@ -1,4 +1,4 @@
-# Aetherfront — art brief & prompt pack
+# VYUHA — Chapter II art brief (in the game; Chapter III art is in docs/prompts/ART.md)
 
 Everything below is ready to paste into ChatGPT or Gemini. Generate the images, save them
 with the exact filenames, and drop them in `assets/art/…`. The game probes those paths at

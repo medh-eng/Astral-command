@@ -2118,3 +2118,4 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
   .btn-hero-sub { white-space: normal; }
   .card-daily .card-badge { right: 44px; }
 }
+.board-shell { background-size: cover; background-position: center; }

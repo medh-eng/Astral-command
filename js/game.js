@@ -602,6 +602,11 @@
       shell.classList.toggle('sky-day', hour === 'day');
       shell.classList.toggle('sky-night', hour === 'night');
       shell.classList.toggle('astra-mode', g.mode === 'astra');
+      // a painted sky behind the field, when the art exists (docs/prompts/ART.md)
+      const skyArt = hour ? A.artFor('sky:' + hour) : null;
+      shell.style.backgroundImage = skyArt
+        ? 'linear-gradient(180deg, rgba(6,5,10,.45), rgba(6,5,10,.72)), url("' + skyArt + '")'
+        : '';
       shell.setAttribute('data-astra', g.mode === 'astra' && g.astra ? g.astra : '');
     }
 
