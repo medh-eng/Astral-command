@@ -156,3 +156,45 @@ paint only pulls the ten pieces and two crests (~450 KB).
 Send them in any order — even three at a time is useful. The Senapati, the Durg (fort), the
 Shataghni (trap) and the two faction crests change the look the most, so start there if you
 want an early preview.
+
+---
+
+## 6. Faction banners
+
+`assets/art/banners/…` · **generate 16:9, opaque** — cropped to 600×140 for the player strips
+
+Most models will not produce a 4.3:1 banner, so generate 16:9 and keep every ornament inside
+the central horizontal band. The right half must stay dark and quiet: the strip prints the
+faction name, the alive count and the capture tray over it at 11 px.
+
+**Master style:** Indian temple-punk game UI art: carved brass and dark obsidian stone, fine
+engraved line work, subtle gold inlay, deep indigo shadows, heraldic, high contrast.
+No text, no letters, no numbers, no faces, no watermark.
+
+| Faction | File | Prompt |
+|---|---|---|
+| Suryavansh | `suryavansh.png` | Ultra-wide horizontal banner for a game player-nameplate, full-bleed, opaque. One large heraldic emblem at the LEFT edge, about 22% of the frame — a radiant sun disc with twelve flame-shaped rays and a small crown, brass and gold, warm saffron highlights. From it a long horizontal ornamental rule runs right: thin brass line work with small repeating lotus motifs, fading into near-black at the right edge. Middle and right stay dark and low-contrast so white text can sit on top. All ornament inside the central 60% of the height. Even lighting, flat, no perspective. |
+| Chandravansh | `chandravansh.png` | Same composition and ornament rhythm, mirrored palette: a crescent moon cradling a small lotus with three stars, silver and pale indigo, cool highlights; thin silver line work with repeating star and lotus motifs fading to near-black. |
+
+---
+
+## 7. Scenario cards
+
+`assets/art/cards/…` · **1536 × 864** (16:9), shown at 800×450 in the setup screen
+
+The bottom third must stay dark: the mode name and its Devanagari subtitle are laid over it
+(द्वंद्व / अभिमन्यु), so nothing in the art should compete there.
+
+| Mode | File | Prompt |
+|---|---|---|
+| Duel | `duel.jpg` | Game-mode card artwork, cinematic, Indian temple-punk: two armies of small heraldic pieces face each other across a dark stone chakra board seen from a low three-quarter angle — brass on the left, silver-indigo on the right, both in neat rows, the spokes faintly glowing gold between them. Embers and dust, rim light from the left, deep shadow across the bottom third. No text, no faces. |
+| Abhimanyu | `abhimanyu.jpg` | A single brass piece advancing into a narrowing corridor of dark indigo pieces arranged as a closing wheel; the twelve spokes glow faint gold and press inward. Cold light from above, one warm light on the lone piece, dust and embers, a strong sense of being surrounded. Deep shadow across the bottom third. Symbolic and heraldic — no people, no faces. |
+| Sarvatobhadra (optional) | `sarvatobhadra.jpg` | An eight-by-eight grid of carved stone tiles seen from directly above, brass pieces massed along the top and bottom edges, a faint glowing square border, low warm light, dust in the air. No text. |
+
+```
+assets/art/banners/suryavansh.png      16:9, opaque
+assets/art/banners/chandravansh.png    16:9, opaque
+assets/art/cards/duel.jpg              1536×864
+assets/art/cards/abhimanyu.jpg         1536×864
+assets/art/cards/sarvatobhadra.jpg     optional
+```
