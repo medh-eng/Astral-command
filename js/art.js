@@ -87,7 +87,9 @@
     const img = new Image();
     img.onload = function () {
       IMG[slot] = url;
+      // surface scene and surface art as CSS variables the stylesheet can use
       if (slot.indexOf('ui:') === 0) {
+        document.documentElement.style.setProperty('--art-' + slot.split(':')[1], 'url("' + url + '")');
         document.body.classList.add('has-' + slot.split(':')[1] + '-art');
       }
       if (onArt) onArt(slot, url);
@@ -102,13 +104,14 @@
     board: function (k) { return 'assets/art/opt/boards/' + k + '.jpg'; },
     ui: function (n) { return 'assets/art/opt/ui/' + n + '.jpg'; },
     banner: function (n) { return 'assets/art/banners/' + (n === '1' ? 'suryavansh' : 'chandravansh') + '.jpg'; },
+    card: function (n) { return 'assets/art/opt/cards/' + n + '.jpg'; },
     app: function () { return 'assets/art/opt/app/icon-512.png'; }
   };
 
   function slotPath(slot) {
     const i = slot.indexOf(':');
-    const kind = slot.slice(0, i);
-    const name = slot.slice(i + 1);
+    const kind = i === -1 ? slot : slot.slice(0, i);
+    const name = i === -1 ? '' : slot.slice(i + 1);
     return PATHS[kind] ? PATHS[kind](name) : null;
   }
 
@@ -119,6 +122,10 @@
     Object.keys(SLUG).forEach(function (k) { probe('unit:' + k, slotPath('unit:' + k)); });
     probe('faction:1', slotPath('faction:1'));
     probe('faction:2', slotPath('faction:2'));
+    // the table and panel surfaces sit behind every screen, so they load with
+    // the pieces rather than waiting to be asked for
+    probe('ui:table', slotPath('ui:table'));
+    probe('ui:panel', slotPath('ui:panel'));
   }
 
   function artFor(slot) {

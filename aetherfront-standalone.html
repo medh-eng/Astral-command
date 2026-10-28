@@ -674,9 +674,12 @@ input::placeholder { color: var(--faint); }
   backdrop-filter: blur(12px);
   z-index: 5;
 }
-.hud-centre { flex: 1; min-width: 0; text-align: center; }
+.hud-centre { flex: 1; min-width: 0; text-align: center; overflow: hidden; }
 .turn-pill {
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -727,7 +730,7 @@ input::placeholder { color: var(--faint); }
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 50px;
   padding: 5px 10px;
   border-radius: 12px;
   border: 1px solid var(--line);
@@ -1389,7 +1392,7 @@ html.cb {
 }
 .btn-gold { background: linear-gradient(135deg, #fde9c0, #f2cf8b); color: #2b1d02; }
 
-.cell .cell-fill { fill: rgba(34, 29, 40, 0.95); stroke: rgba(224, 169, 74, 0.3); }
+.cell .cell-fill { fill: rgba(26, 22, 32, 0.97); stroke: rgba(224, 169, 74, 0.3); }
 .cell:nth-child(even) .cell-fill { fill: rgba(34, 29, 39, 0.94); }
 .cell.zone-1 .cell-fill { stroke: rgba(224, 169, 74, 0.34); }
 .cell.zone-2 .cell-fill { stroke: rgba(139, 143, 240, 0.34); }
@@ -1509,7 +1512,7 @@ html.cb {
   background-repeat: no-repeat;
 }
 
-.cell-tex { fill: url(#af-tex); opacity: 0.19; pointer-events: none; }
+.cell-tex { fill: url(#af-tex); opacity: 0.34; pointer-events: none; }
 .token .tok-crest { filter: brightness(1.55) saturate(1.05); }
 .cell.rift .cell-tex { opacity: 0.12; }
 .yantra circle { fill: none; stroke: rgba(242, 207, 139, 0.16); stroke-width: 0.008; }
@@ -1518,16 +1521,100 @@ html.cb {
 
 /* player-strip nameplate: the painted banner if supplied, else the crest */
 .strip-banner {
-  height: 34px;
+  height: 42px;
   width: auto;
   flex: none;
   border-radius: 8px;
   margin-right: 4px;
   border: 1px solid rgba(224, 169, 74, 0.28);
-  filter: brightness(1.22) contrast(1.05) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+  filter: brightness(1.35) contrast(1.06) drop-shadow(0 0 10px rgba(224, 169, 74, 0.18));
 }
 @media (max-width: 780px) {
-  .strip-banner { height: 28px; border-radius: 6px; margin-right: 2px; }
+  .strip-banner { height: 30px; border-radius: 6px; margin-right: 2px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Scene surfaces — the table, the panels, the home courtyard.
+   Each is a CSS variable set when the art loads, so the plain
+   gradients remain the fallback.
+   ══════════════════════════════════════════════════════════════════ */
+.app {
+  background-image:
+    radial-gradient(1100px 700px at 12% -8%, rgba(224, 169, 74, 0.14), transparent 60%),
+    radial-gradient(900px 600px at 92% 4%, rgba(139, 143, 240, 0.15), transparent 62%),
+    radial-gradient(700px 500px at 50% 110%, rgba(200, 69, 43, 0.09), transparent 60%),
+    linear-gradient(180deg, rgba(8, 7, 12, 0.9), rgba(6, 5, 10, 0.95)),
+    var(--art-table, none);
+  background-size: auto, auto, auto, auto, cover;
+  background-position: center, center, center, center, center;
+  background-repeat: no-repeat;
+}
+
+.panel, .glass, .intel-panel, .log-panel, .player-strip, .action-bar, .game-hud {
+  background-image: var(--art-panel, none),
+    linear-gradient(180deg, rgba(18, 27, 46, 0.86), rgba(9, 14, 26, 0.9));
+  background-size: 240px, auto;
+  background-blend-mode: soft-light, normal;
+  background-repeat: repeat, no-repeat;
+}
+.glass { background-size: 280px, auto; }
+
+.home-screen {
+  background-image:
+    linear-gradient(180deg, rgba(6, 5, 10, 0.5) 0%, rgba(6, 5, 10, 0.86) 46%, rgba(6, 5, 10, 0.96) 100%),
+    var(--art-home, none);
+  background-size: auto, cover;
+  background-position: center top, center 35%;
+  background-repeat: no-repeat;
+}
+
+/* ── scenario cards ─────────────────────────────────────────────── */
+.mode-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.mode-card {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--line);
+  background-color: #0b0a12;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  text-align: left;
+  transition: transform 0.16s, border-color 0.16s, box-shadow 0.2s;
+  display: flex;
+  align-items: flex-end;
+}
+.mode-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 5, 10, 0) 38%, rgba(6, 5, 10, 0.82) 78%, rgba(6, 5, 10, 0.95) 100%);
+  pointer-events: none;
+}
+.mode-card:hover { transform: translateY(-2px); border-color: var(--line-strong); }
+.mode-card.on {
+  border-color: var(--solar);
+  box-shadow: 0 0 0 1px rgba(224, 169, 74, 0.4), 0 10px 30px rgba(224, 169, 74, 0.18);
+}
+.mode-card-body { position: relative; z-index: 1; display: grid; gap: 3px; padding: 12px 14px; }
+.mode-card-title { font-family: var(--display); font-size: 15px; letter-spacing: 0.06em; color: #f7ecd7; }
+.mode-card-sub { font-size: 11px; color: rgba(230, 220, 205, 0.75); line-height: 1.35; }
+.mode-card-tick {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--solar);
+  color: #241704;
+}
+.mode-card-tick .ico { width: 14px; height: 14px; }
+@media (max-width: 560px) {
+  .mode-cards { grid-template-columns: 1fr; }
 }
 
 </style>
@@ -4597,7 +4684,9 @@ html.cb {
     const img = new Image();
     img.onload = function () {
       IMG[slot] = url;
+      // surface scene and surface art as CSS variables the stylesheet can use
       if (slot.indexOf('ui:') === 0) {
+        document.documentElement.style.setProperty('--art-' + slot.split(':')[1], 'url("' + url + '")');
         document.body.classList.add('has-' + slot.split(':')[1] + '-art');
       }
       if (onArt) onArt(slot, url);
@@ -4612,13 +4701,14 @@ html.cb {
     board: function (k) { return 'assets/art/opt/boards/' + k + '.jpg'; },
     ui: function (n) { return 'assets/art/opt/ui/' + n + '.jpg'; },
     banner: function (n) { return 'assets/art/banners/' + (n === '1' ? 'suryavansh' : 'chandravansh') + '.jpg'; },
+    card: function (n) { return 'assets/art/opt/cards/' + n + '.jpg'; },
     app: function () { return 'assets/art/opt/app/icon-512.png'; }
   };
 
   function slotPath(slot) {
     const i = slot.indexOf(':');
-    const kind = slot.slice(0, i);
-    const name = slot.slice(i + 1);
+    const kind = i === -1 ? slot : slot.slice(0, i);
+    const name = i === -1 ? '' : slot.slice(i + 1);
     return PATHS[kind] ? PATHS[kind](name) : null;
   }
 
@@ -4629,6 +4719,10 @@ html.cb {
     Object.keys(SLUG).forEach(function (k) { probe('unit:' + k, slotPath('unit:' + k)); });
     probe('faction:1', slotPath('faction:1'));
     probe('faction:2', slotPath('faction:2'));
+    // the table and panel surfaces sit behind every screen, so they load with
+    // the pieces rather than waiting to be asked for
+    probe('ui:table', slotPath('ui:table'));
+    probe('ui:panel', slotPath('ui:panel'));
   }
 
   function artFor(slot) {
@@ -5376,6 +5470,7 @@ html.cb {
 
   /* ── home ────────────────────────────────────────────────────── */
   function renderHome() {
+    if (AC.art && AC.art.artFor) AC.art.artFor('ui:home');   // lazy: only on this screen
     const p = app.profile;
     const name = p ? p.name : 'Guest';
     document.getElementById('home-name').textContent = name;
@@ -5618,6 +5713,25 @@ html.cb {
     });
 
     host.innerHTML = groups.map(function (g) {
+      if (g.key === 'scenario') {
+        return '<div class="opt-group">' +
+          '<div class="opt-label">' + esc(g.label) + '</div>' +
+          '<div class="mode-cards">' + g.options.map(function (o) {
+            const on = String(app.setup.scenario) === String(o.v);
+            const art = AC.art.artFor('card:' + o.v);
+            const blurb = o.v === 'abhimanyu'
+              ? '8 raiders vs 10 defenders · breach by round 24'
+              : '12 pieces each · take the enemy fort';
+            return '<button class="mode-card' + (on ? ' on' : '') + '" data-group="scenario" data-val="' + o.v + '"' +
+              (art ? ' style="background-image:url(\'' + art + '\')"' : '') + '>' +
+              '<span class="mode-card-body">' +
+                '<span class="mode-card-title">' + esc(o.title) + '</span>' +
+                '<span class="mode-card-sub">' + esc(blurb) + '</span>' +
+              '</span>' +
+              (on ? '<span class="mode-card-tick">' + A.icon('check') + '</span>' : '') +
+            '</button>';
+          }).join('') + '</div></div>';
+      }
       return '<div class="opt-group">' +
         '<div class="opt-label">' + esc(g.label) + '</div>' +
         '<div class="opt-row">' + g.options.map(function (o) {
@@ -6028,6 +6142,7 @@ html.cb {
     openPause: openPause,
     renderHome: renderHome,
     renderAuth: renderAuth,
+    renderSetup: renderSetup,
     applySettings: applySettings,
     patchSettings: patchSettings,
     boot: boot,
@@ -6256,8 +6371,14 @@ html.cb {
       } else {
         const owner = st.owner;
         pill.classList.add(owner === 1 ? 'solar' : 'void');
-        pill.textContent = (st.turnLimit ? 'Breach · round ' + st.turn + '/' + st.turnLimit : 'Turn ' + st.turn) +
-          ' · ' + U.FACTIONS[owner].short;
+        const narrow = (window.innerWidth || 900) < 560;
+        if (st.turnLimit) {
+          pill.textContent = narrow
+            ? 'Breach ' + st.turn + '/' + st.turnLimit
+            : 'Breach · round ' + st.turn + '/' + st.turnLimit + ' · ' + U.FACTIONS[owner].short;
+        } else {
+          pill.textContent = 'Turn ' + st.turn + (narrow ? '' : ' · ' + U.FACTIONS[owner].short);
+        }
         let extra = '';
         if (st.boardKey === 'wheel') {
           const until = E.turnsUntilRotation(st);
@@ -6394,6 +6515,10 @@ html.cb {
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
     const last = st.lastMove;
     let out = '';
+
+    // a dark plate under everything keeps the table from bleeding through
+    out += '<rect x="' + bounds.x + '" y="' + bounds.y + '" width="' + bounds.w + '" height="' + bounds.h +
+      '" fill="rgba(6,5,10,0.55)"/>';
 
     // the painted stone surface is applied per cell, so the board reads as
     // inlaid tiles rather than a second, competing mandala underneath
@@ -7507,6 +7632,7 @@ html.cb {
         if (AC.app.screen === 'game' && AC.game && AC.game.render) AC.game.render();
         else if (AC.app.screen === 'home') AC.ui.renderHome();
         else if (AC.app.screen === 'auth') AC.ui.renderAuth();
+        else if (AC.app.screen === 'setup') AC.ui.renderSetup();
       });
       AC.art.probeAll();
     }

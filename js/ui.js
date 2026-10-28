@@ -415,6 +415,7 @@
 
   /* ── home ────────────────────────────────────────────────────── */
   function renderHome() {
+    if (AC.art && AC.art.artFor) AC.art.artFor('ui:home');   // lazy: only on this screen
     const p = app.profile;
     const name = p ? p.name : 'Guest';
     document.getElementById('home-name').textContent = name;
@@ -657,6 +658,25 @@
     });
 
     host.innerHTML = groups.map(function (g) {
+      if (g.key === 'scenario') {
+        return '<div class="opt-group">' +
+          '<div class="opt-label">' + esc(g.label) + '</div>' +
+          '<div class="mode-cards">' + g.options.map(function (o) {
+            const on = String(app.setup.scenario) === String(o.v);
+            const art = AC.art.artFor('card:' + o.v);
+            const blurb = o.v === 'abhimanyu'
+              ? '8 raiders vs 10 defenders · breach by round 24'
+              : '12 pieces each · take the enemy fort';
+            return '<button class="mode-card' + (on ? ' on' : '') + '" data-group="scenario" data-val="' + o.v + '"' +
+              (art ? ' style="background-image:url(\'' + art + '\')"' : '') + '>' +
+              '<span class="mode-card-body">' +
+                '<span class="mode-card-title">' + esc(o.title) + '</span>' +
+                '<span class="mode-card-sub">' + esc(blurb) + '</span>' +
+              '</span>' +
+              (on ? '<span class="mode-card-tick">' + A.icon('check') + '</span>' : '') +
+            '</button>';
+          }).join('') + '</div></div>';
+      }
       return '<div class="opt-group">' +
         '<div class="opt-label">' + esc(g.label) + '</div>' +
         '<div class="opt-row">' + g.options.map(function (o) {
@@ -1067,6 +1087,7 @@
     openPause: openPause,
     renderHome: renderHome,
     renderAuth: renderAuth,
+    renderSetup: renderSetup,
     applySettings: applySettings,
     patchSettings: patchSettings,
     boot: boot,

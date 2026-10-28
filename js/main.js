@@ -26,6 +26,7 @@
         if (AC.app.screen === 'game' && AC.game && AC.game.render) AC.game.render();
         else if (AC.app.screen === 'home') AC.ui.renderHome();
         else if (AC.app.screen === 'auth') AC.ui.renderAuth();
+        else if (AC.app.screen === 'setup') AC.ui.renderSetup();
       });
       AC.art.probeAll();
     }

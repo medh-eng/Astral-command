@@ -212,8 +212,14 @@
       } else {
         const owner = st.owner;
         pill.classList.add(owner === 1 ? 'solar' : 'void');
-        pill.textContent = (st.turnLimit ? 'Breach · round ' + st.turn + '/' + st.turnLimit : 'Turn ' + st.turn) +
-          ' · ' + U.FACTIONS[owner].short;
+        const narrow = (window.innerWidth || 900) < 560;
+        if (st.turnLimit) {
+          pill.textContent = narrow
+            ? 'Breach ' + st.turn + '/' + st.turnLimit
+            : 'Breach · round ' + st.turn + '/' + st.turnLimit + ' · ' + U.FACTIONS[owner].short;
+        } else {
+          pill.textContent = 'Turn ' + st.turn + (narrow ? '' : ' · ' + U.FACTIONS[owner].short);
+        }
         let extra = '';
         if (st.boardKey === 'wheel') {
           const until = E.turnsUntilRotation(st);
@@ -350,6 +356,10 @@
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
     const last = st.lastMove;
     let out = '';
+
+    // a dark plate under everything keeps the table from bleeding through
+    out += '<rect x="' + bounds.x + '" y="' + bounds.y + '" width="' + bounds.w + '" height="' + bounds.h +
+      '" fill="rgba(6,5,10,0.55)"/>';
 
     // the painted stone surface is applied per cell, so the board reads as
     // inlaid tiles rather than a second, competing mandala underneath
