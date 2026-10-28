@@ -1,4 +1,4 @@
-/* Aetherfront: Astral Command — battle screen (v3)
+/* VYUHA: Astral Command — battle screen (v3)
  * Renders any cell graph as SVG, so the square arenas and the Chakravyuha
  * wheel share one renderer, one input path and one set of animations.
  */
@@ -1290,24 +1290,20 @@
   function openHelp() {
     const st = g.state;
     const wheel = st && st.boardKey === 'wheel';
-    const steps = [
-      ['Deploy', 'Twelve pieces anywhere in your zone. Tap two cells to swap them. Citadel, Blitz, Lattice and Shuffle are starting points, not commitments.'],
-      ['Command', 'Tap one of your pieces, then tap a highlighted cell. A dot means move; a ring means attack, scan or volley. Ranks are hidden until a piece fights.'],
-      ['Probe', 'A piece that has never moved can still be the fort or a trap. Probe with cheap pieces and the archer’s volley — the intel panel shows the real odds before you commit.'],
-      st && st.turnLimit
-        ? ['Break the fort in time', 'You have eight raiders and no fort of your own. Take the defender’s fort before round ' + st.turnLimit + ' — by melee or by an archer’s volley down a clear spoke. Lose every raider and the breach fails.']
-        : (wheel
-          ? ['Mind the wheel', 'Arcs are one cell at a time, spokes are long lanes. Every fifth round the inner two rings turn one spoke and expose whatever they carry. The hub reaches every spoke and exposes whoever holds it.']
-          : ['Break the fort', 'Take the enemy fort, or leave them with no legal action. Sixty orders without a capture is a draw — the countdown is in the intel panel.'])
+    const cards = [
+      ['व्यूह रचना', 'Deploy', 'Twelve pieces in your own zone. Tap one, then another, to swap them. Presets are only a starting point.'],
+      ['चाल', 'Move', 'Tap your piece, then tap a glowing cell. One step, or a whole lane for the chariot.'],
+      ['संघर्ष', 'Strike', 'Tap your piece, then tap a red-ringed enemy. Both ranks stay hidden until the blow lands — the odds panel tells you the risk first.'],
+      ['दिव्य शक्ति', 'Powers', 'Three classes act without moving: the seer scans, the archer shoots two cells, the cavalry dashes two. The bar appears when you select one.'],
+      wheel ? ['चक्र', 'The turn', 'Every fifth round the inner rings turn one cell, and whatever they carry is exposed. Fast lanes, public cost.'] : ['चक्र', 'The clock', 'Sixty orders without a capture is a draw. The countdown is always on the intel tab.'],
+      ['विजय', 'Win', 'Take the enemy fort, or leave them with no legal move. Lose your own fort and it is over.']
     ];
     AC.ui.modal({
-      kicker: 'How to play',
-      title: 'Four things to know',
+      kicker: 'Learn in one screen',
+      title: 'Six things to know',
       wide: true,
-      body: '<div class="howto">' + steps.map(function (s2, i) {
-        return '<div class="howto-step"><span class="howto-num">' + (i + 1) + '</span>' +
-          '<span><span class="howto-title">' + esc(s2[0]) + '</span>' +
-          '<span class="howto-body">' + esc(s2[1]) + '</span></span></div>';
+      body: '<div class="learn-grid">' + cards.map(function (c) {
+        return '<div class="learn-card"><span class="deva">' + c[0] + '</span><b>' + esc(c[1]) + '</b><p>' + esc(c[2]) + '</p></div>';
       }).join('') + '</div>',
       actions: [
         { label: 'Full codex', cls: 'btn-ghost', onClick: function () { AC.ui.openCodex(); } },

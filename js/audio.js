@@ -1,4 +1,4 @@
-/* Aetherfront: Astral Command — audio
+/* VYUHA: Astral Command — audio
  * Every sound is synthesised at runtime with the Web Audio API, so the game
  * ships with no audio files and still has a full score + SFX suite.
  * Two layers: a short-lived SFX bus, and a procedural ambient score.

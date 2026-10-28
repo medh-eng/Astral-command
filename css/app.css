@@ -1675,3 +1675,32 @@ html.cb {
   color: var(--solar-2);
   text-transform: none;
 }
+
+/* ── the wordmark ── */
+.hero-title { line-height: 1.02; }
+.hero-title .deva {
+  display: block;
+  font-size: 0.42em;
+  letter-spacing: 0.06em;
+  color: var(--solar-2);
+  opacity: 0.92;
+  margin-top: 2px;
+}
+.hero-title em {
+  display: block;
+  font-style: normal;
+  font-family: var(--font);
+  font-size: 0.2em;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-top: 10px;
+}
+
+.unit-one { font-size: 12px; line-height: 1.45; color: rgba(240, 228, 205, 0.8); margin: 3px 0 4px; }
+.learn-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.learn-card { padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(224, 169, 74, 0.22); background: rgba(224, 169, 74, 0.05); }
+.learn-card .deva { display: block; font-size: 15px; color: var(--solar-2); opacity: 0.95; }
+.learn-card b { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); margin: 2px 0 5px; }
+.learn-card p { font-size: 12px; line-height: 1.5; color: var(--dim); margin: 0; }
+@media (max-width: 620px) { .learn-grid { grid-template-columns: 1fr; } }

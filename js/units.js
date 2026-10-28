@@ -34,7 +34,7 @@
   // Complete 12-piece roster. `rank` drives combat; `power` describes the special.
   const UNIT_DEFS = {
     '10': {
-      key: '10', rank: 10, count: 1, name: 'Senapati', short: 'Senapati', deva: 'सेनापति', alias: 'Solar Archon',
+      key: '10', rank: 10, count: 1, one: "Strongest piece on the field. Keep it hidden, then commit it.", name: 'Senapati', short: 'Senapati', deva: 'सेनापति', alias: 'Solar Archon',
       badge: '10', movable: true, moveRange: 1, tier: 'command',
       role: 'Supreme Commander',
       power: null,
@@ -42,7 +42,7 @@
       tip: 'Keep it behind a screen until the enemy Chara is spent.'
     },
     '9': {
-      key: '9', rank: 9, count: 1, name: 'Maharathi', short: 'Maharathi', deva: 'महारथी', alias: 'Star Paladin',
+      key: '9', rank: 9, count: 1, one: "Second strongest — beats everything except the commander.", name: 'Maharathi', short: 'Maharathi', deva: 'महारथी', alias: 'Star Paladin',
       badge: '9', movable: true, moveRange: 1, tier: 'command',
       role: 'Heavy Warlord',
       power: null,
@@ -50,7 +50,7 @@
       tip: 'A bodyguard for your core: strong enough to absorb probes.'
     },
     '7': {
-      key: '7', rank: 7, count: 1, name: 'Ashvarohi', short: 'Ashvarohi', deva: 'अश्वारोही', alias: 'Valkyrie Vanguard',
+      key: '7', rank: 7, count: 1, one: "Fast flanker. Rushes two cells and strikes at the end.", name: 'Ashvarohi', short: 'Ashvarohi', deva: 'अश्वारोही', alias: 'Valkyrie Vanguard',
       badge: '7', movable: true, moveRange: 2, tier: 'elite',
       role: 'Phase Dasher',
       power: { id: 'dash', label: 'Dvi-pada Dash', range: 2 },
@@ -58,7 +58,7 @@
       tip: 'Reaches the second rank of a formation in one tempo.'
     },
     '6': {
-      key: '6', rank: 6, count: 1, name: 'Dhanurdhar', short: 'Dhanurdhar', deva: 'धनुर्धर', alias: 'Plasma Lancer',
+      key: '6', rank: 6, count: 1, one: "Shoots two cells away without moving. Your safe probe.", name: 'Dhanurdhar', short: 'Dhanurdhar', deva: 'धनुर्धर', alias: 'Plasma Lancer',
       badge: '6', movable: true, moveRange: 1, tier: 'elite', hasRanged: true,
       role: 'Arc Artillery',
       power: { id: 'barrage', label: 'Shara-varsha', range: 2 },
@@ -66,7 +66,7 @@
       tip: 'The only piece that kills without moving — and it cannot be hurt by the reply.'
     },
     '5': {
-      key: '5', rank: 5, count: 1, name: 'Divyadrishti', short: 'Divyadrishti', deva: 'दिव्यदृष्टि', alias: 'Chrono Seer',
+      key: '5', rank: 5, count: 1, one: "Reveals an enemy within two cells without a fight.", name: 'Divyadrishti', short: 'Divyadrishti', deva: 'दिव्यदृष्टि', alias: 'Chrono Seer',
       badge: '5', movable: true, moveRange: 1, tier: 'elite', hasScan: true,
       role: 'Psionic Scanner',
       power: { id: 'scan', label: 'Divya-drishti', range: 2 },
@@ -74,7 +74,7 @@
       tip: 'Information is tempo. Scan before you commit an attack.'
     },
     '3': {
-      key: '3', rank: 3, count: 2, name: 'Yantrik', short: 'Yantrik', deva: 'यंत्रिक', alias: 'Warp Sapper',
+      key: '3', rank: 3, count: 2, one: "The only piece that can clear a trap. Do not waste it.", name: 'Yantrik', short: 'Yantrik', deva: 'यंत्रिक', alias: 'Warp Sapper',
       badge: '3', movable: true, moveRange: 1, tier: 'line', defusesMines: true,
       role: 'Mine Specialist ×2',
       power: null,
@@ -82,7 +82,7 @@
       tip: 'Your trap-clearer is also your best cheap probe.'
     },
     '2': {
-      key: '2', rank: 2, count: 2, name: 'Rath', short: 'Rath', deva: 'रथ', alias: 'Astral Strider',
+      key: '2', rank: 2, count: 2, one: "Slides across open lanes and can strike in the same turn.", name: 'Rath', short: 'Rath', deva: 'रथ', alias: 'Astral Strider',
       badge: '2', movable: true, moveRange: 99, tier: 'line',
       role: 'Long-Range Scout ×2',
       power: null,
@@ -90,7 +90,7 @@
       tip: 'Crossing the board reveals you — run late, not early.'
     },
     '1': {
-      key: '1', rank: 1, count: 1, name: 'Chara', short: 'Chara', deva: 'चर', alias: 'Shadow Wraith',
+      key: '1', rank: 1, count: 1, one: "Kills the commander and the champion — but only if it strikes first.", name: 'Chara', short: 'Chara', deva: 'चर', alias: 'Shadow Wraith',
       badge: 'S', movable: true, moveRange: 1, tier: 'line', assassin: true,
       role: 'Cloaked Assassin',
       power: null,
@@ -98,7 +98,7 @@
       tip: 'Hold it for the endgame, then trade it for a commander.'
     },
     'B': {
-      key: 'B', rank: 0, count: 1, name: 'Shataghni', short: 'Shataghni', deva: 'शतघ्नी', alias: 'Stasis Mine',
+      key: 'B', rank: 0, count: 1, one: "Immovable trap. Kills anything that hits it, except the engineer.", name: 'Shataghni', short: 'Shataghni', deva: 'शतघ्नी', alias: 'Stasis Mine',
       badge: 'B', movable: false, moveRange: 0, tier: 'trap',
       role: 'Singularity Trap',
       power: null,
@@ -106,7 +106,7 @@
       tip: 'A mine only works once. Hide it where a probe must pass.'
     },
     'F': {
-      key: 'F', rank: -1, count: 1, name: 'Durg', short: 'Durg', deva: 'दुर्ग', alias: 'Nexus Core',
+      key: 'F', rank: -1, count: 1, one: "Your fort. Lose it and you lose the match. It never moves.", name: 'Durg', short: 'Durg', deva: 'दुर्ग', alias: 'Nexus Core',
       badge: 'F', movable: false, moveRange: 0, tier: 'trap',
       role: 'Primary Objective',
       power: null,

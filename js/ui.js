@@ -1,4 +1,4 @@
-/* Aetherfront: Astral Command — app shell UI
+/* VYUHA: Astral Command — app shell UI
  * Screens, profiles/login, home, setup, modals, codex, saves, settings.
  * The battle screen itself lives in game.js.
  */
@@ -759,6 +759,7 @@
               '<div class="unit-name">' + esc(u.name) +
                 (u.deva ? ' <span class="deva" style="font-size:15px;color:var(--parch);opacity:.9">' + esc(u.deva) + '</span>' : '') +
                 ' <span class="unit-role">' + esc(u.role) + '</span></div>' +
+              (u.one ? '<div class="unit-one">' + esc(u.one) + '</div>' : '') +
               (u.alias ? '<div class="unit-role" style="text-transform:none;letter-spacing:.02em;opacity:.7">was ' + esc(u.alias) + '</div>' : '') +
               '<div class="unit-desc">' + esc(u.desc) + '</div>' +
               '<div class="unit-tip">▸ ' + esc(u.tip) + '</div>' +

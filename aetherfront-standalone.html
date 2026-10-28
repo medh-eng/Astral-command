@@ -4,11 +4,11 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#05070f" />
-<meta name="description" content="Aetherfront: Astral Command — a hidden-rank sci-fi tactical duel for two commanders on one device, or against the Astral AI." />
+<meta name="description" content="VYUHA — a hidden-rank duel of war formations on a field that turns. Two commanders on one device, or against the Astral AI." />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <!-- Aetherfront single-file build — no server or network required -->
-<title>Aetherfront: Astral Command</title>
+<title>VYUHA · व्यूह — the seven formations</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIiB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiI+ICA8ZGVmcz4gICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzBiMTQyOCIvPiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzA0MDYwZCIvPiAgICA8L2xpbmVhckdyYWRpZW50PiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNyeSIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E1ZjNmYyIvPiAgICAgIDxzdG9wIG9mZnNldD0iMC41NSIgc3RvcC1jb2xvcj0iIzIyZDNlZSIvPiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E4NTVmNyIvPiAgICA8L2xpbmVhckdyYWRpZW50PiAgPC9kZWZzPiAgPHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSI0MiIgZmlsbD0idXJsKCNiZykiLz4gIDxjaXJjbGUgY3g9Ijk2IiBjeT0iODYiIHI9IjY2IiBmaWxsPSIjMjJkM2VlIiBvcGFjaXR5PSIwLjEyIi8+ICA8ZyBmaWxsPSJub25lIiBzdHJva2U9InVybCgjY3J5KSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4gICAgPHBhdGggZD0iTTk2IDI2IEwxNDYgNjAgTDEzNSAxMzIgTDk2IDE2MiBMNTcgMTMyIEw0NiA2MCBaIiBmaWxsPSIjMjJkM2VlIiBmaWxsLW9wYWNpdHk9IjAuMTIiLz4gICAgPHBhdGggZD0iTTk2IDI2IFYxNjIgTTQ2IDYwIEw5NiA4NiBMMTQ2IDYwIE05NiA4NiBMNTcgMTMyIE05NiA4NiBMMTM1IDEzMiIgc3Ryb2tlLW9wYWNpdHk9IjAuNjUiLz4gIDwvZz4gIDxjaXJjbGUgY3g9Ijk2IiBjeT0iODYiIHI9IjkiIGZpbGw9IiNmYmJmMjQiLz48L3N2Zz4=" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="assets/art/opt/app/icon-512.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1693,6 +1693,35 @@ html.cb {
   text-transform: none;
 }
 
+/* ── the wordmark ── */
+.hero-title { line-height: 1.02; }
+.hero-title .deva {
+  display: block;
+  font-size: 0.42em;
+  letter-spacing: 0.06em;
+  color: var(--solar-2);
+  opacity: 0.92;
+  margin-top: 2px;
+}
+.hero-title em {
+  display: block;
+  font-style: normal;
+  font-family: var(--font);
+  font-size: 0.2em;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-top: 10px;
+}
+
+.unit-one { font-size: 12px; line-height: 1.45; color: rgba(240, 228, 205, 0.8); margin: 3px 0 4px; }
+.learn-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.learn-card { padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(224, 169, 74, 0.22); background: rgba(224, 169, 74, 0.05); }
+.learn-card .deva { display: block; font-size: 15px; color: var(--solar-2); opacity: 0.95; }
+.learn-card b { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); margin: 2px 0 5px; }
+.learn-card p { font-size: 12px; line-height: 1.5; color: var(--dim); margin: 0; }
+@media (max-width: 620px) { .learn-grid { grid-template-columns: 1fr; } }
+
 </style>
 </head>
 <body>
@@ -1718,9 +1747,9 @@ html.cb {
     <div class="auth-grid">
       <div class="auth-hero">
         <div class="hero-kicker">HIDDEN-RANK TACTICAL DUEL</div>
-        <h1 class="hero-title">Aetherfront<span>Astral Command</span></h1>
+        <h1 class="hero-title">VYUHA<span class="deva">व्यूह</span><em>the seven formations</em></h1>
         <p class="hero-lede">
-          Twelve pieces. Ten hidden ranks. One Nexus Core.
+          Twelve pieces. Ten hidden ranks. One fort.
           Read the silence, probe the dark, and break the enemy line.
         </p>
         <ul class="hero-points">
@@ -1952,7 +1981,7 @@ html.cb {
 
 <noscript>
   <div style="padding:2rem;font-family:system-ui;color:#e2e8f0">
-    Aetherfront needs JavaScript to run the battle simulation.
+    VYUHA needs JavaScript to run the battle simulation.
   </div>
 </noscript>
 
@@ -1994,7 +2023,7 @@ html.cb {
   // Complete 12-piece roster. `rank` drives combat; `power` describes the special.
   const UNIT_DEFS = {
     '10': {
-      key: '10', rank: 10, count: 1, name: 'Senapati', short: 'Senapati', deva: 'सेनापति', alias: 'Solar Archon',
+      key: '10', rank: 10, count: 1, one: "Strongest piece on the field. Keep it hidden, then commit it.", name: 'Senapati', short: 'Senapati', deva: 'सेनापति', alias: 'Solar Archon',
       badge: '10', movable: true, moveRange: 1, tier: 'command',
       role: 'Supreme Commander',
       power: null,
@@ -2002,7 +2031,7 @@ html.cb {
       tip: 'Keep it behind a screen until the enemy Chara is spent.'
     },
     '9': {
-      key: '9', rank: 9, count: 1, name: 'Maharathi', short: 'Maharathi', deva: 'महारथी', alias: 'Star Paladin',
+      key: '9', rank: 9, count: 1, one: "Second strongest — beats everything except the commander.", name: 'Maharathi', short: 'Maharathi', deva: 'महारथी', alias: 'Star Paladin',
       badge: '9', movable: true, moveRange: 1, tier: 'command',
       role: 'Heavy Warlord',
       power: null,
@@ -2010,7 +2039,7 @@ html.cb {
       tip: 'A bodyguard for your core: strong enough to absorb probes.'
     },
     '7': {
-      key: '7', rank: 7, count: 1, name: 'Ashvarohi', short: 'Ashvarohi', deva: 'अश्वारोही', alias: 'Valkyrie Vanguard',
+      key: '7', rank: 7, count: 1, one: "Fast flanker. Rushes two cells and strikes at the end.", name: 'Ashvarohi', short: 'Ashvarohi', deva: 'अश्वारोही', alias: 'Valkyrie Vanguard',
       badge: '7', movable: true, moveRange: 2, tier: 'elite',
       role: 'Phase Dasher',
       power: { id: 'dash', label: 'Dvi-pada Dash', range: 2 },
@@ -2018,7 +2047,7 @@ html.cb {
       tip: 'Reaches the second rank of a formation in one tempo.'
     },
     '6': {
-      key: '6', rank: 6, count: 1, name: 'Dhanurdhar', short: 'Dhanurdhar', deva: 'धनुर्धर', alias: 'Plasma Lancer',
+      key: '6', rank: 6, count: 1, one: "Shoots two cells away without moving. Your safe probe.", name: 'Dhanurdhar', short: 'Dhanurdhar', deva: 'धनुर्धर', alias: 'Plasma Lancer',
       badge: '6', movable: true, moveRange: 1, tier: 'elite', hasRanged: true,
       role: 'Arc Artillery',
       power: { id: 'barrage', label: 'Shara-varsha', range: 2 },
@@ -2026,7 +2055,7 @@ html.cb {
       tip: 'The only piece that kills without moving — and it cannot be hurt by the reply.'
     },
     '5': {
-      key: '5', rank: 5, count: 1, name: 'Divyadrishti', short: 'Divyadrishti', deva: 'दिव्यदृष्टि', alias: 'Chrono Seer',
+      key: '5', rank: 5, count: 1, one: "Reveals an enemy within two cells without a fight.", name: 'Divyadrishti', short: 'Divyadrishti', deva: 'दिव्यदृष्टि', alias: 'Chrono Seer',
       badge: '5', movable: true, moveRange: 1, tier: 'elite', hasScan: true,
       role: 'Psionic Scanner',
       power: { id: 'scan', label: 'Divya-drishti', range: 2 },
@@ -2034,7 +2063,7 @@ html.cb {
       tip: 'Information is tempo. Scan before you commit an attack.'
     },
     '3': {
-      key: '3', rank: 3, count: 2, name: 'Yantrik', short: 'Yantrik', deva: 'यंत्रिक', alias: 'Warp Sapper',
+      key: '3', rank: 3, count: 2, one: "The only piece that can clear a trap. Do not waste it.", name: 'Yantrik', short: 'Yantrik', deva: 'यंत्रिक', alias: 'Warp Sapper',
       badge: '3', movable: true, moveRange: 1, tier: 'line', defusesMines: true,
       role: 'Mine Specialist ×2',
       power: null,
@@ -2042,7 +2071,7 @@ html.cb {
       tip: 'Your trap-clearer is also your best cheap probe.'
     },
     '2': {
-      key: '2', rank: 2, count: 2, name: 'Rath', short: 'Rath', deva: 'रथ', alias: 'Astral Strider',
+      key: '2', rank: 2, count: 2, one: "Slides across open lanes and can strike in the same turn.", name: 'Rath', short: 'Rath', deva: 'रथ', alias: 'Astral Strider',
       badge: '2', movable: true, moveRange: 99, tier: 'line',
       role: 'Long-Range Scout ×2',
       power: null,
@@ -2050,7 +2079,7 @@ html.cb {
       tip: 'Crossing the board reveals you — run late, not early.'
     },
     '1': {
-      key: '1', rank: 1, count: 1, name: 'Chara', short: 'Chara', deva: 'चर', alias: 'Shadow Wraith',
+      key: '1', rank: 1, count: 1, one: "Kills the commander and the champion — but only if it strikes first.", name: 'Chara', short: 'Chara', deva: 'चर', alias: 'Shadow Wraith',
       badge: 'S', movable: true, moveRange: 1, tier: 'line', assassin: true,
       role: 'Cloaked Assassin',
       power: null,
@@ -2058,7 +2087,7 @@ html.cb {
       tip: 'Hold it for the endgame, then trade it for a commander.'
     },
     'B': {
-      key: 'B', rank: 0, count: 1, name: 'Shataghni', short: 'Shataghni', deva: 'शतघ्नी', alias: 'Stasis Mine',
+      key: 'B', rank: 0, count: 1, one: "Immovable trap. Kills anything that hits it, except the engineer.", name: 'Shataghni', short: 'Shataghni', deva: 'शतघ्नी', alias: 'Stasis Mine',
       badge: 'B', movable: false, moveRange: 0, tier: 'trap',
       role: 'Singularity Trap',
       power: null,
@@ -2066,7 +2095,7 @@ html.cb {
       tip: 'A mine only works once. Hide it where a probe must pass.'
     },
     'F': {
-      key: 'F', rank: -1, count: 1, name: 'Durg', short: 'Durg', deva: 'दुर्ग', alias: 'Nexus Core',
+      key: 'F', rank: -1, count: 1, one: "Your fort. Lose it and you lose the match. It never moves.", name: 'Durg', short: 'Durg', deva: 'दुर्ग', alias: 'Nexus Core',
       badge: 'F', movable: false, moveRange: 0, tier: 'trap',
       role: 'Primary Objective',
       power: null,
@@ -3632,7 +3661,7 @@ html.cb {
 </script>
 <script>
 /* js/audio.js */
-/* Aetherfront: Astral Command — audio
+/* VYUHA: Astral Command — audio
  * Every sound is synthesised at runtime with the Web Audio API, so the game
  * ships with no audio files and still has a full score + SFX suite.
  * Two layers: a short-lived SFX bus, and a procedural ambient score.
@@ -5132,7 +5161,7 @@ html.cb {
 </script>
 <script>
 /* js/ui.js */
-/* Aetherfront: Astral Command — app shell UI
+/* VYUHA: Astral Command — app shell UI
  * Screens, profiles/login, home, setup, modals, codex, saves, settings.
  * The battle screen itself lives in game.js.
  */
@@ -5893,6 +5922,7 @@ html.cb {
               '<div class="unit-name">' + esc(u.name) +
                 (u.deva ? ' <span class="deva" style="font-size:15px;color:var(--parch);opacity:.9">' + esc(u.deva) + '</span>' : '') +
                 ' <span class="unit-role">' + esc(u.role) + '</span></div>' +
+              (u.one ? '<div class="unit-one">' + esc(u.one) + '</div>' : '') +
               (u.alias ? '<div class="unit-role" style="text-transform:none;letter-spacing:.02em;opacity:.7">was ' + esc(u.alias) + '</div>' : '') +
               '<div class="unit-desc">' + esc(u.desc) + '</div>' +
               '<div class="unit-tip">▸ ' + esc(u.tip) + '</div>' +
@@ -6236,7 +6266,7 @@ html.cb {
 </script>
 <script>
 /* js/game.js */
-/* Aetherfront: Astral Command — battle screen (v3)
+/* VYUHA: Astral Command — battle screen (v3)
  * Renders any cell graph as SVG, so the square arenas and the Chakravyuha
  * wheel share one renderer, one input path and one set of animations.
  */
@@ -7528,24 +7558,20 @@ html.cb {
   function openHelp() {
     const st = g.state;
     const wheel = st && st.boardKey === 'wheel';
-    const steps = [
-      ['Deploy', 'Twelve pieces anywhere in your zone. Tap two cells to swap them. Citadel, Blitz, Lattice and Shuffle are starting points, not commitments.'],
-      ['Command', 'Tap one of your pieces, then tap a highlighted cell. A dot means move; a ring means attack, scan or volley. Ranks are hidden until a piece fights.'],
-      ['Probe', 'A piece that has never moved can still be the fort or a trap. Probe with cheap pieces and the archer’s volley — the intel panel shows the real odds before you commit.'],
-      st && st.turnLimit
-        ? ['Break the fort in time', 'You have eight raiders and no fort of your own. Take the defender’s fort before round ' + st.turnLimit + ' — by melee or by an archer’s volley down a clear spoke. Lose every raider and the breach fails.']
-        : (wheel
-          ? ['Mind the wheel', 'Arcs are one cell at a time, spokes are long lanes. Every fifth round the inner two rings turn one spoke and expose whatever they carry. The hub reaches every spoke and exposes whoever holds it.']
-          : ['Break the fort', 'Take the enemy fort, or leave them with no legal action. Sixty orders without a capture is a draw — the countdown is in the intel panel.'])
+    const cards = [
+      ['व्यूह रचना', 'Deploy', 'Twelve pieces in your own zone. Tap one, then another, to swap them. Presets are only a starting point.'],
+      ['चाल', 'Move', 'Tap your piece, then tap a glowing cell. One step, or a whole lane for the chariot.'],
+      ['संघर्ष', 'Strike', 'Tap your piece, then tap a red-ringed enemy. Both ranks stay hidden until the blow lands — the odds panel tells you the risk first.'],
+      ['दिव्य शक्ति', 'Powers', 'Three classes act without moving: the seer scans, the archer shoots two cells, the cavalry dashes two. The bar appears when you select one.'],
+      wheel ? ['चक्र', 'The turn', 'Every fifth round the inner rings turn one cell, and whatever they carry is exposed. Fast lanes, public cost.'] : ['चक्र', 'The clock', 'Sixty orders without a capture is a draw. The countdown is always on the intel tab.'],
+      ['विजय', 'Win', 'Take the enemy fort, or leave them with no legal move. Lose your own fort and it is over.']
     ];
     AC.ui.modal({
-      kicker: 'How to play',
-      title: 'Four things to know',
+      kicker: 'Learn in one screen',
+      title: 'Six things to know',
       wide: true,
-      body: '<div class="howto">' + steps.map(function (s2, i) {
-        return '<div class="howto-step"><span class="howto-num">' + (i + 1) + '</span>' +
-          '<span><span class="howto-title">' + esc(s2[0]) + '</span>' +
-          '<span class="howto-body">' + esc(s2[1]) + '</span></span></div>';
+      body: '<div class="learn-grid">' + cards.map(function (c) {
+        return '<div class="learn-card"><span class="deva">' + c[0] + '</span><b>' + esc(c[1]) + '</b><p>' + esc(c[2]) + '</p></div>';
       }).join('') + '</div>',
       actions: [
         { label: 'Full codex', cls: 'btn-ghost', onClick: function () { AC.ui.openCodex(); } },
