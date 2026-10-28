@@ -10,7 +10,7 @@
 <!-- Aetherfront single-file build — no server or network required -->
 <title>Aetherfront: Astral Command</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIiB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiI+ICA8ZGVmcz4gICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzBiMTQyOCIvPiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzA0MDYwZCIvPiAgICA8L2xpbmVhckdyYWRpZW50PiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNyeSIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E1ZjNmYyIvPiAgICAgIDxzdG9wIG9mZnNldD0iMC41NSIgc3RvcC1jb2xvcj0iIzIyZDNlZSIvPiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E4NTVmNyIvPiAgICA8L2xpbmVhckdyYWRpZW50PiAgPC9kZWZzPiAgPHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSI0MiIgZmlsbD0idXJsKCNiZykiLz4gIDxjaXJjbGUgY3g9Ijk2IiBjeT0iODYiIHI9IjY2IiBmaWxsPSIjMjJkM2VlIiBvcGFjaXR5PSIwLjEyIi8+ICA8ZyBmaWxsPSJub25lIiBzdHJva2U9InVybCgjY3J5KSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4gICAgPHBhdGggZD0iTTk2IDI2IEwxNDYgNjAgTDEzNSAxMzIgTDk2IDE2MiBMNTcgMTMyIEw0NiA2MCBaIiBmaWxsPSIjMjJkM2VlIiBmaWxsLW9wYWNpdHk9IjAuMTIiLz4gICAgPHBhdGggZD0iTTk2IDI2IFYxNjIgTTQ2IDYwIEw5NiA4NiBMMTQ2IDYwIE05NiA4NiBMNTcgMTMyIE05NiA4NiBMMTM1IDEzMiIgc3Ryb2tlLW9wYWNpdHk9IjAuNjUiLz4gIDwvZz4gIDxjaXJjbGUgY3g9Ijk2IiBjeT0iODYiIHI9IjkiIGZpbGw9IiNmYmJmMjQiLz48L3N2Zz4=" type="image/svg+xml" />
-<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIiB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiI+ICA8ZGVmcz4gICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzBiMTQyOCIvPiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzA0MDYwZCIvPiAgICA8L2xpbmVhckdyYWRpZW50PiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNyeSIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E1ZjNmYyIvPiAgICAgIDxzdG9wIG9mZnNldD0iMC41NSIgc3RvcC1jb2xvcj0iIzIyZDNlZSIvPiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E4NTVmNyIvPiAgICA8L2xpbmVhckdyYWRpZW50PiAgPC9kZWZzPiAgPHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSI0MiIgZmlsbD0idXJsKCNiZykiLz4gIDxjaXJjbGUgY3g9Ijk2IiBjeT0iODYiIHI9IjY2IiBmaWxsPSIjMjJkM2VlIiBvcGFjaXR5PSIwLjEyIi8+ICA8ZyBmaWxsPSJub25lIiBzdHJva2U9InVybCgjY3J5KSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4gICAgPHBhdGggZD0iTTk2IDI2IEwxNDYgNjAgTDEzNSAxMzIgTDk2IDE2MiBMNTcgMTMyIEw0NiA2MCBaIiBmaWxsPSIjMjJkM2VlIiBmaWxsLW9wYWNpdHk9IjAuMTIiLz4gICAgPHBhdGggZD0iTTk2IDI2IFYxNjIgTTQ2IDYwIEw5NiA4NiBMMTQ2IDYwIE05NiA4NiBMNTcgMTMyIE05NiA4NiBMMTM1IDEzMiIgc3Ryb2tlLW9wYWNpdHk9IjAuNjUiLz4gIDwvZz4gIDxjaXJjbGUgY3g9Ijk2IiBjeT0iODYiIHI9IjkiIGZpbGw9IiNmYmJmMjQiLz48L3N2Zz4=" />
+<link rel="apple-touch-icon" href="assets/art/opt/app/icon-512.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet" />
@@ -1509,6 +1509,9 @@ html.cb {
   background-repeat: no-repeat;
 }
 
+.cell-tex { fill: url(#af-tex); opacity: 0.3; pointer-events: none; }
+.token .tok-crest { filter: brightness(1.55) saturate(1.05); }
+.cell.rift .cell-tex { opacity: 0.12; }
 .yantra circle { fill: none; stroke: rgba(242, 207, 139, 0.16); stroke-width: 0.008; }
 .yantra circle.dot { fill: rgba(242, 207, 139, 0.5); stroke: none; }
 .yantra line { stroke: rgba(242, 207, 139, 0.22); stroke-width: 0.01; }
@@ -4394,8 +4397,10 @@ html.cb {
   };
   let onArt = null;
 
+  const tried = {};
   function probe(slot, url) {
-    if (typeof Image === 'undefined') return;
+    if (typeof Image === 'undefined' || tried[slot]) return;
+    tried[slot] = true;
     const img = new Image();
     img.onload = function () {
       IMG[slot] = url;
@@ -4408,22 +4413,38 @@ html.cb {
     img.src = url;
   }
 
-  function probeAll() {
-    Object.keys(SLUG).forEach(function (k) {
-      probe('unit:' + k, 'assets/art/units/' + SLUG[k] + '.png');
-    });
-    probe('faction:1', 'assets/art/factions/suryavansh.png');
-    probe('faction:2', 'assets/art/factions/chandravansh.png');
-    ['wheel', 'small', 'large'].forEach(function (b) {
-      probe('board:' + b, 'assets/art/boards/' + b + '.jpg');
-    });
-    probe('ui:combat', 'assets/art/ui/combat.jpg');
-    probe('ui:victory', 'assets/art/ui/victory.jpg');
-    probe('ui:defeat', 'assets/art/ui/defeat.jpg');
-    probe('ui:hero', 'assets/art/ui/hero.jpg');
+  const PATHS = {
+    unit: function (k) { return 'assets/art/opt/units/' + SLUG[k] + '.webp'; },
+    faction: function (n) { return 'assets/art/opt/factions/' + (n === '1' ? 'suryavansh' : 'chandravansh') + '.webp'; },
+    board: function (k) { return 'assets/art/opt/boards/' + k + '.jpg'; },
+    ui: function (n) { return 'assets/art/opt/ui/' + n + '.jpg'; },
+    app: function () { return 'assets/art/opt/app/icon-512.png'; }
+  };
+
+  function slotPath(slot) {
+    const i = slot.indexOf(':');
+    const kind = slot.slice(0, i);
+    const name = slot.slice(i + 1);
+    return PATHS[kind] ? PATHS[kind](name) : null;
   }
 
-  function artFor(slot) { return IMG[slot] || null; }
+  /* Pieces and crests load immediately — they are on screen from the first
+   * frame. Board surfaces and scene art load the first time they are asked
+   * for, so a phone does not pay for art it may never show. */
+  function probeAll() {
+    Object.keys(SLUG).forEach(function (k) { probe('unit:' + k, slotPath('unit:' + k)); });
+    probe('faction:1', slotPath('faction:1'));
+    probe('faction:2', slotPath('faction:2'));
+  }
+
+  function artFor(slot) {
+    if (IMG[slot]) return IMG[slot];
+    if (!tried[slot]) {
+      const url = slotPath(slot);
+      if (url) probe(slot, url);
+    }
+    return IMG[slot] || null;
+  }
 
   function emblem(key, cls) {
     const painted = IMG['unit:' + key];
@@ -4437,7 +4458,7 @@ html.cb {
   /* Inside an SVG token: a painted disc, or the engraved vector paths. */
   function tokenInner(key, R) {
     const painted = IMG['unit:' + key];
-    const size = R * 1.34;
+    const size = R * 1.5;
     if (painted) {
       return '<image href="' + painted + '" x="' + (-size / 2) + '" y="' + (-size / 2) + '" width="' + size +
         '" height="' + size + '" preserveAspectRatio="xMidYMid meet"/>';
@@ -6105,12 +6126,15 @@ html.cb {
     return st.viewer === 3 || u.owner === st.viewer || u.revealed;
   }
 
-  function shapeSvg(cell) {
-    if (cell.shape === 'hub') return '<circle class="cell-fill" cx="0" cy="0" r="' + cell.r + '"/>';
-    if (cell.shape === 'sector') return '<path class="cell-fill" d="' + cell.path + '"/>';
-    return '<polygon class="cell-fill" points="' + cell.points.map(function (p) {
-      return p[0].toFixed(2) + ',' + p[1].toFixed(2);
-    }).join(' ') + '"/>';
+  function shapeSvg(cell, withTexture) {
+    const geo = function (cls) {
+      if (cell.shape === 'hub') return '<circle class="' + cls + '" cx="0" cy="0" r="' + cell.r + '"/>';
+      if (cell.shape === 'sector') return '<path class="' + cls + '" d="' + cell.path + '"/>';
+      return '<polygon class="' + cls + '" points="' + cell.points.map(function (p) {
+        return p[0].toFixed(2) + ',' + p[1].toFixed(2);
+      }).join(' ') + '"/>';
+    };
+    return geo('cell-fill') + (withTexture ? geo('cell-tex') : '');
   }
 
   function tokenSvg(u, cell, isSel) {
@@ -6118,10 +6142,15 @@ html.cb {
     const cls = u.owner === 1 ? 'solar' : 'void';
     const moved = u.hasMoved ? '<circle class="tok-moved" cx="' + (-R * 0.62) + '" cy="' + (R * 0.62) + '" r="' + (R * 0.14) + '"/>' : '';
     if (!visibleToViewer(u)) {
+      const back = A.artFor('faction:' + u.owner);
+      const face = back
+        ? '<image class="tok-crest" href="' + back + '" x="' + (-R * 0.74) + '" y="' + (-R * 0.74) + '" width="' + (R * 1.48) +
+          '" height="' + (R * 1.48) + '" opacity="0.95" preserveAspectRatio="xMidYMid meet"/>' +
+          '<text class="tok-rank" x="' + (R * 0.46) + '" y="' + (R * 0.74) + '" font-size="' + (R * 0.52) +
+          '" text-anchor="middle">?</text>'
+        : '<text class="tok-q" y="' + (R * 0.33) + '" font-size="' + (R * 0.92) + '" text-anchor="middle">?</text>';
       return '<g class="token hidden-unit ' + cls + '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
-        '<circle class="tok-disc" r="' + R + '"/>' +
-        '<text class="tok-q" y="' + (R * 0.33) + '" font-size="' + (R * 0.92) + '" text-anchor="middle">?</text>' +
-        moved + '</g>';
+        '<circle class="tok-disc" r="' + R + '"/>' + face + moved + '</g>';
     }
     const sel = isSel ? '<circle class="sel-ring" r="' + (R * 1.14) + '"/>' : '';
     const eye = (u.revealed && u.owner === g.state.viewer && g.state.phase !== 'over')
@@ -6161,11 +6190,13 @@ html.cb {
     const last = st.lastMove;
     let out = '';
 
-    // a painted board texture, if one has been dropped in
+    // the painted stone surface is applied per cell, so the board reads as
+    // inlaid tiles rather than a second, competing mandala underneath
     const tex = A.artFor('board:' + st.boardKey);
     if (tex) {
-      out += '<image href="' + tex + '" x="' + bounds.x + '" y="' + bounds.y + '" width="' + bounds.w +
-        '" height="' + bounds.h + '" preserveAspectRatio="xMidYMid slice" opacity="0.42"/>';
+      out += '<defs><pattern id="af-tex" patternUnits="userSpaceOnUse" patternContentUnits="objectBoundingBox" ' +
+        'x="0" y="0" width="1.15" height="1.15">' +
+        '<image href="' + tex + '" width="1" height="1" preserveAspectRatio="xMidYMid slice"/></pattern></defs>';
     }
 
     // the yantra frame: rings, ticks and kolam dots around the chakra
@@ -6210,8 +6241,16 @@ html.cb {
         : u ? (visibleToViewer(u) ? u.name + ', rank ' + u.badge : 'unknown enemy piece')
           : 'empty cell';
 
+      let hubArt = '';
+      if (cell.shape === 'hub') {
+        const icon = A.artFor('app');
+        if (icon) {
+          hubArt = '<image href="' + icon + '" x="' + (-cell.r * 0.72) + '" y="' + (-cell.r * 0.72) +
+            '" width="' + (cell.r * 1.44) + '" height="' + (cell.r * 1.44) + '" opacity="0.9" preserveAspectRatio="xMidYMid meet"/>';
+        }
+      }
       const markup = '<g class="' + cls + '" data-id="' + id + '" tabindex="0" role="gridcell" aria-label="' + esc(label) + '">' +
-        shapeSvg(cell) +
+        shapeSvg(cell, !!tex) + hubArt +
         (u ? tokenSvg(u, cell, isSel)
           : (target ? '<g transform="translate(' + cell.x + ',' + cell.y + ')">' + targetMarker(target, cell.tr) + '</g>' : '')) +
         '</g>';

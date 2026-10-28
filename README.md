@@ -89,9 +89,15 @@ Full rules, every rank and every edge case live in the in-game **Codex** (top ba
 ## Art
 
 The board, the pieces and the panels are drawn in vector so the game never depends on a
-download. Painted art can be layered on top: drop images into `assets/art/` and they replace
-the vector marks automatically — see `docs/art-brief.md` for the exact slots, sizes and the
-prompt pack, and `assets/art/README.md` for the filename map.
+download, and painted art layers on top of it.
+
+- masters live in `assets/art/units|factions|boards|ui|app`
+- the game loads optimised copies from `assets/art/opt/` (WebP pieces, JPEG surfaces),
+  lazily: pieces and crests first, board surfaces when a board opens, scene art when a
+  dialog opens
+- the stone surface is applied per cell as an SVG pattern, so the board reads as inlaid
+  tiles; hidden enemy pieces wear their faction crest as a piece-back
+- prompt pack and slot sizes: `docs/art-brief.md`
 
 ## Project layout
 

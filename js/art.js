@@ -80,8 +80,10 @@
   };
   let onArt = null;
 
+  const tried = {};
   function probe(slot, url) {
-    if (typeof Image === 'undefined') return;
+    if (typeof Image === 'undefined' || tried[slot]) return;
+    tried[slot] = true;
     const img = new Image();
     img.onload = function () {
       IMG[slot] = url;
@@ -94,22 +96,38 @@
     img.src = url;
   }
 
-  function probeAll() {
-    Object.keys(SLUG).forEach(function (k) {
-      probe('unit:' + k, 'assets/art/units/' + SLUG[k] + '.png');
-    });
-    probe('faction:1', 'assets/art/factions/suryavansh.png');
-    probe('faction:2', 'assets/art/factions/chandravansh.png');
-    ['wheel', 'small', 'large'].forEach(function (b) {
-      probe('board:' + b, 'assets/art/boards/' + b + '.jpg');
-    });
-    probe('ui:combat', 'assets/art/ui/combat.jpg');
-    probe('ui:victory', 'assets/art/ui/victory.jpg');
-    probe('ui:defeat', 'assets/art/ui/defeat.jpg');
-    probe('ui:hero', 'assets/art/ui/hero.jpg');
+  const PATHS = {
+    unit: function (k) { return 'assets/art/opt/units/' + SLUG[k] + '.webp'; },
+    faction: function (n) { return 'assets/art/opt/factions/' + (n === '1' ? 'suryavansh' : 'chandravansh') + '.webp'; },
+    board: function (k) { return 'assets/art/opt/boards/' + k + '.jpg'; },
+    ui: function (n) { return 'assets/art/opt/ui/' + n + '.jpg'; },
+    app: function () { return 'assets/art/opt/app/icon-512.png'; }
+  };
+
+  function slotPath(slot) {
+    const i = slot.indexOf(':');
+    const kind = slot.slice(0, i);
+    const name = slot.slice(i + 1);
+    return PATHS[kind] ? PATHS[kind](name) : null;
   }
 
-  function artFor(slot) { return IMG[slot] || null; }
+  /* Pieces and crests load immediately — they are on screen from the first
+   * frame. Board surfaces and scene art load the first time they are asked
+   * for, so a phone does not pay for art it may never show. */
+  function probeAll() {
+    Object.keys(SLUG).forEach(function (k) { probe('unit:' + k, slotPath('unit:' + k)); });
+    probe('faction:1', slotPath('faction:1'));
+    probe('faction:2', slotPath('faction:2'));
+  }
+
+  function artFor(slot) {
+    if (IMG[slot]) return IMG[slot];
+    if (!tried[slot]) {
+      const url = slotPath(slot);
+      if (url) probe(slot, url);
+    }
+    return IMG[slot] || null;
+  }
 
   function emblem(key, cls) {
     const painted = IMG['unit:' + key];
@@ -123,7 +141,7 @@
   /* Inside an SVG token: a painted disc, or the engraved vector paths. */
   function tokenInner(key, R) {
     const painted = IMG['unit:' + key];
-    const size = R * 1.34;
+    const size = R * 1.5;
     if (painted) {
       return '<image href="' + painted + '" x="' + (-size / 2) + '" y="' + (-size / 2) + '" width="' + size +
         '" height="' + size + '" preserveAspectRatio="xMidYMid meet"/>';

@@ -284,12 +284,15 @@
     return st.viewer === 3 || u.owner === st.viewer || u.revealed;
   }
 
-  function shapeSvg(cell) {
-    if (cell.shape === 'hub') return '<circle class="cell-fill" cx="0" cy="0" r="' + cell.r + '"/>';
-    if (cell.shape === 'sector') return '<path class="cell-fill" d="' + cell.path + '"/>';
-    return '<polygon class="cell-fill" points="' + cell.points.map(function (p) {
-      return p[0].toFixed(2) + ',' + p[1].toFixed(2);
-    }).join(' ') + '"/>';
+  function shapeSvg(cell, withTexture) {
+    const geo = function (cls) {
+      if (cell.shape === 'hub') return '<circle class="' + cls + '" cx="0" cy="0" r="' + cell.r + '"/>';
+      if (cell.shape === 'sector') return '<path class="' + cls + '" d="' + cell.path + '"/>';
+      return '<polygon class="' + cls + '" points="' + cell.points.map(function (p) {
+        return p[0].toFixed(2) + ',' + p[1].toFixed(2);
+      }).join(' ') + '"/>';
+    };
+    return geo('cell-fill') + (withTexture ? geo('cell-tex') : '');
   }
 
   function tokenSvg(u, cell, isSel) {
@@ -297,10 +300,15 @@
     const cls = u.owner === 1 ? 'solar' : 'void';
     const moved = u.hasMoved ? '<circle class="tok-moved" cx="' + (-R * 0.62) + '" cy="' + (R * 0.62) + '" r="' + (R * 0.14) + '"/>' : '';
     if (!visibleToViewer(u)) {
+      const back = A.artFor('faction:' + u.owner);
+      const face = back
+        ? '<image class="tok-crest" href="' + back + '" x="' + (-R * 0.74) + '" y="' + (-R * 0.74) + '" width="' + (R * 1.48) +
+          '" height="' + (R * 1.48) + '" opacity="0.95" preserveAspectRatio="xMidYMid meet"/>' +
+          '<text class="tok-rank" x="' + (R * 0.46) + '" y="' + (R * 0.74) + '" font-size="' + (R * 0.52) +
+          '" text-anchor="middle">?</text>'
+        : '<text class="tok-q" y="' + (R * 0.33) + '" font-size="' + (R * 0.92) + '" text-anchor="middle">?</text>';
       return '<g class="token hidden-unit ' + cls + '" data-uid="' + u.id + '" transform="translate(' + cell.x + ',' + cell.y + ')">' +
-        '<circle class="tok-disc" r="' + R + '"/>' +
-        '<text class="tok-q" y="' + (R * 0.33) + '" font-size="' + (R * 0.92) + '" text-anchor="middle">?</text>' +
-        moved + '</g>';
+        '<circle class="tok-disc" r="' + R + '"/>' + face + moved + '</g>';
     }
     const sel = isSel ? '<circle class="sel-ring" r="' + (R * 1.14) + '"/>' : '';
     const eye = (u.revealed && u.owner === g.state.viewer && g.state.phase !== 'over')
@@ -340,11 +348,13 @@
     const last = st.lastMove;
     let out = '';
 
-    // a painted board texture, if one has been dropped in
+    // the painted stone surface is applied per cell, so the board reads as
+    // inlaid tiles rather than a second, competing mandala underneath
     const tex = A.artFor('board:' + st.boardKey);
     if (tex) {
-      out += '<image href="' + tex + '" x="' + bounds.x + '" y="' + bounds.y + '" width="' + bounds.w +
-        '" height="' + bounds.h + '" preserveAspectRatio="xMidYMid slice" opacity="0.42"/>';
+      out += '<defs><pattern id="af-tex" patternUnits="userSpaceOnUse" patternContentUnits="objectBoundingBox" ' +
+        'x="0" y="0" width="1.15" height="1.15">' +
+        '<image href="' + tex + '" width="1" height="1" preserveAspectRatio="xMidYMid slice"/></pattern></defs>';
     }
 
     // the yantra frame: rings, ticks and kolam dots around the chakra
@@ -389,8 +399,16 @@
         : u ? (visibleToViewer(u) ? u.name + ', rank ' + u.badge : 'unknown enemy piece')
           : 'empty cell';
 
+      let hubArt = '';
+      if (cell.shape === 'hub') {
+        const icon = A.artFor('app');
+        if (icon) {
+          hubArt = '<image href="' + icon + '" x="' + (-cell.r * 0.72) + '" y="' + (-cell.r * 0.72) +
+            '" width="' + (cell.r * 1.44) + '" height="' + (cell.r * 1.44) + '" opacity="0.9" preserveAspectRatio="xMidYMid meet"/>';
+        }
+      }
       const markup = '<g class="' + cls + '" data-id="' + id + '" tabindex="0" role="gridcell" aria-label="' + esc(label) + '">' +
-        shapeSvg(cell) +
+        shapeSvg(cell, !!tex) + hubArt +
         (u ? tokenSvg(u, cell, isSel)
           : (target ? '<g transform="translate(' + cell.x + ',' + cell.y + ')">' + targetMarker(target, cell.tr) + '</g>' : '')) +
         '</g>';

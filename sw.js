@@ -2,7 +2,7 @@
  * Network-first for navigation so updates land immediately, cache-first for
  * the static shell so the game still boots with no connection.
  */
-const CACHE = 'aetherfront-v7';
+const CACHE = 'aetherfront-v8';
 const SHELL = [
   './',
   './index.html',
@@ -20,7 +20,19 @@ const SHELL = [
   './js/main.js',
   './manifest.webmanifest',
   './assets/icon.svg',
-  './assets/hero.jpg'
+  './assets/hero.jpg',
+  './assets/art/opt/units/senapati.webp',
+  './assets/art/opt/units/maharathi.webp',
+  './assets/art/opt/units/ashvarohi.webp',
+  './assets/art/opt/units/dhanurdhar.webp',
+  './assets/art/opt/units/divyadrishti.webp',
+  './assets/art/opt/units/yantrik.webp',
+  './assets/art/opt/units/rath.webp',
+  './assets/art/opt/units/chara.webp',
+  './assets/art/opt/units/shataghni.webp',
+  './assets/art/opt/units/durg.webp',
+  './assets/art/opt/factions/suryavansh.webp',
+  './assets/art/opt/factions/chandravansh.webp'
 ];
 
 self.addEventListener('install', (event) => {

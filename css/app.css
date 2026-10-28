@@ -1492,6 +1492,9 @@ html.cb {
   background-repeat: no-repeat;
 }
 
+.cell-tex { fill: url(#af-tex); opacity: 0.3; pointer-events: none; }
+.token .tok-crest { filter: brightness(1.55) saturate(1.05); }
+.cell.rift .cell-tex { opacity: 0.12; }
 .yantra circle { fill: none; stroke: rgba(242, 207, 139, 0.16); stroke-width: 0.008; }
 .yantra circle.dot { fill: rgba(242, 207, 139, 0.5); stroke: none; }
 .yantra line { stroke: rgba(242, 207, 139, 0.22); stroke-width: 0.01; }

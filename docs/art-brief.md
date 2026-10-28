@@ -131,6 +131,20 @@ assets/art/ui/hero.jpg             1920×1080
 assets/art/app/icon-1024.png       1024²
 ```
 
+## The processing pass (already applied to this set)
+
+Your masters stay in `assets/art/units|factions|boards|ui|app` exactly as uploaded.
+The game loads an optimised copy from `assets/art/opt/…`, produced like this:
+
+- generator watermark in the bottom-right corner cleared
+- near-black background flood-filled to transparency (only the *connected* background,
+  so dark panels inside a piece stay solid)
+- trimmed to the subject, re-padded to a square, resized (units 320 px, crests 192 px)
+- units and crests → WebP (24–50 KB each), boards 1024 px JPEG, scenes 1280 px JPEG
+
+Whole set: **1.7 MB** instead of 90 MB, and boards and scenes load lazily — the first
+paint only pulls the ten pieces and two crests (~450 KB).
+
 ## What I do once you upload
 
 - key the black background to alpha, trim to the subject, re-pad to a square, resize to spec
