@@ -2116,6 +2116,10 @@ html.cb {
       key: 'wheel', cols: 0, rows: 0, deployRows: 0, cells: 37,
       label: 'Chakravyuha', blurb: 'the wheel · rings turn every 5 turns', rifts: []
     },
+    padma: {
+      key: 'padma', cols: 0, rows: 0, deployRows: 0, cells: 37,
+      label: 'Padmavyuha', blurb: 'the lotus · hexagon, six exits, facing counts', rifts: []
+    },
     large: {
       key: 'large', cols: 8, rows: 10, deployRows: 3, label: 'Large Expanse', blurb: '8 × 10 · room to flank', rifts: (function () {
         const out = [];
@@ -2137,7 +2141,7 @@ html.cb {
       key: 'duel',
       label: 'Duel',
       blurb: 'Two equal armies, one wheel or arena',
-      boards: ['small', 'large', 'wheel'],
+      boards: ['padma', 'wheel', 'small', 'large'],
       rosters: null,
       turnLimit: 0
     },
@@ -2411,8 +2415,100 @@ html.cb {
     wheel: { key: 'wheel', label: 'Chakravyuha', blurb: '33 cells · the rings turn every 5 turns', cells: 33, kind: 'wheel' }
   };
 
+
+  /* ── Padmavyuha: a hexagon of hexagons ────────────────────────────────
+     37 cells — an eye, then rings of 6, 12 and 18. Six exits per cell, so
+     there is no corner to camp in. Deployment is three petals a side; the
+     forts sit on the outer ring. */
+  function padmaBoard() {
+    const R = 3;
+    const S = 1;                       // one cell = one unit
+    const cells = [];
+    const byId = {};
+    const key = function (q, r) { return q + ',' + r; };
+    for (let q = -R; q <= R; q++) {
+      for (let r = -R; r <= R; r++) {
+        if (Math.abs(q + r) > R) continue;
+        const ring = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+        const x = S * Math.sqrt(3) * (q + r / 2);
+        const y = S * 1.5 * r;
+        // six petals by angle
+        let ang = Math.atan2(y, x) * 180 / Math.PI;      // -180..180
+        if (ang < 0) ang += 360;
+        const sector = Math.round(ang / 60) % 6;
+        const zone = ring >= 2 ? (sector === 4 || sector === 5 || sector === 0 ? 1 : 2) : 0;
+        const pts = [];
+        for (let i = 0; i < 6; i++) {
+          const a = Math.PI / 180 * (60 * i - 30);
+          pts.push([x + S * 0.96 * Math.cos(a), y + S * 0.96 * Math.sin(a)]);
+        }
+        const cell = {
+          id: key(q, r), x: x, y: y, shape: 'poly', zone: zone,
+          ring: ring, sector: sector, tr: S * 0.52,
+          points: pts, q: q, r: r
+        };
+        cells.push(cell);
+        byId[cell.id] = cell;
+      }
+    }
+
+    // six rays leave every cell
+    const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+    const rays = {};
+    const neighbours = {};
+    cells.forEach(function (cell) {
+      const out = [];
+      const nb = [];
+      DIRS.forEach(function (d) {
+        const line = [];
+        let q = cell.q + d[0];
+        let r = cell.r + d[1];
+        while (byId[key(q, r)]) { line.push(key(q, r)); q += d[0]; r += d[1]; }
+        out.push(line);
+        if (line.length) nb.push(line[0]);
+      });
+      rays[cell.id] = out;
+      neighbours[cell.id] = nb;
+    });
+
+    const zones = { 1: [], 2: [] };
+    cells.forEach(function (c) {
+      if (c.zone) zones[c.zone].push(c.id);
+    });
+
+    // forts: the outermost cell of each side's centre petal
+    const home = function (sector) {
+      let best = null;
+      cells.forEach(function (c) {
+        if (c.sector !== sector || c.ring !== 3) return;
+        if (!best || Math.abs(c.q) + Math.abs(c.r) > Math.abs(best.q) + Math.abs(best.r)) best = c;
+      });
+      return best ? best.id : null;
+    };
+    const homes = { 1: home(5), 2: home(2) };
+
+    const rotateRings = [1, 2];
+    const rotateEvery = 5;
+    const rotationOrder = {};
+    rotateRings.forEach(function (ring) {
+      const ids = cells.filter(function (c) { return c.ring === ring; })
+        .sort(function (a, b) { return (a.sector - b.sector) || (a.q - b.q); })
+        .map(function (c) { return c.id; });
+      rotationOrder[ring] = ids;
+    });
+
+    return {
+      key: 'padma', kind: 'hex', cells: cells, byId: byId, cellIds: cells.map(function (c) { return c.id; }),
+      zones: zones, homes: homes, rays: rays, neighbours: neighbours,
+      bounds: { x: -6.15, y: -5.5, w: 12.3, h: 11.0 },
+      labels: [], rifts: [], rotateRings: rotateRings, rotateEvery: rotateEvery,
+      rotationOrder: rotationOrder, sides: 6
+    };
+  }
+
   function build(key) {
     if (cache[key]) return cache[key];
+    if (key === 'padma') { cache[key] = padmaBoard(); return cache[key]; }
     const spec = SPECS[key] || SPECS.small;
     cache[key] = spec();
     return cache[key];
@@ -2442,6 +2538,7 @@ html.cb {
 
   AC.geometry = {
     META: META,
+    padma: padmaBoard,
     build: build,
     distances: distances,
     arcPath: arcPath
@@ -2514,6 +2611,7 @@ html.cb {
       timer: 0, drawAfter: 100, playerName: 'Commander', opponentName: 'Astral AI'
     }, config || {});
     const scenario = U.SCENARIOS[cfg.scenario] || U.SCENARIOS.duel;
+    if (cfg.facing == null) cfg.facing = false;
     if (scenario.boards && scenario.boards.indexOf(cfg.board) === -1) cfg.board = scenario.boards[0];
     const g = G.build(cfg.board);
     const state = {
@@ -2526,7 +2624,7 @@ html.cb {
       viewer: 1,
       rifts: g.rifts.slice(),
       board: {},
-      homes: { 1: g.homes[1], 2: g.homes[2] },
+      homes: { 1: (g.homes && g.homes[1]) || null, 2: (g.homes && g.homes[2]) || null },
       captured: { 1: [], 2: [] },
       log: [],
       replay: [],
@@ -2543,6 +2641,7 @@ html.cb {
       stats: { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0, lastCapturePly: 0 },
       startedAt: Date.now()
     };
+    state.homes = { 1: g.homes[1], 2: g.homes[2] };
     deployPreset(state, 1, 'citadel');
     deployPreset(state, 2, 'citadel');
     return state;
@@ -2553,6 +2652,27 @@ html.cb {
   function inDeployZone(state, owner, id) {
     const cell = cellOf(state, id);
     return !!cell && cell.zone === owner;
+  }
+
+  /* Point every piece at the enemy fort when it is placed. */
+  function faceTowardEnemy(state, owner) {
+    if (!state.config.facing) return;
+    const g = board(state);
+    const sides = g.sides || 0;
+    if (!sides) return;
+    const foeHome = state.homes[owner === 1 ? 2 : 1];
+    if (!foeHome) return;
+    const dist = G.distances(state.boardKey, foeHome);
+    forEachUnit(state, function (u, id) {
+      if (u.owner !== owner) return;
+      let best = 0;
+      let bestD = Infinity;
+      (g.rays[id] || []).forEach(function (line, i) {
+        const head = line[0];
+        if (head && dist[head] < bestD) { bestD = dist[head]; best = i; }
+      });
+      u.facing = best;
+    });
   }
 
   function armyComplete(state, owner) {
@@ -2767,16 +2887,16 @@ html.cb {
   function rayTargets(state, id, range, unit) {
     const g = board(state);
     const out = [];
-    (g.rays[id] || []).forEach(function (line) {
+    (g.rays[id] || []).forEach(function (line, dir) {
       for (let i = 0; i < line.length && i < range; i++) {
         const to = line[i];
         if (isRift(state, to)) break;
         const occ = state.board[to];
         if (!occ) {
-          if (!violatesTwoSquare(unit, id, to)) out.push({ id: to, type: 'move' });
+          if (!violatesTwoSquare(unit, id, to)) out.push({ id: to, type: 'move', dir: dir });
         } else {
           if (occ.owner !== unit.owner && !violatesTwoSquare(unit, id, to)) {
-            out.push({ id: to, type: 'attack' });
+            out.push({ id: to, type: 'attack', dir: dir });
           }
           break;
         }
@@ -2904,7 +3024,18 @@ html.cb {
 
   /* ── combat ──────────────────────────────────────────────────── */
 
-  function resolveMelee(state, attacker, defender) {
+  /* Facing (hex fields only): each piece faces one of six edges, set by its
+   * last move. A strike into the rear — the opposite edge — ignores rank. */
+  function isRearStrike(state, action, defender) {
+    if (!state.config.facing) return false;
+    if (action.dir == null || defender.facing == null) return false;
+    const g = board(state);
+    const sides = g.sides || (g.rays[action.from] || []).length;
+    if (!sides) return false;
+    return ((defender.facing + Math.floor(sides / 2)) % sides) === action.dir;
+  }
+
+  function resolveMelee(state, attacker, defender, rear) {
     if (defender.key === 'F') {
       return { winner: 'att', core: true, text: attacker.name + ' [' + attacker.badge + '] seized the ' + faction(defender.owner) + ' fort!' };
     }
@@ -2913,6 +3044,12 @@ html.cb {
         return { winner: 'att', mine: true, text: 'The Yantrik safely dismantled the Shataghni — the lane is open.' };
       }
       return { winner: 'def', mine: true, text: attacker.name + ' [' + attacker.badge + '] struck a Shataghni and was annihilated. The trap holds.' };
+    }
+    if (rear) {
+      return {
+        winner: 'att', rear: true,
+        text: attacker.name + ' struck the ' + defender.name + ' [' + defender.badge + '] from behind — rank did not count.'
+      };
     }
     if (U.UNIT_DEFS[attacker.key].assassin && (defender.key === '10' || defender.key === '9')) {
       return { winner: 'att', assassinate: true, text: 'Assassination — the spy slipped past the guard and slew the ' + defender.name + ' [' + defender.badge + '].' };
@@ -2939,8 +3076,31 @@ html.cb {
   /* ── the chakra turns ────────────────────────────────────────── */
 
   function rotate(state, events) {
-    if (state.boardKey !== 'wheel') return false;
     const g = board(state);
+    // the lotus field keeps its own ring ordering; the wheel uses ring/sector ids
+    if (g.kind === 'hex' && g.rotationOrder) {
+      let movedHex = 0;
+      Object.keys(g.rotationOrder).forEach(function (ring) {
+        const order = g.rotationOrder[ring];
+        const held = order.map(function (id) { return state.board[id] || null; });
+        order.forEach(function (id) { state.board[id] = null; });
+        held.forEach(function (u, i) {
+          if (!u) return;
+          const to = order[(i + 1) % order.length];
+          state.board[to] = u;
+          u.revealed = true;
+          movedHex++;
+        });
+      });
+      state.rotation.count++;
+      state.rotation.lastTurn = state.turn;
+      if (movedHex) {
+        events.push({ kind: 'rotate', sfx: 'rotate', text: 'The lotus turns — ' + movedHex + ' pieces shift and are exposed.' });
+        log(state, 'The lotus turns. The rings shift one cell.', 'rotate');
+      }
+      return movedHex > 0;
+    }
+    if (state.boardKey !== 'wheel') return false;
     const rings = state.rotation.rings.length ? state.rotation.rings : [1, 2];
     let moved = 0;
     rings.forEach(function (ring) {
@@ -3087,13 +3247,15 @@ html.cb {
     }
 
     /* ── melee ── */
+    if (state.config.facing && action.dir != null) unit.facing = action.dir;
     unit.hasMoved = true;
     unit.moveHistory.push({ from: from, to: to });
     unit.revealed = true;
     target.revealed = true;
     state.stats.attacks++;
 
-    const res = resolveMelee(state, unit, target);
+    const rear = isRearStrike(state, action, target);
+    const res = resolveMelee(state, unit, target, rear);
 
     if (res.winner === 'att') {
       state.board[to] = unit;
@@ -3184,6 +3346,8 @@ html.cb {
   }
 
   function beginBattle(state) {
+    faceTowardEnemy(state, 1);
+    faceTowardEnemy(state, 2);
     state.phase = 'battle';
     state.owner = 1;
     state.turn = 1;

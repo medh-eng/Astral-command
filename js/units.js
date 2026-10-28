@@ -127,6 +127,10 @@
       key: 'wheel', cols: 0, rows: 0, deployRows: 0, cells: 37,
       label: 'Chakravyuha', blurb: 'the wheel · rings turn every 5 turns', rifts: []
     },
+    padma: {
+      key: 'padma', cols: 0, rows: 0, deployRows: 0, cells: 37,
+      label: 'Padmavyuha', blurb: 'the lotus · hexagon, six exits, facing counts', rifts: []
+    },
     large: {
       key: 'large', cols: 8, rows: 10, deployRows: 3, label: 'Large Expanse', blurb: '8 × 10 · room to flank', rifts: (function () {
         const out = [];
@@ -148,7 +152,7 @@
       key: 'duel',
       label: 'Duel',
       blurb: 'Two equal armies, one wheel or arena',
-      boards: ['small', 'large', 'wheel'],
+      boards: ['padma', 'wheel', 'small', 'large'],
       rosters: null,
       turnLimit: 0
     },

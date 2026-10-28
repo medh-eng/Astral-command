@@ -61,6 +61,7 @@
       timer: 0, drawAfter: 100, playerName: 'Commander', opponentName: 'Astral AI'
     }, config || {});
     const scenario = U.SCENARIOS[cfg.scenario] || U.SCENARIOS.duel;
+    if (cfg.facing == null) cfg.facing = false;
     if (scenario.boards && scenario.boards.indexOf(cfg.board) === -1) cfg.board = scenario.boards[0];
     const g = G.build(cfg.board);
     const state = {
@@ -73,7 +74,7 @@
       viewer: 1,
       rifts: g.rifts.slice(),
       board: {},
-      homes: { 1: g.homes[1], 2: g.homes[2] },
+      homes: { 1: (g.homes && g.homes[1]) || null, 2: (g.homes && g.homes[2]) || null },
       captured: { 1: [], 2: [] },
       log: [],
       replay: [],
@@ -90,6 +91,7 @@
       stats: { actions: 0, attacks: 0, wins: 0, losses: 0, probes: 0, firstBlood: 0, lastCapturePly: 0 },
       startedAt: Date.now()
     };
+    state.homes = { 1: g.homes[1], 2: g.homes[2] };
     deployPreset(state, 1, 'citadel');
     deployPreset(state, 2, 'citadel');
     return state;
@@ -100,6 +102,27 @@
   function inDeployZone(state, owner, id) {
     const cell = cellOf(state, id);
     return !!cell && cell.zone === owner;
+  }
+
+  /* Point every piece at the enemy fort when it is placed. */
+  function faceTowardEnemy(state, owner) {
+    if (!state.config.facing) return;
+    const g = board(state);
+    const sides = g.sides || 0;
+    if (!sides) return;
+    const foeHome = state.homes[owner === 1 ? 2 : 1];
+    if (!foeHome) return;
+    const dist = G.distances(state.boardKey, foeHome);
+    forEachUnit(state, function (u, id) {
+      if (u.owner !== owner) return;
+      let best = 0;
+      let bestD = Infinity;
+      (g.rays[id] || []).forEach(function (line, i) {
+        const head = line[0];
+        if (head && dist[head] < bestD) { bestD = dist[head]; best = i; }
+      });
+      u.facing = best;
+    });
   }
 
   function armyComplete(state, owner) {
@@ -314,16 +337,16 @@
   function rayTargets(state, id, range, unit) {
     const g = board(state);
     const out = [];
-    (g.rays[id] || []).forEach(function (line) {
+    (g.rays[id] || []).forEach(function (line, dir) {
       for (let i = 0; i < line.length && i < range; i++) {
         const to = line[i];
         if (isRift(state, to)) break;
         const occ = state.board[to];
         if (!occ) {
-          if (!violatesTwoSquare(unit, id, to)) out.push({ id: to, type: 'move' });
+          if (!violatesTwoSquare(unit, id, to)) out.push({ id: to, type: 'move', dir: dir });
         } else {
           if (occ.owner !== unit.owner && !violatesTwoSquare(unit, id, to)) {
-            out.push({ id: to, type: 'attack' });
+            out.push({ id: to, type: 'attack', dir: dir });
           }
           break;
         }
@@ -451,7 +474,18 @@
 
   /* ── combat ──────────────────────────────────────────────────── */
 
-  function resolveMelee(state, attacker, defender) {
+  /* Facing (hex fields only): each piece faces one of six edges, set by its
+   * last move. A strike into the rear — the opposite edge — ignores rank. */
+  function isRearStrike(state, action, defender) {
+    if (!state.config.facing) return false;
+    if (action.dir == null || defender.facing == null) return false;
+    const g = board(state);
+    const sides = g.sides || (g.rays[action.from] || []).length;
+    if (!sides) return false;
+    return ((defender.facing + Math.floor(sides / 2)) % sides) === action.dir;
+  }
+
+  function resolveMelee(state, attacker, defender, rear) {
     if (defender.key === 'F') {
       return { winner: 'att', core: true, text: attacker.name + ' [' + attacker.badge + '] seized the ' + faction(defender.owner) + ' fort!' };
     }
@@ -460,6 +494,12 @@
         return { winner: 'att', mine: true, text: 'The Yantrik safely dismantled the Shataghni — the lane is open.' };
       }
       return { winner: 'def', mine: true, text: attacker.name + ' [' + attacker.badge + '] struck a Shataghni and was annihilated. The trap holds.' };
+    }
+    if (rear) {
+      return {
+        winner: 'att', rear: true,
+        text: attacker.name + ' struck the ' + defender.name + ' [' + defender.badge + '] from behind — rank did not count.'
+      };
     }
     if (U.UNIT_DEFS[attacker.key].assassin && (defender.key === '10' || defender.key === '9')) {
       return { winner: 'att', assassinate: true, text: 'Assassination — the spy slipped past the guard and slew the ' + defender.name + ' [' + defender.badge + '].' };
@@ -486,8 +526,31 @@
   /* ── the chakra turns ────────────────────────────────────────── */
 
   function rotate(state, events) {
-    if (state.boardKey !== 'wheel') return false;
     const g = board(state);
+    // the lotus field keeps its own ring ordering; the wheel uses ring/sector ids
+    if (g.kind === 'hex' && g.rotationOrder) {
+      let movedHex = 0;
+      Object.keys(g.rotationOrder).forEach(function (ring) {
+        const order = g.rotationOrder[ring];
+        const held = order.map(function (id) { return state.board[id] || null; });
+        order.forEach(function (id) { state.board[id] = null; });
+        held.forEach(function (u, i) {
+          if (!u) return;
+          const to = order[(i + 1) % order.length];
+          state.board[to] = u;
+          u.revealed = true;
+          movedHex++;
+        });
+      });
+      state.rotation.count++;
+      state.rotation.lastTurn = state.turn;
+      if (movedHex) {
+        events.push({ kind: 'rotate', sfx: 'rotate', text: 'The lotus turns — ' + movedHex + ' pieces shift and are exposed.' });
+        log(state, 'The lotus turns. The rings shift one cell.', 'rotate');
+      }
+      return movedHex > 0;
+    }
+    if (state.boardKey !== 'wheel') return false;
     const rings = state.rotation.rings.length ? state.rotation.rings : [1, 2];
     let moved = 0;
     rings.forEach(function (ring) {
@@ -634,13 +697,15 @@
     }
 
     /* ── melee ── */
+    if (state.config.facing && action.dir != null) unit.facing = action.dir;
     unit.hasMoved = true;
     unit.moveHistory.push({ from: from, to: to });
     unit.revealed = true;
     target.revealed = true;
     state.stats.attacks++;
 
-    const res = resolveMelee(state, unit, target);
+    const rear = isRearStrike(state, action, target);
+    const res = resolveMelee(state, unit, target, rear);
 
     if (res.winner === 'att') {
       state.board[to] = unit;
@@ -731,6 +796,8 @@
   }
 
   function beginBattle(state) {
+    faceTowardEnemy(state, 1);
+    faceTowardEnemy(state, 2);
     state.phase = 'battle';
     state.owner = 1;
     state.turn = 1;

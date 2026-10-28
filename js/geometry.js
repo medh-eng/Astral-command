@@ -241,8 +241,100 @@
     wheel: { key: 'wheel', label: 'Chakravyuha', blurb: '33 cells · the rings turn every 5 turns', cells: 33, kind: 'wheel' }
   };
 
+
+  /* ── Padmavyuha: a hexagon of hexagons ────────────────────────────────
+     37 cells — an eye, then rings of 6, 12 and 18. Six exits per cell, so
+     there is no corner to camp in. Deployment is three petals a side; the
+     forts sit on the outer ring. */
+  function padmaBoard() {
+    const R = 3;
+    const S = 1;                       // one cell = one unit
+    const cells = [];
+    const byId = {};
+    const key = function (q, r) { return q + ',' + r; };
+    for (let q = -R; q <= R; q++) {
+      for (let r = -R; r <= R; r++) {
+        if (Math.abs(q + r) > R) continue;
+        const ring = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+        const x = S * Math.sqrt(3) * (q + r / 2);
+        const y = S * 1.5 * r;
+        // six petals by angle
+        let ang = Math.atan2(y, x) * 180 / Math.PI;      // -180..180
+        if (ang < 0) ang += 360;
+        const sector = Math.round(ang / 60) % 6;
+        const zone = ring >= 2 ? (sector === 4 || sector === 5 || sector === 0 ? 1 : 2) : 0;
+        const pts = [];
+        for (let i = 0; i < 6; i++) {
+          const a = Math.PI / 180 * (60 * i - 30);
+          pts.push([x + S * 0.96 * Math.cos(a), y + S * 0.96 * Math.sin(a)]);
+        }
+        const cell = {
+          id: key(q, r), x: x, y: y, shape: 'poly', zone: zone,
+          ring: ring, sector: sector, tr: S * 0.52,
+          points: pts, q: q, r: r
+        };
+        cells.push(cell);
+        byId[cell.id] = cell;
+      }
+    }
+
+    // six rays leave every cell
+    const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+    const rays = {};
+    const neighbours = {};
+    cells.forEach(function (cell) {
+      const out = [];
+      const nb = [];
+      DIRS.forEach(function (d) {
+        const line = [];
+        let q = cell.q + d[0];
+        let r = cell.r + d[1];
+        while (byId[key(q, r)]) { line.push(key(q, r)); q += d[0]; r += d[1]; }
+        out.push(line);
+        if (line.length) nb.push(line[0]);
+      });
+      rays[cell.id] = out;
+      neighbours[cell.id] = nb;
+    });
+
+    const zones = { 1: [], 2: [] };
+    cells.forEach(function (c) {
+      if (c.zone) zones[c.zone].push(c.id);
+    });
+
+    // forts: the outermost cell of each side's centre petal
+    const home = function (sector) {
+      let best = null;
+      cells.forEach(function (c) {
+        if (c.sector !== sector || c.ring !== 3) return;
+        if (!best || Math.abs(c.q) + Math.abs(c.r) > Math.abs(best.q) + Math.abs(best.r)) best = c;
+      });
+      return best ? best.id : null;
+    };
+    const homes = { 1: home(5), 2: home(2) };
+
+    const rotateRings = [1, 2];
+    const rotateEvery = 5;
+    const rotationOrder = {};
+    rotateRings.forEach(function (ring) {
+      const ids = cells.filter(function (c) { return c.ring === ring; })
+        .sort(function (a, b) { return (a.sector - b.sector) || (a.q - b.q); })
+        .map(function (c) { return c.id; });
+      rotationOrder[ring] = ids;
+    });
+
+    return {
+      key: 'padma', kind: 'hex', cells: cells, byId: byId, cellIds: cells.map(function (c) { return c.id; }),
+      zones: zones, homes: homes, rays: rays, neighbours: neighbours,
+      bounds: { x: -6.15, y: -5.5, w: 12.3, h: 11.0 },
+      labels: [], rifts: [], rotateRings: rotateRings, rotateEvery: rotateEvery,
+      rotationOrder: rotationOrder, sides: 6
+    };
+  }
+
   function build(key) {
     if (cache[key]) return cache[key];
+    if (key === 'padma') { cache[key] = padmaBoard(); return cache[key]; }
     const spec = SPECS[key] || SPECS.small;
     cache[key] = spec();
     return cache[key];
@@ -272,6 +364,7 @@
 
   AC.geometry = {
     META: META,
+    padma: padmaBoard,
     build: build,
     distances: distances,
     arcPath: arcPath
