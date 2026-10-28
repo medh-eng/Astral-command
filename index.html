@@ -244,6 +244,8 @@
       <main class="board-column">
         <div class="player-strip" id="strip-top"></div>
         <div class="board-shell" id="board-shell">
+          <span class="boss tl" aria-hidden="true"></span><span class="boss tr" aria-hidden="true"></span>
+          <span class="boss bl" aria-hidden="true"></span><span class="boss br" aria-hidden="true"></span>
           <svg class="board-svg" id="board" role="grid" aria-label="Battlefield" preserveAspectRatio="xMidYMid meet"></svg>
         </div>
         <div class="player-strip" id="strip-bottom"></div>
@@ -258,7 +260,8 @@
       </aside>
     </div>
 
-    <footer class="action-bar" id="action-bar"></footer>
+    <div class="tip-bar" id="tip-bar"><span class="tip-ico">◆</span><span id="tip-text"></span></div>
+  <footer class="action-bar" id="action-bar"></footer>
     <div class="scrim" id="scrim"></div>
   </section>
 

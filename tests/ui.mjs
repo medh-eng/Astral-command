@@ -209,11 +209,20 @@ async function run() {
   st3.board[to] = AC.engine.createArmy(2).filter((u) => u.key === '3')[0];
   game.render();
 
+  // clear anything left open by earlier sections so the click cannot land on a
+  // stale dialog button
+  AC.app.modals.slice().forEach((m) => m.close());
+  document.querySelectorAll('.modal-backdrop').forEach((n) => n.remove());
+  game.render();
+
   const capBefore = st3.captured[1].length;
   clickCell(from);
   ok(!!document.querySelector('.cell.selected'), 'own piece selects');
   clickCell(to);
-  const confirmBtn = document.querySelector('.modal-actions [data-act="1"]');
+  const actionRows = document.querySelectorAll('.modal-actions');
+  const confirmBtn = actionRows[actionRows.length - 1]
+    ? actionRows[actionRows.length - 1].querySelector('[data-act="1"]')
+    : null;
   ok(!!confirmBtn, 'a blind attack asks for confirmation with odds');
   if (confirmBtn) click(confirmBtn);
   ok(!!document.querySelector('.combat-arena'), 'combat result modal shown after the strike');

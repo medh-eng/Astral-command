@@ -35,6 +35,81 @@
 
   function settings() { return AC.app.settings; }
 
+  const TIPS = [
+    'A piece that has never moved can still be the fort or a trap. Probe with something cheap.',
+    'The archer kills from two cells away — keep your fort out of a clear spoke.',
+    'Tap a hidden enemy to see the odds before you commit. The panel is honest.',
+    'Every fifth round the inner rings turn, and anything they carry is exposed.',
+    'The hub touches every spoke: fastest crossing on the board, worst place to stand.',
+    'Losing the spy early costs you your best answer to the enemy commander.',
+    'Two quiet rounds is a threat, not a rest. Watch what your opponent is massing.',
+    'Ranks are hidden until they fight. A refused attack tells you something too.',
+    'The engineer is the only piece that can clear a trap. Do not spend it on a guess.',
+    'Scenarios run on a clock. In the breach, tempo is worth more than material.'
+  ];
+  let tipTimer = null;
+  let tipIndex = 0;
+
+  function startTips() {
+    const el = document.getElementById('tip-text');
+    if (!el) return;
+    const paint = function () {
+      el.style.opacity = '0';
+      setTimeout(function () {
+        el.textContent = TIPS[tipIndex % TIPS.length];
+        tipIndex++;
+        el.style.opacity = '1';
+      }, 220);
+    };
+    if (tipTimer) clearInterval(tipTimer);
+    tipIndex = Math.floor(Math.random() * TIPS.length);
+    paint();
+    tipTimer = setInterval(paint, 14000);
+  }
+
+  /* ── the legend that opens a match ── */
+  const LEGEND = {
+    duel: {
+      title: 'Two houses, one wheel',
+      text: 'Neither army knows the other\u2019s order of battle. Twelve pieces a side, ten hidden ranks, and one fort that ends everything. Read the enemy before the enemy reads you.'
+    },
+    abhimanyu: {
+      title: 'The wheel is closed',
+      text: 'A single breach, eight companions, and the formation sealing behind you. Break the fort before the rounds run out \u2014 or be remembered as the one who nearly did.'
+    }
+  };
+
+  function showStory(done) {
+    const st = g.state;
+    const sc = U.SCENARIOS[st.scenario] || U.SCENARIOS.duel;
+    const legend = LEGEND[st.scenario] || LEGEND.duel;
+    if (settings().stories === false) { if (done) done(); return; }
+    const art = A.artFor('card:' + st.scenario);
+    const m = AC.ui.modal({
+      kicker: sc.label,
+      title: legend.title,
+      art: art,
+      wide: false,
+      body: '<p style="font-size:13px;line-height:1.65;color:var(--dim);margin:0 0 12px">' + esc(legend.text) + '</p>' +
+        '<div class="legend-facts">' +
+          '<span><b>' + st.rosters[1].length + '</b> your pieces</span>' +
+          '<span><b>' + st.rosters[2].length + '</b> theirs</span>' +
+          '<span><b>' + (st.turnLimit || '\u2014') + '</b> rounds</span>' +
+        '</div>',
+      actions: [
+        { label: 'Skip stories', cls: 'btn-ghost', onClick: function () {
+            settings().stories = false;
+            if (AC.storage && AC.storage.saveSettings) AC.storage.saveSettings({ stories: false });
+          } },
+        { label: 'Take the field', cls: 'btn-primary', onClick: function () { if (done) done(); } }
+      ],
+      onClose: function () { if (done) done(); }
+    });
+    return m;
+  }
+
+  g.showStory = showStory;
+
   let bannerTimer = null;
   function banner(title, sub, kind, ms) {
     const el = document.getElementById('turn-banner');
@@ -88,6 +163,8 @@
     g.hinted = false;
     AC.ui.show('game');
     render();
+    startTips();
+    showStory();
     autosave();
     const st0 = g.state;
     FX.toast(st0.turnLimit
@@ -119,6 +196,7 @@
     else if (g.state.phase === 'deploy1') g.state.viewer = 1;
     AC.ui.show('game');
     render();
+    startTips();
     FX.toast('Match restored.', 'success');
     if (g.state.phase === 'battle' && isAi() && g.state.owner === 2) scheduleAi();
   };
@@ -356,10 +434,6 @@
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
     const last = st.lastMove;
     let out = '';
-
-    // a dark plate under everything keeps the table from bleeding through
-    out += '<rect x="' + bounds.x + '" y="' + bounds.y + '" width="' + bounds.w + '" height="' + bounds.h +
-      '" fill="rgba(6,5,10,0.55)"/>';
 
     // the painted stone surface is applied per cell, so the board reads as
     // inlaid tiles rather than a second, competing mandala underneath

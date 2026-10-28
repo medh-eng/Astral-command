@@ -678,6 +678,12 @@ input::placeholder { color: var(--faint); }
 .turn-pill {
   white-space: nowrap;
   max-width: 100%;
+  padding: 5px 26px;
+  border-radius: 0;
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%);
+  background: linear-gradient(180deg, #8a6529, #4a3418 55%, #2a1e0e);
+  border: 1px solid rgba(242, 207, 139, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 235, 190, 0.35), 0 4px 12px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   text-overflow: ellipsis;
   display: inline-flex;
@@ -718,10 +724,30 @@ input::placeholder { color: var(--faint); }
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr) 268px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
-  padding: 10px var(--pad);
+  padding: 8px var(--pad);
   align-items: stretch;
+}
+/* the intel ledger and the log are drawers, so the board owns the screen */
+.intel-panel, .log-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: 40;
+  width: min(340px, 88vw);
+  border-radius: 0;
+  transform: translateX(-102%);
+  transition: transform 0.24s cubic-bezier(0.3, 0.8, 0.3, 1);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+  overflow-y: auto;
+}
+.intel-panel { left: 0; }
+.log-panel { right: 0; transform: translateX(102%); }
+.intel-panel.open, .log-panel.open { transform: translateX(0); }
+@media (min-width: 1100px) {
+  .intel-panel { width: 300px; }
+  .log-panel { width: 320px; }
 }
 .board-column { display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 0; }
 .board-shell { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; padding: 2px; overflow: hidden; }
@@ -774,7 +800,7 @@ input::placeholder { color: var(--faint); }
 /* board — an SVG cell graph (square arenas and the Chakravyuha wheel) */
 .board-svg {
   position: absolute;
-  inset: 0;
+  inset: 10px;
   width: 100%;
   height: 100%;
   display: block;
@@ -1392,7 +1418,7 @@ html.cb {
 }
 .btn-gold { background: linear-gradient(135deg, #fde9c0, #f2cf8b); color: #2b1d02; }
 
-.cell .cell-fill { fill: rgba(26, 22, 32, 0.97); stroke: rgba(224, 169, 74, 0.3); }
+.cell .cell-fill { fill: rgba(38, 32, 45, 0.97); stroke: rgba(224, 169, 74, 0.34); }
 .cell:nth-child(even) .cell-fill { fill: rgba(34, 29, 39, 0.94); }
 .cell.zone-1 .cell-fill { stroke: rgba(224, 169, 74, 0.34); }
 .cell.zone-2 .cell-fill { stroke: rgba(139, 143, 240, 0.34); }
@@ -1615,6 +1641,56 @@ html.cb {
 .mode-card-tick .ico { width: 14px; height: 14px; }
 @media (max-width: 560px) {
   .mode-cards { grid-template-columns: 1fr; }
+}
+
+/* tip bar — a small instruction plate under the board */
+.tip-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 var(--pad) 2px;
+  padding: 6px 14px;
+  min-height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(58, 44, 24, 0.9), rgba(24, 18, 10, 0.92));
+  border: 1px solid rgba(224, 169, 74, 0.28);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: rgba(240, 228, 205, 0.86);
+  text-align: center;
+  transition: opacity 0.3s;
+}
+.tip-ico { color: var(--solar); font-size: 9px; }
+@media (max-width: 780px) {
+  .tip-bar { font-size: 10.5px; padding: 5px 10px; min-height: 26px; }
+}
+
+.legend-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+.legend-facts span {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(224, 169, 74, 0.07);
+  border: 1px solid rgba(224, 169, 74, 0.22);
+  font-size: 10.5px;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+.legend-facts b {
+  font-family: var(--font);
+  font-size: 18px;
+  letter-spacing: 0;
+  color: var(--solar-2);
+  text-transform: none;
 }
 
 </style>
@@ -1847,6 +1923,8 @@ html.cb {
       <main class="board-column">
         <div class="player-strip" id="strip-top"></div>
         <div class="board-shell" id="board-shell">
+          <span class="boss tl" aria-hidden="true"></span><span class="boss tr" aria-hidden="true"></span>
+          <span class="boss bl" aria-hidden="true"></span><span class="boss br" aria-hidden="true"></span>
           <svg class="board-svg" id="board" role="grid" aria-label="Battlefield" preserveAspectRatio="xMidYMid meet"></svg>
         </div>
         <div class="player-strip" id="strip-bottom"></div>
@@ -1861,7 +1939,8 @@ html.cb {
       </aside>
     </div>
 
-    <footer class="action-bar" id="action-bar"></footer>
+    <div class="tip-bar" id="tip-bar"><span class="tip-ico">◆</span><span id="tip-text"></span></div>
+  <footer class="action-bar" id="action-bar"></footer>
     <div class="scrim" id="scrim"></div>
   </section>
 
@@ -6194,6 +6273,81 @@ html.cb {
 
   function settings() { return AC.app.settings; }
 
+  const TIPS = [
+    'A piece that has never moved can still be the fort or a trap. Probe with something cheap.',
+    'The archer kills from two cells away — keep your fort out of a clear spoke.',
+    'Tap a hidden enemy to see the odds before you commit. The panel is honest.',
+    'Every fifth round the inner rings turn, and anything they carry is exposed.',
+    'The hub touches every spoke: fastest crossing on the board, worst place to stand.',
+    'Losing the spy early costs you your best answer to the enemy commander.',
+    'Two quiet rounds is a threat, not a rest. Watch what your opponent is massing.',
+    'Ranks are hidden until they fight. A refused attack tells you something too.',
+    'The engineer is the only piece that can clear a trap. Do not spend it on a guess.',
+    'Scenarios run on a clock. In the breach, tempo is worth more than material.'
+  ];
+  let tipTimer = null;
+  let tipIndex = 0;
+
+  function startTips() {
+    const el = document.getElementById('tip-text');
+    if (!el) return;
+    const paint = function () {
+      el.style.opacity = '0';
+      setTimeout(function () {
+        el.textContent = TIPS[tipIndex % TIPS.length];
+        tipIndex++;
+        el.style.opacity = '1';
+      }, 220);
+    };
+    if (tipTimer) clearInterval(tipTimer);
+    tipIndex = Math.floor(Math.random() * TIPS.length);
+    paint();
+    tipTimer = setInterval(paint, 14000);
+  }
+
+  /* ── the legend that opens a match ── */
+  const LEGEND = {
+    duel: {
+      title: 'Two houses, one wheel',
+      text: 'Neither army knows the other\u2019s order of battle. Twelve pieces a side, ten hidden ranks, and one fort that ends everything. Read the enemy before the enemy reads you.'
+    },
+    abhimanyu: {
+      title: 'The wheel is closed',
+      text: 'A single breach, eight companions, and the formation sealing behind you. Break the fort before the rounds run out \u2014 or be remembered as the one who nearly did.'
+    }
+  };
+
+  function showStory(done) {
+    const st = g.state;
+    const sc = U.SCENARIOS[st.scenario] || U.SCENARIOS.duel;
+    const legend = LEGEND[st.scenario] || LEGEND.duel;
+    if (settings().stories === false) { if (done) done(); return; }
+    const art = A.artFor('card:' + st.scenario);
+    const m = AC.ui.modal({
+      kicker: sc.label,
+      title: legend.title,
+      art: art,
+      wide: false,
+      body: '<p style="font-size:13px;line-height:1.65;color:var(--dim);margin:0 0 12px">' + esc(legend.text) + '</p>' +
+        '<div class="legend-facts">' +
+          '<span><b>' + st.rosters[1].length + '</b> your pieces</span>' +
+          '<span><b>' + st.rosters[2].length + '</b> theirs</span>' +
+          '<span><b>' + (st.turnLimit || '\u2014') + '</b> rounds</span>' +
+        '</div>',
+      actions: [
+        { label: 'Skip stories', cls: 'btn-ghost', onClick: function () {
+            settings().stories = false;
+            if (AC.storage && AC.storage.saveSettings) AC.storage.saveSettings({ stories: false });
+          } },
+        { label: 'Take the field', cls: 'btn-primary', onClick: function () { if (done) done(); } }
+      ],
+      onClose: function () { if (done) done(); }
+    });
+    return m;
+  }
+
+  g.showStory = showStory;
+
   let bannerTimer = null;
   function banner(title, sub, kind, ms) {
     const el = document.getElementById('turn-banner');
@@ -6247,6 +6401,8 @@ html.cb {
     g.hinted = false;
     AC.ui.show('game');
     render();
+    startTips();
+    showStory();
     autosave();
     const st0 = g.state;
     FX.toast(st0.turnLimit
@@ -6278,6 +6434,7 @@ html.cb {
     else if (g.state.phase === 'deploy1') g.state.viewer = 1;
     AC.ui.show('game');
     render();
+    startTips();
     FX.toast('Match restored.', 'success');
     if (g.state.phase === 'battle' && isAi() && g.state.owner === 2) scheduleAi();
   };
@@ -6515,10 +6672,6 @@ html.cb {
     const deployOwner = st.phase === 'deploy1' ? 1 : st.phase === 'deploy2' ? 2 : 0;
     const last = st.lastMove;
     let out = '';
-
-    // a dark plate under everything keeps the table from bleeding through
-    out += '<rect x="' + bounds.x + '" y="' + bounds.y + '" width="' + bounds.w + '" height="' + bounds.h +
-      '" fill="rgba(6,5,10,0.55)"/>';
 
     // the painted stone surface is applied per cell, so the board reads as
     // inlaid tiles rather than a second, competing mandala underneath
