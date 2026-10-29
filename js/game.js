@@ -607,6 +607,7 @@
 
     // the field takes the colour of the hour
     const shell = $('#board-shell');
+    A.artFor('ui:day'); A.artFor('ui:night'); A.artFor('ui:sanjaya');
     if (shell) {
       const hour = st.phase === 'battle' ? E.hourOf(st) : null;
       shell.classList.toggle('sky-day', hour === 'day');

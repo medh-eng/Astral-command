@@ -2130,3 +2130,17 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
   .action-bar .astra-row,
   .action-bar [data-astra-shelf] { flex: 1 1 100%; justify-content: flex-start; overflow-x: auto; }
 }
+
+/* the hour of the sky, painted when the art exists */
+.board-shell.sky-day {
+  background-image: linear-gradient(180deg, rgba(90, 62, 20, 0.25), rgba(6, 5, 10, 0.65)),
+    var(--art-day, none);
+  background-size: cover;
+  background-position: center;
+}
+.board-shell.sky-night {
+  background-image: linear-gradient(180deg, rgba(20, 24, 60, 0.35), rgba(6, 5, 10, 0.72)),
+    var(--art-night, none);
+  background-size: cover;
+  background-position: center;
+}

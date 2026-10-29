@@ -181,3 +181,50 @@ incoming/art/editions/*-board.jpg     2048²             P4
   reference for the others.
 - If a picture comes back with text in it, ask: *"Same image, remove every letter and number."*
 - Square, centred, black background, no frame — say it every time; generators forget.
+
+---
+
+# STATUS — what is done, what is still needed
+
+> Updated 29 Oct 2026 by Sarvam AI (agent). **This section is the checklist — if it is not
+> ticked here, it is not in the game.**
+
+## Delivered ✅
+
+| Asset | Where it lives | Notes |
+|---|---|---|
+| 10 unit pieces | `assets/art/opt/units/*.webp` | keyed, 320 px, 24–50 KB each |
+| 2 faction crests | `assets/art/opt/factions/*.webp` | used as piece-backs on hidden enemy pieces |
+| 2 faction banners | `assets/art/banners/*.jpg` | 600×140 nameplates on the player strips |
+| 3 board surfaces | `assets/art/opt/boards/{wheel,small,large}.jpg` | applied per cell as a stone pattern |
+| **Padmavyuha board** | `assets/art/opt/boards/padma.jpg` | new — hex field surface |
+| **Day / night skies** | `assets/art/opt/ui/day.jpg`, `night.jpg` | new — sky for Surya/Chandra hours |
+| **Sanjaya portrait** | `assets/art/opt/ui/sanjaya.jpg` | new — 420 px, for the narration bar |
+| **Daily card** | `assets/art/opt/ui/daily.jpg` | new — share card backdrop |
+| Combat / victory / defeat / hero | `assets/art/opt/ui/*.jpg` | dialog backdrops, access screen |
+| App icon | `assets/art/opt/app/icon-512.png` | manifest + apple-touch |
+| Masters | `masters/` | compressed to 1024–1280 px, 133 MB → 28 MB |
+
+## Pending ⏳
+
+| # | What | Who | Prompt / note |
+|---|---|---|---|
+| 1 | **Astra emblems ×4** (Agneya, Brahma, Sammohana, Vayavya) | Commander | 512², black bg, brass-and-obsidian, one glyph each: flame-arrow, arrow-of-arrows, spiral-of-confusion, wind-wheel. Needed for the astra shelf and the full-screen moment. |
+| 2 | **Astra full-screen art ×4** (still or loop) | Commander | 1080×1920 portrait, the weapon filling the frame, no text — this is the moment that covers the board. |
+| 3 | **Sanjaya loop** (the gif supplied is 3.3 MB, 30 frames) | Commander | A shorter loop (1–1.5 s, ≤1.5 MB) would let it sit on the narration bar and the opening. Current file is kept in `masters/` for the full-screen use. |
+| 4 | **Gate breach still** | Commander | 1080×1920, the fort gate cracking — the other big moment. |
+| 5 | Hero portraits ×5 (Arjuna, Karna, Bhima, Ghatotkacha, Abhimanyu) | ChatGPT | Phase C; warriors, never deities, 512² black bg. |
+| 6 | Campaign map of the seven vyuhas | Commander | 3:2 parchment, seven brass medallions. |
+| 7 | Store art (icon, feature graphic, 6 screenshots, 30 s trailer) | Commander | Phase E. |
+
+## Sound and voice — delivered ✅
+
+- 88 voice lines (44 Hindi, 44 English) in `assets/audio/voice/` — Bulbul v3, speaker `ashutosh`.
+- Music: menu, tabla, battle, victory, defeat — `assets/audio/music/`.
+- Effects: clash, volley, chakra turn, piece place, shankh, gate breach, dawn, dusk,
+  four astra stingers, divya-drishti, shakti diya — `assets/audio/sfx/`.
+
+## Sound and voice — pending ⏳
+
+- Marathi voice set (after the Hindi review).
+- Tension loop for the last five rounds of a scenario.
