@@ -12,7 +12,7 @@ the repo disagrees with this file, this file wins — and then gets fixed.
 | **Commander** (final say) | Pon |
 | **Director** (design, build, quality, integration) | Claude |
 | **Agents** | ChatGPT — art, lore, puzzles · Sarvam AI — Hindi/Marathi, voice, cultural review |
-| **Live game** | <https://medh-eng.github.io/Astral-command/> · Daily: `…/#daily` · Lesson: `…/#learn` |
+| **Live game** | <https://medh-eng.github.io/vyuha/> · Daily: `…/#daily` · Lesson: `…/#learn` |
 | **Chapter** | III — *Shakti* (this document) |
 | **Status board** | [`docs/ROADMAP.md`](ROADMAP.md) |
 

@@ -19,9 +19,10 @@
 
   /* ── small utilities ─────────────────────────────────────────── */
 
-  function mulberry32(a) {
+  function mulberry32(a, save) {
     return function () {
       a |= 0; a = (a + 0x6D2B79F5) | 0;
+      if (save) save(a);
       let t = Math.imul(a ^ (a >>> 15), 1 | a);
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -201,13 +202,57 @@
 
   /* ══ Daily Chakravyuha ══════════════════════════════════════════ */
 
+  // Keep the existing five-day catalogue until the candidate pack is approved.
+  // Every modifier uses the same bounded knobs as incoming/text/daily-modifiers.json.
   const MODIFIERS = [
-    { key: 'nightfall', deva: 'रात्रि', name: 'Chandra rises first', one: 'The defence holds the first hour.' },
-    { key: 'shakti', deva: 'शक्ति', name: 'Shakti in hand', one: 'Your raiders begin with three lamps lit.' },
-    { key: 'twin', deva: 'शतघ्नी', name: 'Twin traps', one: 'The defence has two Shataghni and one Rath fewer.' },
-    { key: 'restless', deva: 'चक्र', name: 'The wheel is restless', one: 'The rings turn every 4 rounds instead of 5.' },
-    { key: 'open', deva: 'द्वार', name: 'The gate is open', one: 'The fort’s gate is already broken — but the defence holds three Shakti.' }
+    { key: 'nightfall', deva: 'रात्रि', name: 'Chandra rises first', one: 'The defence holds the first hour.', knobs: { startNight: true } },
+    { key: 'shakti', deva: 'शक्ति', name: 'Shakti in hand', one: 'Your raiders begin with three lamps lit.', knobs: { startShakti: { raiders: 3, defenders: 0 } } },
+    { key: 'twin', deva: 'शतघ्नी', name: 'Twin traps', one: 'The defence has two Shataghni and one Rath fewer.', knobs: { defenders: ['10', '9', '7', '6', '5', '3', '1', 'B', 'B', 'F'] } },
+    { key: 'restless', deva: 'चक्र', name: 'The wheel is restless', one: 'The rings turn every 4 rounds instead of 5.', knobs: { rotateEvery: 4 } },
+    { key: 'open', deva: 'द्वार', name: 'The gate is open', one: 'The fort’s gate is already broken — but the defence holds three Shakti.', knobs: { gateOpen: true, startShakti: { raiders: 2, defenders: 3 } } }
   ];
+
+  function validateModifier(mod) {
+    if (!mod || !/^[a-z][a-z0-9-]*$/.test(mod.key || '') ||
+        !['deva', 'name', 'one'].every(function (k) { return typeof mod[k] === 'string' && mod[k].trim(); })) {
+      throw new Error('A Daily modifier needs a key, deva, name and one.');
+    }
+    const k = mod.knobs;
+    if (!k || typeof k !== 'object' || Array.isArray(k)) throw new Error('Daily knobs must be an object.');
+    const allowed = ['startNight', 'startShakti', 'rotateEvery', 'turnLimit', 'gateOpen', 'defenders', 'raiders'];
+    if (Object.keys(k).some(function (key) { return allowed.indexOf(key) < 0; })) throw new Error('Unknown Daily knob.');
+    ['startNight', 'gateOpen'].forEach(function (key) {
+      if (key in k && typeof k[key] !== 'boolean') throw new Error(key + ' must be boolean.');
+    });
+    function integer(value, lo, hi) { return Number.isInteger(value) && value >= lo && value <= hi; }
+    if ('rotateEvery' in k && !integer(k.rotateEvery, 3, 6)) throw new Error('rotateEvery must be 3–6.');
+    if ('turnLimit' in k && !integer(k.turnLimit, 18, 30)) throw new Error('turnLimit must be 18–30.');
+    if ('startShakti' in k) {
+      const sh = k.startShakti;
+      if (!sh || Object.keys(sh).length !== 2 || !integer(sh.raiders, 0, 5) || !integer(sh.defenders, 0, 5)) {
+        throw new Error('startShakti needs raiders and defenders, each 0–5.');
+      }
+    }
+    function roster(key, length, ranks) {
+      if (!(key in k)) return;
+      const list = k[key];
+      if (!Array.isArray(list) || list.length !== length || list.some(function (v) { return ranks.indexOf(v) < 0; })) {
+        throw new Error('Invalid ' + key + ' roster.');
+      }
+    }
+    roster('raiders', 8, ['9', '7', '6', '5', '3', '2', '1']);
+    roster('defenders', 10, ['10', '9', '7', '6', '5', '3', '2', '1', 'B', 'F']);
+    if (k.defenders && (k.defenders.filter(function (v) { return v === 'F'; }).length !== 1 || k.defenders.indexOf('B') < 0)) {
+      throw new Error('Defenders need exactly one fort and at least one trap.');
+    }
+    return mod;
+  }
+
+  function dailyRng(state, seed) {
+    return mulberry32(state.daily.aiState == null ? seed ^ 0x9e3779b9 : state.daily.aiState, function (a) {
+      state.daily.aiState = a;
+    });
+  }
 
   function dailyInfo(date) {
     const day = istDay(date);
@@ -231,28 +276,32 @@
 
   function buildDaily(info) {
     const rng = mulberry32(info.seed);
-    const mod = info.mod.key;
-    const defenders = mod === 'twin'
-      ? ['10', '9', '7', '6', '5', '3', '1', 'B', 'B', 'F']
-      : ['10', '9', '7', '6', '5', '3', '2', '1', 'B', 'F'];
+    const mod = validateModifier(info.mod);
+    const k = mod.knobs;
+    const shakti = k.startShakti || { raiders: 2, defenders: 0 };
+    // Daily is its own prepared scenario. Abhimanyu intentionally allows only
+    // the wheel; using duel here lets Sunday keep its requested lotus geometry.
     const st = E.newState({
-      mode: 'ai', board: info.boardKey, scenario: 'abhimanyu', difficulty: 'veteran', tie: 'attacker',
-      startNight: mod === 'nightfall', rotateEvery: mod === 'restless' ? 4 : 0, enemyPreset: 'citadel'
+      mode: 'ai', board: info.boardKey, scenario: 'duel', difficulty: 'veteran', tie: 'attacker',
+      startNight: !!k.startNight, rotateEvery: k.rotateEvery || 5, enemyPreset: 'citadel'
     });
     st.scenario = 'daily';
-    st.turnLimit = 24;
+    st.turnLimit = k.turnLimit || 24;
     st.limitWinner = 2;
-    st.sky.startNight = mod === 'nightfall';
-    st.rosters = { 1: ['9', '7', '6', '5', '2', '2', '1', '3'], 2: defenders };
-    if (mod === 'restless') st.rotation.every = 4;
+    st.sky.startNight = !!k.startNight;
+    st.rosters = {
+      1: (k.raiders || ['9', '7', '6', '5', '2', '2', '1', '3']).slice(),
+      2: (k.defenders || ['10', '9', '7', '6', '5', '3', '2', '1', 'B', 'F']).slice()
+    };
+    st.rotation.every = k.rotateEvery || 5;
     E.deployPreset(st, 1, 'shuffle', rng);
     E.deployPreset(st, 2, 'shuffle', rng);
-    st.shakti = { 1: mod === 'shakti' ? 3 : 2, 2: mod === 'open' ? 3 : 0 };
-    if (mod === 'open') {
+    st.shakti = { 1: shakti.raiders, 2: shakti.defenders };
+    if (k.gateOpen) {
       const f = E.findUnit(st, function (u) { return u.owner === 2 && u.key === 'F'; });
       if (f) { st.board[f].breached = true; st.board[f].revealed = true; }
     }
-    st.daily = { n: info.n, key: info.day.key, mod: mod };
+    st.daily = { n: info.n, key: info.day.key, mod: mod.key };
     E.beginBattle(st);
     return st;
   }
@@ -264,7 +313,7 @@
     const official = !record.results[info.day.key];
     active = {
       kind: 'daily', state: st, info: info, official: official,
-      rng: mulberry32(info.seed ^ 0x9e3779b9),
+      rng: dailyRng(st, info.seed),
       noRematch: true, noRecord: true
     };
     AC.game.startPrepared(st, {
@@ -278,7 +327,7 @@
       title: 'Abhimanyu got in. Can you get out?',
       art: A.artFor('card:daily') || A.artFor('card:abhimanyu'),
       body: '<p class="daily-lede">Everyone in India faces this same wheel today. Eight raiders, ten defenders, ' +
-        st.turnLimit + ' rounds. Break the gate, then take the fort.</p>' +
+        st.turnLimit + ' rounds. ' + (info.mod.knobs.gateOpen ? 'The gate is open: take the fort.' : 'Break the gate, then take the fort.') + '</p>' +
         '<div class="daily-mod"><span class="deva">' + esc(info.mod.deva) + '</span><b>' + esc(info.mod.name) + '</b><span>' + esc(info.mod.one) + '</span></div>' +
         (official ? '' : '<p class="intel-note">You have already fought today’s official battle. This one is for practice — your shared result stays the first one.</p>'),
       actions: [{ label: 'Take the field', cls: 'btn-primary' }]
@@ -435,7 +484,7 @@
     const record = loadDaily();
     active = {
       kind: 'daily', state: state, info: info, official: !record.results[info.day.key],
-      rng: mulberry32(info.seed ^ 0x9e3779b9), noRematch: true, noRecord: true
+      rng: dailyRng(state, info.seed), noRematch: true, noRecord: true
     };
   }
 
@@ -447,6 +496,8 @@
     dailyStatus: dailyStatus,
     dailyShareText: dailyShareText,
     buildDaily: buildDaily,
+    validateModifier: validateModifier,
+    dailyRng: dailyRng,
     buildTutorial: buildTutorial,
     LESSON: LESSON,
     MODIFIERS: MODIFIERS,

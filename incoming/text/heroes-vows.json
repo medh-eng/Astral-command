@@ -1,0 +1,134 @@
+{
+  "heroes": [
+    {
+      "name": "Arjuna",
+      "deva": "अर्जुन",
+      "rule": "May use one volley per battle at exactly three cells; resolve it as a Dhanurdhar volley.",
+      "quote": "A clear line is worth more than a hurried arrow.",
+      "balance": "Grants the host one special volley, not a permanent archer conversion. Normal line/ray and volley immunity rules apply; power ignores host rank. Cannot stack with an astra in one turn."
+    },
+    {
+      "name": "Karna",
+      "deva": "कर्ण",
+      "rule": "Once, survives a losing melee clash and retreats to his previous empty cell.",
+      "quote": "Let my armour buy one more chance to stand.",
+      "balance": "Only a valid previous cell that is empty and adjacent permits survival; otherwise he falls. No immunity to Chara first strikes, traps, arrows or astras. No extra strike; reveal him and consume the trait."
+    },
+    {
+      "name": "Bhima",
+      "deva": "भीम",
+      "rule": "Wins equal-strength melee clashes on attack or defence without breaking his shield.",
+      "quote": "Hold your ground; I will open the road.",
+      "balance": "Compare final effective strength, after normal caps. No effect on unequal clashes, trap, fort, Chara special strike, volley or astra. Overrides the tie setting for this host only."
+    },
+    {
+      "name": "Abhimanyu",
+      "deva": "अभिमन्यु",
+      "rule": "Ignores enemy Padma defence; cannot move back to his immediately previous cell.",
+      "quote": "Show me the opening, and keep the road behind me.",
+      "balance": "No automatic fort access or immunity to traps. Only the Padma bonus is ignored. Track the previous cell through ring rotation; voluntary moves and wind swaps cannot evade the restriction. Needs clear move previews."
+    },
+    {
+      "name": "Ghatotkacha",
+      "deva": "घटोत्कच",
+      "rule": "Gains one strength in melee at night.",
+      "quote": "The dark is quiet enough to hear your next step.",
+      "balance": "Uses the existing +2 total bonus cap, on attack and defence. No rank or movement change. Does not alter Chara, trap or fort exceptions. Depict the epic warrior with dignity."
+    },
+    {
+      "name": "Drona",
+      "deva": "द्रोण",
+      "rule": "Once per battle, reveals one adjacent hidden enemy instead of moving.",
+      "quote": "First learn what stands before you; then choose your answer.",
+      "balance": "A whole turn, no damage and no new movement. Range one along graph adjacency. Reveal the host when the lesson is invoked so information is not free and anonymous."
+    },
+    {
+      "name": "Bhishma",
+      "deva": "भीष्म",
+      "rule": "While he has never moved, adjacent allies gain Padma defence with one supporter.",
+      "quote": "An army is held together by those who remember the whole field.",
+      "balance": "Host counts as the one required fighting supporter. No stacking above normal Padma +1. Rotation counts as movement for this trait even if engine hasMoved remains false; no benefit to forts or traps."
+    },
+    {
+      "name": "Dhrishtadyumna",
+      "deva": "धृष्टद्युम्न",
+      "rule": "After he breaks the enemy gate, gain one extra Shakti.",
+      "quote": "The opening is ours; now bring the army through.",
+      "balance": "One bonus on that host’s successful first breach only, respecting the five-Shakti cap. No reward for taking an already breached fort or for fire cast by another piece. Defender still receives its normal breach Shakti."
+    }
+  ],
+  "vows": [
+    {
+      "name": "Bhishma’s restraint",
+      "deva": "संयम",
+      "condition": "Win a duel without your Senapati initiating any attack, volley or targeted damaging astra.",
+      "reward": "2 vow stars toward a cosmetic title; no combat benefit."
+    },
+    {
+      "name": "The guarded fort",
+      "deva": "रक्षा",
+      "condition": "Win a duel while your own fort gate remains unbroken throughout the battle.",
+      "reward": "1 vow star and a cosmetic shield stamp."
+    },
+    {
+      "name": "Clear eyes",
+      "deva": "दृष्टि",
+      "condition": "Win after your Divyadrishti successfully reveals at least two different enemies.",
+      "reward": "1 vow star and a cosmetic scout stamp."
+    },
+    {
+      "name": "The patient engineer",
+      "deva": "यंत्रिक",
+      "condition": "Win after a Yantrik survives dismantling at least one Shataghni.",
+      "reward": "1 vow star and a cosmetic engineer stamp."
+    },
+    {
+      "name": "The open road",
+      "deva": "पथ",
+      "condition": "Win after one Rath makes two noncapturing moves of at least three cells each.",
+      "reward": "1 vow star and a cosmetic chariot stamp."
+    },
+    {
+      "name": "Dawn watch",
+      "deva": "प्रहर",
+      "condition": "Win after making at least one capture in both day and night.",
+      "reward": "2 vow stars and a cosmetic sky stamp."
+    },
+    {
+      "name": "Joined hands",
+      "deva": "संगति",
+      "condition": "Win after at least two successful melee captures with a Makara attack bonus.",
+      "reward": "1 vow star and a cosmetic formation stamp."
+    },
+    {
+      "name": "Petal guard",
+      "deva": "पद्म",
+      "condition": "Win after an allied piece survives an enemy melee attack while receiving a Padma defence bonus.",
+      "reward": "1 vow star and a cosmetic lotus stamp."
+    },
+    {
+      "name": "A single flame",
+      "deva": "दीप",
+      "condition": "Win a duel after invoking exactly one astra during the entire battle.",
+      "reward": "2 vow stars and a cosmetic lamp stamp."
+    },
+    {
+      "name": "Without fire",
+      "deva": "धैर्य",
+      "condition": "Win without either Agneyastra or Brahmastra being invoked by your side.",
+      "reward": "1 vow star and a cosmetic brass border."
+    },
+    {
+      "name": "Companions return",
+      "deva": "साथ",
+      "condition": "Win with at least six of your initial fighting pieces still alive.",
+      "reward": "2 vow stars and a cosmetic camp stamp."
+    },
+    {
+      "name": "Breach before sunset",
+      "deva": "प्रवेश",
+      "condition": "Win by taking the enemy fort within 20 rounds in a standard duel.",
+      "reward": "2 vow stars and a cosmetic gate stamp."
+    }
+  ]
+}

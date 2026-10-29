@@ -7,7 +7,7 @@
   },
   "scripts": {
     "start": "python3 -m http.server 8080",
-    "test": "node tests/rules.mjs && node tests/selfplay.mjs 40",
+    "test": "node tests/rules.mjs && node tests/daily.mjs && node tests/selfplay.mjs 40",
     "test:ui": "node tests/ui.mjs",
     "shots": "node tools/shots.mjs",
     "build": "node tools/build-standalone.mjs"
@@ -23,9 +23,9 @@
   ],
   "author": "",
   "license": "MIT",
-  "description": "VYUHA — a hidden-rank war of formations rooted in Indian epics. Static web app, no build step.",
+  "description": "VYUHA \u2014 a hidden-rank war of formations rooted in Indian epics. Static web app, no build step.",
   "private": true,
-  "homepage": "https://medh-eng.github.io/Astral-command/",
+  "homepage": "https://medh-eng.github.io/vyuha/",
   "devDependencies": {
     "jsdom": "^26.1.0",
     "puppeteer-core": "^24.0.0"
