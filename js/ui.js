@@ -1206,6 +1206,20 @@
 
   /* ── boot ────────────────────────────────────────────────────── */
   function boot() {
+    // a stale script or a failed load must never freeze the loading screen
+    root.addEventListener('error', function () {
+      const el = document.getElementById('boot');
+      if (el && !el.classList.contains('done')) el.classList.add('done');
+    });
+    /* If anything below throws — or a stale script from an old cache breaks the
+     * run — the player must never be left staring at the loading mark. */
+    const watchdog = setTimeout(function () {
+      const el = document.getElementById('boot');
+      if (el && !el.classList.contains('done')) {
+        el.classList.add('done');
+        if (AC.fx && AC.fx.toast) AC.fx.toast('Something failed to load — pull down to reload.', 'error');
+      }
+    }, 6000);
     app.settings = S.getSettings();
     applySettings();
     wireAuth();
@@ -1237,6 +1251,7 @@
     };
 
     setTimeout(function () {
+      clearTimeout(watchdog);
       const bootEl = document.getElementById('boot');
       if (bootEl) bootEl.classList.add('done');
       if (profile) {

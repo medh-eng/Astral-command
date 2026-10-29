@@ -2,7 +2,7 @@
  * Network-first for navigation so updates land immediately, cache-first for
  * the static shell so the game still boots with no connection.
  */
-const CACHE = 'vyuha-v13';
+const CACHE = 'vyuha-v14';
 const SHELL = [
   './',
   './index.html',
@@ -77,11 +77,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Code and markup go to the network first: a stale script against fresh HTML is
+  // exactly what leaves the game stuck on its loading screen after a deploy.
+  const isCode = /\.(js|css|json|webmanifest)$/.test(url.pathname) || url.pathname.endsWith('/');
+  if (isCode) {
+    event.respondWith(
+      fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Images and audio never change under the same name, so cache-first is right
   event.respondWith(
     caches.match(req).then((hit) => hit || fetch(req).then((res) => {
       const copy = res.clone();
       caches.open(CACHE).then((c) => c.put(req, copy));
       return res;
-    }).catch(() => hit))
+    }))
   );
+
 });
