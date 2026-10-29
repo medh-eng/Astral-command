@@ -1,0 +1,352 @@
+[
+  {
+    "key": "vasant",
+    "deva": "वसंत",
+    "name": "Vasant advance",
+    "one": "The raiders have 26 rounds to find a way through.",
+    "knobs": {
+      "turnLimit": 26
+    }
+  },
+  {
+    "key": "sharad",
+    "deva": "शरद",
+    "name": "Sharad patience",
+    "one": "You have 28 rounds, but the defenders begin with one Shakti.",
+    "knobs": {
+      "turnLimit": 28,
+      "startShakti": {
+        "raiders": 2,
+        "defenders": 1
+      }
+    }
+  },
+  {
+    "key": "hemant",
+    "deva": "हेमंत",
+    "name": "Hemant watch",
+    "one": "Night opens the battle, and you have 28 rounds.",
+    "knobs": {
+      "startNight": true,
+      "turnLimit": 28
+    }
+  },
+  {
+    "key": "shishir",
+    "deva": "शिशिर",
+    "name": "Shishir stillness",
+    "one": "The rings turn every six rounds.",
+    "knobs": {
+      "rotateEvery": 6
+    }
+  },
+  {
+    "key": "grishma",
+    "deva": "ग्रीष्म",
+    "name": "Grishma haste",
+    "one": "You have 22 rounds and three starting Shakti.",
+    "knobs": {
+      "turnLimit": 22,
+      "startShakti": {
+        "raiders": 3,
+        "defenders": 0
+      }
+    }
+  },
+  {
+    "key": "varsha",
+    "deva": "वर्षा",
+    "name": "Varsha wheel",
+    "one": "The rings turn every four rounds, with 26 rounds to finish.",
+    "knobs": {
+      "rotateEvery": 4,
+      "turnLimit": 26
+    }
+  },
+  {
+    "key": "diya",
+    "deva": "दीप",
+    "name": "Lamps at dusk",
+    "one": "Both armies begin with two Shakti.",
+    "knobs": {
+      "startShakti": {
+        "raiders": 2,
+        "defenders": 2
+      }
+    }
+  },
+  {
+    "key": "patang",
+    "deva": "पतंग",
+    "name": "Kite wind",
+    "one": "The rings turn every three rounds; you begin with three Shakti.",
+    "knobs": {
+      "rotateEvery": 3,
+      "startShakti": {
+        "raiders": 3,
+        "defenders": 0
+      }
+    }
+  },
+  {
+    "key": "rang",
+    "deva": "रंग",
+    "name": "Colours of spring",
+    "one": "Both armies begin with three Shakti.",
+    "knobs": {
+      "startShakti": {
+        "raiders": 3,
+        "defenders": 3
+      }
+    }
+  },
+  {
+    "key": "harvest",
+    "deva": "फसल",
+    "name": "Harvest road",
+    "one": "The gate is open, but the defenders begin with four Shakti.",
+    "knobs": {
+      "gateOpen": true,
+      "startShakti": {
+        "raiders": 1,
+        "defenders": 4
+      }
+    }
+  },
+  {
+    "key": "monsoon-night",
+    "deva": "मेघ",
+    "name": "Monsoon night",
+    "one": "Night comes first and the rings turn every four rounds.",
+    "knobs": {
+      "startNight": true,
+      "rotateEvery": 4,
+      "turnLimit": 28
+    }
+  },
+  {
+    "key": "long-watch",
+    "deva": "पहरा",
+    "name": "Long watch",
+    "one": "You have 30 rounds against defenders with two starting Shakti.",
+    "knobs": {
+      "turnLimit": 30,
+      "startShakti": {
+        "raiders": 2,
+        "defenders": 2
+      }
+    }
+  },
+  {
+    "key": "last-lamp",
+    "deva": "दीया",
+    "name": "Last lamp",
+    "one": "The raiders begin with one Shakti and have 28 rounds.",
+    "knobs": {
+      "turnLimit": 28,
+      "startShakti": {
+        "raiders": 1,
+        "defenders": 0
+      }
+    }
+  },
+  {
+    "key": "swift-dawn",
+    "deva": "भोर",
+    "name": "Swift dawn",
+    "one": "The rings turn every three rounds, with 28 rounds to finish.",
+    "knobs": {
+      "rotateEvery": 3,
+      "turnLimit": 28
+    }
+  },
+  {
+    "key": "silver-watch",
+    "deva": "रजत",
+    "name": "Silver watch",
+    "one": "Night opens the battle; your raiders begin with three Shakti.",
+    "knobs": {
+      "startNight": true,
+      "startShakti": {
+        "raiders": 3,
+        "defenders": 0
+      }
+    }
+  },
+  {
+    "key": "brass-reserve",
+    "deva": "पीतल",
+    "name": "Brass reserve",
+    "one": "The defenders replace their Maharathi with a second Yantrik.",
+    "knobs": {
+      "defenders": [
+        "10",
+        "3",
+        "7",
+        "6",
+        "5",
+        "3",
+        "2",
+        "1",
+        "B",
+        "F"
+      ]
+    }
+  },
+  {
+    "key": "archers-watch",
+    "deva": "शर",
+    "name": "Archer watch",
+    "one": "A second Dhanurdhar replaces the defenders’ Ashvarohi.",
+    "knobs": {
+      "defenders": [
+        "10",
+        "9",
+        "6",
+        "6",
+        "5",
+        "3",
+        "2",
+        "1",
+        "B",
+        "F"
+      ]
+    }
+  },
+  {
+    "key": "chariot-road",
+    "deva": "रथ",
+    "name": "Chariot road",
+    "one": "The raiders exchange their Divyadrishti for a third Rath.",
+    "knobs": {
+      "raiders": [
+        "9",
+        "7",
+        "6",
+        "2",
+        "2",
+        "2",
+        "1",
+        "3"
+      ],
+      "turnLimit": 28
+    }
+  },
+  {
+    "key": "engineers-path",
+    "deva": "यंत्र",
+    "name": "Engineers’ path",
+    "one": "A second Yantrik replaces one of your two Rath.",
+    "knobs": {
+      "raiders": [
+        "9",
+        "7",
+        "6",
+        "5",
+        "2",
+        "3",
+        "1",
+        "3"
+      ]
+    }
+  },
+  {
+    "key": "double-scout",
+    "deva": "दृष्टि",
+    "name": "Two clear sights",
+    "one": "A second Divyadrishti replaces your Ashvarohi.",
+    "knobs": {
+      "raiders": [
+        "9",
+        "5",
+        "6",
+        "5",
+        "2",
+        "2",
+        "1",
+        "3"
+      ],
+      "turnLimit": 28
+    }
+  },
+  {
+    "key": "cavalry-road",
+    "deva": "अश्व",
+    "name": "Cavalry road",
+    "one": "A second Ashvarohi replaces one of your two Rath.",
+    "knobs": {
+      "raiders": [
+        "9",
+        "7",
+        "6",
+        "5",
+        "7",
+        "2",
+        "1",
+        "3"
+      ],
+      "turnLimit": 22
+    }
+  },
+  {
+    "key": "two-shadows",
+    "deva": "छाया",
+    "name": "Two shadows",
+    "one": "A second Chara replaces one of your two Rath.",
+    "knobs": {
+      "raiders": [
+        "9",
+        "7",
+        "6",
+        "5",
+        "2",
+        "1",
+        "1",
+        "3"
+      ],
+      "turnLimit": 26
+    }
+  },
+  {
+    "key": "quiet-gate",
+    "deva": "द्वार",
+    "name": "Quiet gate",
+    "one": "The gate starts open, but your raiders have no starting Shakti.",
+    "knobs": {
+      "gateOpen": true,
+      "startShakti": {
+        "raiders": 0,
+        "defenders": 3
+      },
+      "turnLimit": 22
+    }
+  },
+  {
+    "key": "night-reserve",
+    "deva": "संध्या",
+    "name": "Night reserve",
+    "one": "Night comes first; both armies begin with one Shakti.",
+    "knobs": {
+      "startNight": true,
+      "startShakti": {
+        "raiders": 1,
+        "defenders": 1
+      },
+      "turnLimit": 30
+    }
+  },
+  {
+    "key": "turning-petal",
+    "deva": "पंखुड़ी",
+    "name": "Turning petal",
+    "one": "The rings turn every six rounds; each side begins with one Shakti.",
+    "knobs": {
+      "rotateEvery": 6,
+      "startShakti": {
+        "raiders": 1,
+        "defenders": 1
+      },
+      "turnLimit": 28
+    }
+  }
+]

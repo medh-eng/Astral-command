@@ -10,9 +10,9 @@ happened, the way he told the blind king.
 
 Free, offline, no account, no tracking. One static web app — open it and play.
 
-**Play:** <https://medh-eng.github.io/Astral-command/> ·
-**Today's Daily Chakravyuha:** <https://medh-eng.github.io/Astral-command/#daily> ·
-**The two-minute lesson:** <https://medh-eng.github.io/Astral-command/#learn>
+**Play:** <https://medh-eng.github.io/vyuha/> ·
+**Today's Daily Chakravyuha:** <https://medh-eng.github.io/vyuha/#daily> ·
+**The two-minute lesson:** <https://medh-eng.github.io/vyuha/#learn>
 
 ---
 

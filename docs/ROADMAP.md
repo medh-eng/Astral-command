@@ -3,7 +3,7 @@
 The live status board. Ticked = on `main` and playable. Owner tags: **[C]** Commander (Pon),
 **[D]** Director (Claude), **[G]** ChatGPT, **[S]** Sarvam AI.
 
-Last updated: **29 Oct 2026** by the Director.
+Last updated: **29 Oct 2026**; Director baseline with ChatGPT takeover progress below.
 
 ---
 
@@ -19,7 +19,7 @@ Last updated: **29 Oct 2026** by the Director.
 - [x] **[D]** Draws replaced by a ceasefire decided by strength
 - [x] **[D]** Every sci-fi string retired (Aetherfront, Astral AI, Nexus Core, Sapper, Mine…); "stratego" removed from the package keywords
 - [x] **[D]** The player's half of the Chakravyuha is at the bottom of the screen
-- [ ] **[C]** Rename the GitHub repo from `Astral-command` to `vyuha` (Settings → General → Repository name; GitHub redirects the old links, but the Pages URL changes — update `PUBLIC_URL` in `js/modes.js` the same day)
+- [x] **[C]** Rename the GitHub repo from `Astral-command` to `vyuha` (Settings → General → Repository name; GitHub redirects the old links, but the Pages URL changes — update `PUBLIC_URL` in `js/modes.js` the same day)
 
 ## Phase B — The hook ✅ (art and audio still to come)
 
@@ -46,7 +46,7 @@ Last updated: **29 Oct 2026** by the Director.
 - [ ] **[D]** Dvandva — equal strength becomes a 3-second bluff duel (Astra / Shastra / Kavach) instead of a setting
 - [ ] **[D]** Campaign map: the seven vyuhas (Chakra, Padma, Krauncha, Makara, Suchi, Shyena, Sarvatobhadra), one lesson each
 - [ ] **[D]** Facing (already built for the lotus) introduced in the Krauncha chapter
-- [ ] **[D][G]** 30 hand-checked Daily modifiers and layouts (ChatGPT drafts, Director simulates)
+- [ ] **[D][G]** 30 hand-checked Daily modifiers and layouts (ChatGPT drafts, Director simulates). Takeover branch: 25 new drafts and 3,600 simulated matches across both boards, 20 candidates inside the target on both; awaiting independent seeds, review and promotion. See `incoming/text/README.md`.
 - [ ] **[C][G]** Hero portraits (warriors, never deities) — `docs/prompts/ART.md` §6
 
 ## Phase D — Social
@@ -84,3 +84,8 @@ written up here first.
 ## Playtest notes
 
 *(Add a dated line per session: who played, device, what confused them, what they loved.)*
+
+
+## ChatGPT takeover — 29 October 2026
+
+Code and writing prepared on a review branch, not marked shipped here: Sunday lotus Daily fix, fully seeded Daily AI including save/resume, bounded modifier support, current desktop/phone screenshot harness, five writing tasks, and root `AGENTS.md`. Details, verification and next priorities: [`HANDOFF-2026-10-29.md`](HANDOFF-2026-10-29.md). Priority 1 art, voice, translations and real-person playtests remain open.

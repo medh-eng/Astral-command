@@ -236,7 +236,8 @@
     return left < 30 ? (30 - left) * 1.8 : 0;
   }
 
-  function scoreAction(state, viewer, act, difficulty) {
+  function scoreAction(state, viewer, act, difficulty, rng) {
+    const rand = rng || Math.random;
     if (act.type === 'astra') return scoreAstra(state, viewer, act);
     const unit = state.board[act.from];
     if (!unit) return -1e9;
@@ -255,7 +256,7 @@
     if (act.type === 'scan') {
       let s = 34 + urgency * 0.3;
       if (target && !target.revealed) s += target.hasMoved ? 4 : 12;
-      return s + Math.random() * 6;
+      return s + rand() * 6;
     }
     if (isBarrage) {
       let s = attackEV(state, viewer, unit.key, target, true, act.from, act.to);
@@ -271,7 +272,7 @@
     if (difficulty === 'archon' && ownCorePressure(state, viewer) > 0) {
       if (unit.key === '10' || unit.key === '9') s -= 2.5;
     }
-    return s + Math.random() * 2;
+    return s + rand() * 2;
   }
 
   /* ── astras ── */
@@ -381,13 +382,13 @@
     return s;
   }
 
-  function bestReplyValue(state, player) {
+  function bestReplyValue(state, player, rng) {
     const foe = player === 1 ? 2 : 1;
     const actions = E.allLegalActions(state, foe).concat(astraCandidates(state, foe));
     if (!actions.length) return -5000;
     let best = -1e9;
     for (let i = 0; i < actions.length; i++) {
-      const v = scoreAction(state, foe, actions[i], 'veteran');
+      const v = scoreAction(state, foe, actions[i], 'veteran', rng);
       if (v > best) best = v;
     }
     return best;
@@ -400,7 +401,7 @@
     if (!actions.length) return null;
 
     const scored = actions.map(function (a) {
-      return { a: a, s: scoreAction(state, player, a, diff.key) };
+      return { a: a, s: scoreAction(state, player, a, diff.key, rand) };
     });
     scored.sort(function (x, y) { return y.s - x.s; });
 
@@ -422,7 +423,7 @@
         if (sim.phase === 'over') {
           val = sim.winner === player ? 100000 : sim.winner === 0 ? 0 : -100000;
         } else {
-          const reply = bestReplyValue(sim, player);
+          const reply = bestReplyValue(sim, player, rand);
           val = evaluatePosition(sim, player) - reply * 0.55 + cand.s * 0.35;
           // Shakuni grows impatient when the no-capture clock runs down
           if (impatience && (cand.a.type === 'attack' || cand.a.type === 'barrage' || cand.a.type === 'astra')) val += impatience;
