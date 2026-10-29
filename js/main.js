@@ -20,13 +20,42 @@
 
     AC.ui.boot();
 
-    // painted art is optional: probe the slots and re-render when one lands
+    /* Painted art is optional. Each image that lands used to trigger a full
+     * re-render, which on a phone meant rebuilding the board a dozen times while
+     * the player was tapping — the cause of the board flashing empty. Now the
+     * loads are collected and applied once per frame, and only for art the
+     * current screen actually draws. */
     if (AC.art && AC.art.probeAll) {
-      AC.art.onArtLoaded(function () {
+      let pending = false;
+      let dirty = false;
+
+      const needsBoard = (slot) => slot.indexOf('unit:') === 0 || slot.indexOf('faction:') === 0 ||
+        slot.indexOf('board:') === 0 || slot === 'app';
+
+      const flush = function () {
+        pending = false;
+        if (!dirty) return;
+        dirty = false;
         if (AC.app.screen === 'game' && AC.game && AC.game.render) AC.game.render();
         else if (AC.app.screen === 'home') AC.ui.renderHome();
         else if (AC.app.screen === 'auth') AC.ui.renderAuth();
         else if (AC.app.screen === 'setup') AC.ui.renderSetup();
+      };
+
+      AC.art.onArtLoaded(function (slot) {
+        const screen = AC.app.screen;
+        const relevant =
+          screen === 'game' ? needsBoard(slot) || slot.indexOf('banner:') === 0
+          : screen === 'home' ? true
+          : screen === 'auth' ? slot.indexOf('faction:') === 0 || slot === 'ui:hero'
+          : screen === 'setup' ? slot.indexOf('card:') === 0
+          : true;
+        if (!relevant) return;
+        dirty = true;
+        if (pending) return;
+        pending = true;
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(flush);
+        else setTimeout(flush, 32);
       });
       AC.art.probeAll();
     }

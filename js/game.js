@@ -342,8 +342,14 @@
 
   /* ══ rendering ═════════════════════════════════════════════════ */
 
+  let rendering = false;
+  let renderAgain = false;
+
   function render() {
     if (!g.state) return;
+    if (rendering) { renderAgain = true; return; }   // never rebuild the board mid-build
+    rendering = true;
+    try {
     // deployment gets the tabla score, battle gets the war drums
     if (g.state.phase === 'deploy1' || g.state.phase === 'deploy2') AU.startMusic('tabla');
     else if (g.state.phase === 'battle') AU.startMusic('battle');
@@ -355,6 +361,10 @@
     renderLog();
     startClockIfNeeded();
     modeHook('afterRender');
+    } finally {
+      rendering = false;
+      if (renderAgain) { renderAgain = false; setTimeout(render, 0); }
+    }
   }
 
   function skyIcon(hour) { return A.icon(hour === 'day' ? 'sun' : 'moon'); }
@@ -1668,7 +1678,7 @@
         return '<div class="learn-card"><span class="deva">' + c[0] + '</span><b>' + esc(c[1]) + '</b><p>' + esc(c[2]) + '</p></div>';
       }).join('') + '</div>',
       actions: [
-        { label: 'Full codex', cls: 'btn-ghost', onClick: function () { AC.ui.openCodex(); } },
+        { label: 'Full rules', cls: 'btn-ghost', onClick: function () { AC.ui.openCodex(); } },
         { label: 'Got it', cls: 'btn-primary' }
       ]
     });

@@ -468,9 +468,9 @@
     document.getElementById('ci-new').innerHTML = A.icon('grid');
     document.getElementById('ci-resume').innerHTML = A.icon('play');
     document.getElementById('ci-saves').innerHTML = A.icon('folder');
-    document.getElementById('ci-codex').innerHTML = A.icon('book');
+    document.getElementById('ci-rules').innerHTML = A.icon('book');
     document.getElementById('btn-home-settings').innerHTML = A.icon('settings');
-    document.getElementById('btn-home-codex').innerHTML = A.icon('book');
+    document.getElementById('btn-home-rules').innerHTML = A.icon('book');
     document.getElementById('btn-signout').innerHTML = A.icon('user');
 
     // the daily card
@@ -632,8 +632,8 @@
       AC.game.load(auto.state, 'auto');
     });
     document.getElementById('btn-saves').addEventListener('click', function () { sfx('ui'); openSaves('home'); });
-    document.getElementById('btn-codex').addEventListener('click', function () { sfx('ui'); openCodex(); });
-    document.getElementById('btn-home-codex').addEventListener('click', function () { sfx('ui'); openCodex(); });
+    document.getElementById('btn-rules').addEventListener('click', function () { sfx('ui'); openCodex(); });
+    document.getElementById('btn-home-rules').addEventListener('click', function () { sfx('ui'); openCodex(); });
     document.getElementById('btn-home-settings').addEventListener('click', function () { sfx('ui'); openSettings(); });
     document.getElementById('btn-signout').addEventListener('click', function () {
       sfx('ui');
@@ -941,7 +941,7 @@
 
     const m = modal({
       kicker: 'Granth · ग्रंथ',
-      title: 'Codex',
+      title: 'Rules',
       wide: true,
       body: '<div class="codex-tabs">' + tabs.map(function (t) {
         return '<button class="codex-tab' + (t.k === active ? ' on' : '') + '" data-codex="' + t.k + '">' + t.label + '</button>';
@@ -1164,7 +1164,7 @@
         '<button class="advice-item" data-p="save"><span class="advice-score">' + A.icon('save') + '</span><span><span class="advice-label">Save game</span><span class="advice-note">Write to a manual slot</span></span></button>' +
         '<button class="advice-item" data-p="intel"><span class="advice-score">' + A.icon('eye') + '</span><span><span class="advice-label">Intel</span><span class="advice-note">What you know about the enemy, the hour, Shakti</span></span></button>' +
         '<button class="advice-item" data-p="help"><span class="advice-score">' + A.icon('help') + '</span><span><span class="advice-label">How to play</span><span class="advice-note">Eight things to know, in one screen</span></span></button>' +
-        '<button class="advice-item" data-p="codex"><span class="advice-score">' + A.icon('book') + '</span><span><span class="advice-label">Codex</span><span class="advice-note">Pieces, astras, hours and formations</span></span></button>' +
+        '<button class="advice-item" data-p="codex"><span class="advice-score">' + A.icon('book') + '</span><span><span class="advice-label">Rules</span><span class="advice-note">Pieces, astras, hours and formations</span></span></button>' +
         '<button class="advice-item" data-p="settings"><span class="advice-score">' + A.icon('settings') + '</span><span><span class="advice-label">Settings</span><span class="advice-note">Audio, motion, accessibility</span></span></button>' +
         '<button class="advice-item" data-p="resign"><span class="advice-score">' + A.icon('flag') + '</span><span><span class="advice-label">Leave the field</span><span class="advice-note">Concede the battle and go home</span></span></button>' +
       '</div>',

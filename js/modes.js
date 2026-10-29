@@ -12,7 +12,7 @@
   const A = AC.art;
   const FX = AC.fx;
 
-  const PUBLIC_URL = 'https://medh-eng.github.io/Astral-command/';
+  const PUBLIC_URL = 'https://medh-eng.github.io/vyuha/';
   const DAILY_EPOCH = Date.UTC(2026, 9, 28);      // Daily #1 = 28 Oct 2026 (IST)
   const DAILY_KEY = 'vyuha.daily.v1';
   const esc = function (s) { return AC.ui.esc(s); };

@@ -2119,3 +2119,14 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
   .card-daily .card-badge { right: 44px; }
 }
 .board-shell { background-size: cover; background-position: center; }
+
+/* the astra shelf must sit on its own line, never under the command row */
+.action-bar .astra-shelf,
+.action-bar .astra-row,
+.action-bar [data-astra-shelf] { flex: 1 1 100%; order: -1; }
+@media (max-width: 780px) {
+  .action-bar { row-gap: 6px; }
+  .action-bar .astra-shelf,
+  .action-bar .astra-row,
+  .action-bar [data-astra-shelf] { flex: 1 1 100%; justify-content: flex-start; overflow-x: auto; }
+}
