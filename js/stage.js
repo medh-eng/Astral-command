@@ -162,6 +162,7 @@
     const mine = ev.target.owner === viewer;
     const html =
       '<div class="st-kicker"><span class="deva">दुर्ग</span> · The fort</div>' +
+      (A.artFor('ui:breach') ? '<img class="st-astra-anim st-breach-art" src="' + A.artFor('ui:breach') + '" alt="" aria-hidden="true">' : '') +
       '<div class="st-gate" aria-hidden="true">' + A.icon('gate') + '<span class="st-crack"></span></div>' +
       verdict('breach') +
       '<div class="st-line">' + (mine ? 'Our gate is broken. One more blow and the fort falls — defend it.' : 'Their gate is broken. One more blow takes the fort.') + '</div>';

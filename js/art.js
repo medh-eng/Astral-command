@@ -109,6 +109,7 @@
     // Chapter III slots — optional; the vector marks stand in until art lands
     astra: function (n) { return 'assets/art/opt/astras/' + n + '.webp'; },
     portrait: function (n) { return 'assets/art/opt/portraits/' + n + '.webp'; },
+    hero: function (n) { return 'assets/art/opt/heroes/' + n + '.webp'; },
     sky: function (n) { return 'assets/art/opt/sky/' + n + '.jpg'; }
   };
 

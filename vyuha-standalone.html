@@ -2185,6 +2185,9 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
   .st-astra-anim { animation: none; }
 }
 
+/* the gate breach: the painted doors fill the stage behind the words */
+.st-breach-art { opacity: 0.95; object-fit: cover; inset: -10%; width: 120%; height: 120%; }
+
 </style>
 </head>
 <body>
@@ -6299,6 +6302,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     // Chapter III slots — optional; the vector marks stand in until art lands
     astra: function (n) { return 'assets/art/opt/astras/' + n + '.webp'; },
     portrait: function (n) { return 'assets/art/opt/portraits/' + n + '.webp'; },
+    hero: function (n) { return 'assets/art/opt/heroes/' + n + '.webp'; },
     sky: function (n) { return 'assets/art/opt/sky/' + n + '.jpg'; }
   };
 
@@ -8379,6 +8383,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     const mine = ev.target.owner === viewer;
     const html =
       '<div class="st-kicker"><span class="deva">दुर्ग</span> · The fort</div>' +
+      (A.artFor('ui:breach') ? '<img class="st-astra-anim st-breach-art" src="' + A.artFor('ui:breach') + '" alt="" aria-hidden="true">' : '') +
       '<div class="st-gate" aria-hidden="true">' + A.icon('gate') + '<span class="st-crack"></span></div>' +
       verdict('breach') +
       '<div class="st-line">' + (mine ? 'Our gate is broken. One more blow and the fort falls — defend it.' : 'Their gate is broken. One more blow takes the fort.') + '</div>';
