@@ -201,6 +201,8 @@ incoming/art/editions/*-board.jpg     2048²             P4
 | **Day / night skies** | `assets/art/opt/ui/day.jpg`, `night.jpg` | new — sky for Surya/Chandra hours |
 | **Sanjaya portrait** | `assets/art/opt/ui/sanjaya.jpg` | new — 420 px, for the narration bar |
 | **Daily card** | `assets/art/opt/ui/daily.jpg` | new — share card backdrop |
+| **Arena courtyard** | `assets/art/opt/ui/arena.jpg` | new — maze courtyard, held for the board backdrop |
+| **Astra stills + animations** | `assets/art/opt/astras/*.webp` | 4 stills (4–6 KB) + 4 loops (646 KB–1 MB) |
 | Combat / victory / defeat / hero | `assets/art/opt/ui/*.jpg` | dialog backdrops, access screen |
 | App icon | `assets/art/opt/app/icon-512.png` | manifest + apple-touch |
 | Masters | `masters/` | compressed to 1024–1280 px, 133 MB → 28 MB |
@@ -209,9 +211,9 @@ incoming/art/editions/*-board.jpg     2048²             P4
 
 | # | What | Who | Prompt / note |
 |---|---|---|---|
-| 1 | **Astra emblems ×4** (Agneya, Brahma, Sammohana, Vayavya) | Commander | 512², black bg, brass-and-obsidian, one glyph each: flame-arrow, arrow-of-arrows, spiral-of-confusion, wind-wheel. Needed for the astra shelf and the full-screen moment. |
-| 2 | **Astra full-screen art ×4** (still or loop) | Commander | 1080×1920 portrait, the weapon filling the frame, no text — this is the moment that covers the board. |
-| 3 | **Sanjaya loop** (the gif supplied is 3.3 MB, 30 frames) | Commander | A shorter loop (1–1.5 s, ≤1.5 MB) would let it sit on the narration bar and the opening. Current file is kept in `masters/` for the full-screen use. |
+| ~~1~~ | ~~Astra emblems ×4~~ **DONE** | — | `assets/art/opt/astras/<key>.webp` — still first frame, 4–6 KB, used on the shelf and badges |
+| ~~2~~ | ~~Astra full-screen art ×4~~ **DONE** | — | `assets/art/opt/astras/<key>-anim.webp` — 30-frame loop, 640 px, played on the astra beat |
+| 3 | **Sanjaya loop** — still wanted | Commander | The supplied gif (3.3 MB) is archived in `masters/`. A 1–1.5 s loop under 800 KB lets him move on the opening and the result screen; during play he stays as the still portrait. |
 | 4 | **Gate breach still** | Commander | 1080×1920, the fort gate cracking — the other big moment. |
 | 5 | Hero portraits ×5 (Arjuna, Karna, Bhima, Ghatotkacha, Abhimanyu) | ChatGPT | Phase C; warriors, never deities, 512² black bg. |
 | 6 | Campaign map of the seven vyuhas | Commander | 3:2 parchment, seven brass medallions. |
