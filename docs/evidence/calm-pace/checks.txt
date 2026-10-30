@@ -1,0 +1,449 @@
+$ node tests/rules.mjs
+Square arena — movement & rifts
+  ✓ the chariot has moves on an open board
+  ✓ the chariot cannot cross an Astral Rift
+  ✓ a friendly piece blocks the lane
+Cavalry dash
+  ✓ the cavalry reaches two cells
+  ✓ and strikes at two cells
+Archer volley
+  ✓ volley target found two cells away
+  ✓ volley cuts down rank 3
+  ✓ the archer stays put
+  ✓ volley is turned by rank 9
+  ✓ both pieces revealed after a turn
+  ✓ a volley does not clear a trap
+  ✓ a volley on the fort wins the match
+  ✓ the volley arcs over a blocking piece
+  ✓ the piece in between is unharmed
+Trap & engineer
+  ✓ the trap survives an attack
+  ✓ the attacker is destroyed
+  ✓ the engineer defuses and captures it
+Spy
+  ✓ the spy kills the Senapati when attacking
+  ✓ the Senapati beats the spy when attacked
+  ✓ the spy kills the Maharathi too
+Tie rules
+  ✓ attacker advantage: wins but drops a rank
+  ✓ mutual destruction clears both cells
+Scan
+  ✓ scan target inside two cells
+  ✓ the scan reveals without fighting
+  ✓ the seer does not move when scanning
+Fort capture
+  ✓ capturing the fort ends the game
+  ✓ the capture is recorded in the tray
+Two-square anti-stall
+  ✓ the fourth reversal between two cells is refused
+Deployment
+  ✓ both armies have twelve pieces
+  ✓ Surya deploys in the bottom rows
+  ✓ Chandra deploys in the top rows
+  ✓ swapping two cells works
+  ✓ cannot swap into the enemy zone
+  ✓ the wheel deploys twelve pieces a side
+  ✓ each half of the wheel offers eighteen cells
+  ✓ zones split the wheel into two halves
+Chakravyuha geometry
+  ✓ the wheel has 37 cells (hub + 3 rings x 12)
+  ✓ the hub touches all twelve spokes
+  ✓ a ring cell has four neighbours
+  ✓ a ring cell has four rays
+  ✓ the hub fires twelve rays
+  ✓ the outward ray climbs the spoke
+  ✓ a ring arc is a single cell
+The chakra turns
+  ✓ ring 1 carries a piece one spoke clockwise
+  ✓ the old cell is empty
+  ✓ ring 2 turns as well
+  ✓ the outer ring stays put
+  ✓ the hub stays put
+  ✓ riding the wheel exposes the piece
+  ✓ the round advances to 5
+  ✓ the wheel turned at the start of round 5
+Hub exposure
+  ✓ a piece can step onto the hub
+  ✓ standing on the hub reveals it
+Volley on the wheel
+  ✓ the archer can volley down a spoke
+  ✓ and the volley lands
+No-capture draw
+  ✓ four quiet orders between equal armies end in a shared field
+  ✓ the ceasefire reason is reported
+Abhimanyu — the breach
+  ✓ the scenario is recorded on the state
+  ✓ eight raiders against ten defenders
+  ✓ the raiders carry no fort and no trap
+  ✓ the breach has a round limit
+  ✓ both sides deploy their own roster
+  ✓ both armies count as complete
+  ✓ the defender knows the raiders have no fort or trap
+  ✓ the defender has eight unknowns to track
+  ✓ the defence wins when the rounds run out
+  ✓ and says why
+  ✓ capturing the fort wins the breach
+Belief model
+  ✓ belief distribution sums to 1
+  ✓ an unmoved piece can be a fort or a trap
+  ✓ a piece that has moved can no longer be either
+The fort gate
+  ✓ the first blow does not end the match
+  ✓ it breaks the gate and reveals the fort
+  ✓ the attacker stays where it was
+  ✓ a breach event is raised
+  ✓ the second blow takes the fort
+  ✓ a volley breaks the gate too
+The hours of Surya and Chandra
+  ✓ a duel opens in the hour of Chandra
+  ✓ the sky turns on round 5
+  ✓ and again on round 10
+  ✓ in your hour you strike at +1
+  ✓ equal ranks: the hour decides it cleanly
+  ✓ out of your hour there is no bonus
+Formations — Makara and Padma
+  ✓ a pincer gives the attacker +1
+  ✓ a 5 in a pincer meets a 6 as an equal
+  ✓ a piece guarded by two friends defends at +1
+  ✓ hour and pincer stack
+  ✓ a Maharathi in its hour, in a pincer, topples the Senapati
+  ✓ the Chara’s first strike ignores the petals
+Shakti
+  ✓ taking a piece grows your Shakti by one
+  ✓ Shakti never passes five
+  ✓ the turning sky gives both sides one Shakti
+Astras
+  ✓ Vayavyastra swaps two of your pieces — even the fort
+  ✓ it costs one Shakti and is spent
+  ✓ both stay hidden
+  ✓ each astra works once per match
+  ✓ Sammohanastra reaches two cells out
+  ✓ but no further
+  ✓ the entranced piece cannot act
+  ✓ its side still plays its other pieces
+  ✓ the trance lasts two of its owner’s turns
+  ✓ a side with only entranced pieces loses its turn, not the match
+  ✓ Agneyastra burns a rank 3
+  ✓ the fire costs three (and the kill gave one back)
+  ✓ a rank 7 walks through the fire, revealed
+  ✓ fire burns a Shataghni
+  ✓ fire breaks a fort gate but does not take the fort
+  ✓ Brahmastra cannot touch the fort
+  ✓ Brahmastra destroys even the Senapati
+  ✓ and lays bare every piece around it
+  ✓ an astra needs its Shakti
+Ceasefire
+  ✓ at sunset the stronger army holds the field
+  ✓ and the reason says so
+Formations that cannot lose the fort on move one
+  ✓ a shuffled fort always sits in the deepest line
+Padmavyuha
+  ✓ the lotus has 37 cells
+  ✓ each side deploys on fifteen
+  ✓ each turning ring steps to a neighbour
+  ✓ both armies deploy on the lotus
+The opponent does not peek
+  ✓ it aims at the deepest unmoved piece, not the hidden fort
+
+119 passed, 0 failed
+
+$ node tests/selfplay.mjs 40
+
+Self-play summary
+  games        : 40
+  p1 / p2 / draw: 20 / 20 / 0
+  plies min/med/max: 20 58 100
+  ms total     : 15115 ( 378 ms per match )
+  failures     : 0
+
+$ node tests/daily.mjs
+Daily regressions passed: 30 modifiers, both boards, IST rollover, seeded AI and saved RNG.
+
+$ node tests/ui.mjs
+  ✓ AC namespace loaded
+  ✓ battle pace defaults to Calm
+  ✓ no login wall: a first-time player lands on home
+  ✓ and is a yoddha straight away
+  ✓ the quick battle button is the hero
+  ✓ the daily card shows today’s number
+  ✓ the first battle lesson calls for attention
+  ✓ sigil picker populated
+  ✓ profile created and logged in
+  ✓ home screen after login
+  ✓ PIN stored as a hash
+  ✓ setup screen opens
+  ✓ setup options rendered
+  ✓ engine state created
+  ✓ starts in deployment
+  ✓ board rendered 80 SVG cells
+  ✓ 24 tokens on the board
+  ✓ four formation presets
+  ✓ intel ledger has chips
+  ✓ tap-swap moved a piece
+  ✓ army complete after a preset
+  ✓ battle begins after locking
+  ✓ manual save writes a slot
+  ✓ save listed in storage
+  ✓ save reloads into the board
+  ✓ reloaded board still renders its cells
+  ✓ played 10 UI-driven orders
+  ✓ battle log recorded
+  ✓ codex opens with tabs
+  ✓ settings toggles render
+  ✓ Battle pace offers Calm and Quick
+  ✓ Calm choice is persisted
+  ✓ wheel match starts
+  ✓ the wheel renders 37 cells
+  ✓ both armies deployed on the wheel
+  ✓ twelve pieces a side
+  ✓ the hub is drawn
+  ✓ intel ledger works on the wheel
+  ✓ wheel battle begins
+  ✓ HUD shows the rotation countdown
+  ✓ a piece starts on ring 1
+  ✓ test can place an attacker next to an enemy
+  ✓ own piece selects
+  ✓ strike targets show odds on the board
+  ✓ the first tap arms the strike, nothing happens yet
+  ✓ the clash plays on the stage
+  ✓ the attack actually resolved on the board
+  ✓ plain moves still work
+  ✓ setup offers a scenario choice
+  ✓ choosing the breach forces the wheel
+  ✓ and hides the boards it cannot use
+  ✓ breach state starts with a round limit
+  ✓ the wheel renders for the breach
+  ✓ eight raiders and ten defenders on the board
+  ✓ the breach begins
+  ✓ HUD shows the round clock
+  ✓ privacy curtain between deployments
+  ✓ player 2 deploys behind the curtain
+  ✓ curtain before the first battle turn
+  ✓ battle starts as player 1
+  ✓ four astras ready with five lamps lit
+  ✓ the lamps are lit on the player strip
+  ✓ an astra lights its targets
+  ✓ tapping twice invokes it
+  ✓ the HUD shows the hour
+  ✓ the first battle starts with its coach
+  ✓ moving the chariot completes step one
+  ✓ the entranced enemy passes its turn
+  ✓ scan mode shows reconnaissance guidance, not combat odds
+  ✓ a legal scan still reveals the enemy and advances the lesson
+  ✓ the daily wheel opens straight into battle
+  ✓ raiders and defenders are on the wheel
+  ✓ everyone gets the same wheel today
+  ✓ the share card reads well
+  ✓ Cancel keeps the battle going
+  ✓ Concede ends the battle as a loss
+  ✓ a text prompt returns what was typed
+  ✓ home no longer carries settings, data or record blocks
+  ✓ the profile hub offers ten avatars
+  ✓ the hub shows the record and the level of play
+  ✓ the chosen avatar and frame are kept
+  ✓ the home top bar wears the new avatar
+  ✓ backup and reset live in Settings
+  ✓ battery saver follows the setting
+  ✓ Calm shows the slide before resolving the move
+  ✓ Calm opens the card and effect before Sanjaya
+  ✓ the player clock waits throughout the Calm presentation
+  ✓ AI and voice wait for the whole player beat
+  ✓ voice starts after the card and every effect ends
+  ✓ AI cannot move while the player line is sounding
+  ✓ a 400 ms breath follows the voice ended event
+  ✓ the opponent thinking indicator precedes its move
+  ✓ clash → AI preview takes 4.9 s with a one-second line
+  ✓ AI glows for 500 ms before sliding
+  ✓ AI resolves only after its own preview and slide
+  ✓ Calm keeps the turn handover hidden while the AI moment is playing
+  ✓ your-turn banner finishes before input is live
+  ✓ the full player clock starts when input unlocks
+  ✓ reduced motion keeps the Calm gap without a slide
+  ✓ plain move → AI preview takes 1.8 s
+  ✓ a long effect outlasting its card still blocks the voice and AI
+  ✓ an effect ended event releases narration
+  ✓ board tap skips the current moment and stops its effect
+  ✓ next tap stops the voice without issuing another order
+  ✓ the breath can be skipped too
+  ✓ starting another match cancels stale Calm continuations
+  ✓ queued narration never interrupts the current line
+  ✓ a higher-priority line replaces a waiting sky line
+  ✓ the discarded waiting line is not played later
+  ✓ voice timeout is bounded to 3.5 seconds
+  ✓ Quick still applies a move immediately
+  ✓ Quick still holds a clash for the original 1.5 s cap
+  ✓ Quick retains the original difficulty think delay
+  ✓ leaving the battle cancels cards, audio and delayed AI actions
+  ✓ no runtime errors
+
+115 passed, 0 failed
+
+$ node tools/shots.mjs
+desk-home
+desk-setup
+desk-deployment
+desk-wheel
+desk-rules
+desk-sunday-lotus
+mob-home
+mob-setup
+mob-deployment
+mob-wheel
+mob-rules
+mob-sunday-lotus
+Desktop and phone screenshots passed; no runtime errors.
+
+$ node tools/perf-idle.mjs
+{"screen":"home","busyPct":0.7,"paints":0,"frames":0}
+{"screen":"battle-idle","busyPct":2,"paints":3,"frames":24}
+{"screen":"battle-selected","busyPct":0.9,"paints":1,"frames":3}
+{"screen":"battle-mid","busyPct":0.3,"paints":0,"frames":0}
+{"renderMsPerCall_4xThrottle":77}
+Every screen under 3% busy.
+
+$ node tools/playtest-bot.mjs
+phone wheel moves 19 {"winner":2,"reason":"Chandravansh captured the enemy fort on turn 21."} start
+phone padma moves 20 {"winner":1,"reason":"Chandravansh has no piece left that can move — only the fort and its traps stand. The field is conceded."} start
+phone small moves 32 {"winner":1,"reason":"Chandravansh has no piece left that can move — only the fort and its traps stand. The field is conceded."} start
+phone wheel moves 11 {"winner":2,"reason":"Chandravansh captured the enemy fort on turn 11."} fallback attack
+small-phone wheel moves 16 {"winner":2,"reason":"Chandravansh captured the enemy fort on turn 16."} start
+small-phone padma moves 25 {"winner":2,"reason":"Suryavansh has no piece left that can move — only the fort and its traps stand. The field is conceded."} start
+small-phone small moves 28 {"winner":1,"reason":"Suryavansh captured the enemy fort on turn 28."} start
+small-phone wheel moves 21 {"winner":1,"reason":"Chandravansh has no piece left that can move — only the fort and its traps stand. The field is conceded."} start
+no problems
+
+$ node tools/record-calm-turn.mjs
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "pace": "calm",
+  "events": [
+    {
+      "ms": 4096,
+      "kind": "phase",
+      "step": null
+    },
+    {
+      "ms": 4096,
+      "kind": "phase",
+      "step": "previous-line"
+    },
+    {
+      "ms": 4099,
+      "kind": "phase",
+      "step": "slide"
+    },
+    {
+      "ms": 4572,
+      "kind": "effect-start",
+      "name": "clash-win",
+      "duration": 2.562448979591837
+    },
+    {
+      "ms": 4572,
+      "kind": "phase",
+      "step": "moment"
+    },
+    {
+      "ms": 7141,
+      "kind": "effect-end",
+      "name": "clash-win"
+    },
+    {
+      "ms": 7143,
+      "kind": "voice-start",
+      "key": "makara"
+    },
+    {
+      "ms": 7144,
+      "kind": "phase",
+      "step": "voice"
+    },
+    {
+      "ms": 9463,
+      "kind": "voice-end",
+      "key": "makara"
+    },
+    {
+      "ms": 9464,
+      "kind": "phase",
+      "step": "breath"
+    },
+    {
+      "ms": 9927,
+      "kind": "phase",
+      "step": "thinking"
+    },
+    {
+      "ms": 11254,
+      "kind": "phase",
+      "step": "previous-line"
+    },
+    {
+      "ms": 11255,
+      "kind": "phase",
+      "step": "preview"
+    },
+    {
+      "ms": 11890,
+      "kind": "effect-start",
+      "name": "laser",
+      "duration": 0.6719954648526077
+    },
+    {
+      "ms": 11890,
+      "kind": "phase",
+      "step": "moment"
+    },
+    {
+      "ms": 12819,
+      "kind": "effect-end",
+      "name": "laser"
+    },
+    {
+      "ms": 14023,
+      "kind": "voice-start",
+      "key": "volley_kill"
+    },
+    {
+      "ms": 14023,
+      "kind": "phase",
+      "step": "voice"
+    },
+    {
+      "ms": 16665,
+      "kind": "voice-end",
+      "key": "volley_kill"
+    },
+    {
+      "ms": 16669,
+      "kind": "phase",
+      "step": "your-turn"
+    },
+    {
+      "ms": 17069,
+      "kind": "phase",
+      "step": null
+    }
+  ],
+  "recording": {
+    "kind": "silent screen recording",
+    "realTime": true,
+    "durationMs": 20000,
+    "action": {
+      "type": "move",
+      "from": "r1s0",
+      "to": "h",
+      "dir": 3
+    }
+  }
+}
+Recorded one Calm turn; no runtime errors, no skipped steps.
+
+$ node tools/build-standalone.mjs
+wrote vyuha-standalone.html (807.9 KB)
+
+$ git diff --check
+Passed.

@@ -14,6 +14,7 @@
   let musicBus = null;
   let noiseBuf = null;
   let ready = false;
+  let cueSources = null;
 
   const settings = {
     sfx: 0.7,
@@ -124,6 +125,7 @@
     }
     node.connect(g);
     g.connect(dest);
+    if (cueSources && opts.bus !== 'music') cueSources.push(osc);
     osc.start(t0);
     osc.stop(t0 + (opts.dur || 0.25) + 0.05);
   }
@@ -147,6 +149,7 @@
     src.connect(f);
     f.connect(g);
     g.connect(opts.bus === 'music' ? musicBus : sfxBus);
+    if (cueSources && opts.bus !== 'music') cueSources.push(src);
     src.start(t0);
     src.stop(t0 + (opts.dur || 0.2) + 0.05);
   }
@@ -345,6 +348,65 @@
     const fn = SFX[name];
     if (!fn) return;
     try { fn(); } catch (e) { /* audio must never break the game */ }
+  }
+
+  // A tracked one-shot for Calm: actual ended events for recorded and synth
+  // audio, metadata for duration, and a bounded fallback for unknown media.
+  function duration(name) {
+    const key = SFX_SAMPLE[name];
+    const n = buffers[key] ? buffers[key].duration : sfxEls[key] && sfxEls[key].duration;
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  function cue(name) {
+    let resolve, timer, sources = [], ended = false;
+    const result = { duration: duration(name), finished: new Promise(function (r) { resolve = r; }), stop: stop };
+    function stop() {
+      if (ended) return;
+      ended = true;
+      clearTimeout(timer);
+      sources.forEach(function (src) {
+        src.onended = src.onerror = src.onloadedmetadata = null;
+        try { if (src.pause) src.pause(); else src.stop(); } catch (e) { /* already ended */ }
+      });
+      resolve();
+    }
+    if (!ready || settings.muted || settings.sfx === 0) { stop(); return result; }
+    const key = SFX_SAMPLE[name];
+    try {
+      if (buffers[key] && ctx) {
+        const src = ctx.createBufferSource();
+        src.buffer = buffers[key];
+        src.connect(sfxBus);
+        sources.push(src);
+        src.onended = stop;
+        timer = setTimeout(stop, src.buffer.duration * 1000 + 250);
+        src.start();
+      } else if (sfxEls[key] && !missing[key] && !sfxEls[key].error) {
+        const el = sfxEls[key].cloneNode();
+        sources.push(el);
+        el.volume = settings.sfx;
+        el.onended = el.onerror = stop;
+        function watchdog() {
+          if (ended) return;
+          clearTimeout(timer);
+          const d = Number.isFinite(el.duration) && el.duration > 0 ? el.duration * 1000 + 250 : 600;
+          timer = setTimeout(stop, d);
+        }
+        el.onloadedmetadata = watchdog;
+        watchdog();
+        const p = el.play();
+        if (p && p.catch) p.catch(stop);
+      } else if (SFX[name]) {
+        cueSources = sources;
+        try { SFX[name](); } finally { cueSources = null; }
+        let left = sources.length;
+        sources.forEach(function (src) { src.onended = function () { if (--left === 0) stop(); }; });
+        // Synth envelopes are all bounded below 3 s; stop even on a suspended context.
+        timer = setTimeout(stop, left ? 3500 : 600);
+      } else timer = setTimeout(stop, 600);
+    } catch (e) { cueSources = null; stop(); }
+    return result;
   }
 
   /* ---------- haptics ---------- */
@@ -695,6 +757,8 @@
     init: init,
     unlock: unlock,
     play: play,
+    cue: cue,
+    duration: duration,
     buzz: buzz,
     startMusic: startMusic,
     sting: sting,

@@ -921,6 +921,12 @@
     const s = app.settings;
     const body =
       '<div class="settings-grid">' +
+        '<div class="slider-row"><label>Battle pace</label>' +
+          '<div class="seg" data-seg="pace">' +
+            [['calm', 'Calm (default)'], ['quick', 'Quick']].map(function (o) {
+              return '<button class="seg-btn' + ((s.pace || 'calm') === o[0] ? ' on' : '') + '" data-segval="' + o[0] + '">' + o[1] + '</button>';
+            }).join('') +
+          '</div></div>' +
         '<div class="slider-row"><label>Sound effects <span id="lbl-sfx">' + Math.round(s.sfx * 100) + '%</span></label>' +
           '<input type="range" min="0" max="100" value="' + Math.round(s.sfx * 100) + '" data-slider="sfx" /></div>' +
         '<div class="slider-row"><label>Ambient score <span id="lbl-music">' + Math.round(s.music * 100) + '%</span></label>' +
@@ -992,7 +998,7 @@
         patchSettings(p);
         $$('.seg-btn', seg).forEach(function (n) { n.classList.toggle('on', n === segBtn); });
         sfx('ui');
-        if (AC.sanjaya) AC.sanjaya.say('start_duel', { force: true });
+        if (AC.sanjaya && seg.getAttribute('data-seg') === 'narratorLang') AC.sanjaya.say('start_duel', { force: true });
         return;
       }
       const rowEl = e.target.closest('[data-toggle]');

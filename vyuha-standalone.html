@@ -2199,9 +2199,9 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
 .app::before { opacity: 0.5; }
 .boot.done, .boot[hidden] { display: none; }
 .boot.done * { animation: none !important; }
-.home-chakra .hc-spokes { animation: chakraSlow 9s cubic-bezier(.2, .7, .3, 1) 1 both; }
-.home-chakra .hc-inner { animation: chakraSlow 7s cubic-bezier(.2, .7, .3, 1) 1 reverse both; }
-.card-pulse { animation-iteration-count: 3; }
+.home-chakra .hc-spokes { animation: none; }
+.home-chakra .hc-inner { animation: none; }
+.card-pulse { animation: none; }
 .diya.lit { animation: diyaLit .5s ease-out 1; }
 @keyframes diyaLit { from { opacity: .4; transform: scale(.8); } to { opacity: 1; transform: none; } }
 .astra-btn.ready { animation: astraReady 2s ease-in-out 2; box-shadow: 0 0 10px rgba(255, 190, 90, 0.22); }
@@ -2276,6 +2276,12 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
 .data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 380px) { .av-pick .av { --av: 46px; } .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .btn-danger-ghost { color: #fda4af; border-color: rgba(244, 63, 94, 0.35); }
+
+/* Calm's preview is held still; links draw once and remain until the card closes. */
+.calm-preview .tok-disc { stroke: #f2cf8b; stroke-width: 0.14; }
+.calm-links .vyuha-link { stroke-dasharray: 1; stroke-dashoffset: 0; animation: calmLinkDraw .9s ease-out both; }
+@keyframes calmLinkDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.reduce-motion .calm-links .vyuha-link { animation: none; }
 
 </style>
 </head>
@@ -5112,6 +5118,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
   let musicBus = null;
   let noiseBuf = null;
   let ready = false;
+  let cueSources = null;
 
   const settings = {
     sfx: 0.7,
@@ -5222,6 +5229,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     }
     node.connect(g);
     g.connect(dest);
+    if (cueSources && opts.bus !== 'music') cueSources.push(osc);
     osc.start(t0);
     osc.stop(t0 + (opts.dur || 0.25) + 0.05);
   }
@@ -5245,6 +5253,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     src.connect(f);
     f.connect(g);
     g.connect(opts.bus === 'music' ? musicBus : sfxBus);
+    if (cueSources && opts.bus !== 'music') cueSources.push(src);
     src.start(t0);
     src.stop(t0 + (opts.dur || 0.2) + 0.05);
   }
@@ -5443,6 +5452,65 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     const fn = SFX[name];
     if (!fn) return;
     try { fn(); } catch (e) { /* audio must never break the game */ }
+  }
+
+  // A tracked one-shot for Calm: actual ended events for recorded and synth
+  // audio, metadata for duration, and a bounded fallback for unknown media.
+  function duration(name) {
+    const key = SFX_SAMPLE[name];
+    const n = buffers[key] ? buffers[key].duration : sfxEls[key] && sfxEls[key].duration;
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  function cue(name) {
+    let resolve, timer, sources = [], ended = false;
+    const result = { duration: duration(name), finished: new Promise(function (r) { resolve = r; }), stop: stop };
+    function stop() {
+      if (ended) return;
+      ended = true;
+      clearTimeout(timer);
+      sources.forEach(function (src) {
+        src.onended = src.onerror = src.onloadedmetadata = null;
+        try { if (src.pause) src.pause(); else src.stop(); } catch (e) { /* already ended */ }
+      });
+      resolve();
+    }
+    if (!ready || settings.muted || settings.sfx === 0) { stop(); return result; }
+    const key = SFX_SAMPLE[name];
+    try {
+      if (buffers[key] && ctx) {
+        const src = ctx.createBufferSource();
+        src.buffer = buffers[key];
+        src.connect(sfxBus);
+        sources.push(src);
+        src.onended = stop;
+        timer = setTimeout(stop, src.buffer.duration * 1000 + 250);
+        src.start();
+      } else if (sfxEls[key] && !missing[key] && !sfxEls[key].error) {
+        const el = sfxEls[key].cloneNode();
+        sources.push(el);
+        el.volume = settings.sfx;
+        el.onended = el.onerror = stop;
+        function watchdog() {
+          if (ended) return;
+          clearTimeout(timer);
+          const d = Number.isFinite(el.duration) && el.duration > 0 ? el.duration * 1000 + 250 : 600;
+          timer = setTimeout(stop, d);
+        }
+        el.onloadedmetadata = watchdog;
+        watchdog();
+        const p = el.play();
+        if (p && p.catch) p.catch(stop);
+      } else if (SFX[name]) {
+        cueSources = sources;
+        try { SFX[name](); } finally { cueSources = null; }
+        let left = sources.length;
+        sources.forEach(function (src) { src.onended = function () { if (--left === 0) stop(); }; });
+        // Synth envelopes are all bounded below 3 s; stop even on a suspended context.
+        timer = setTimeout(stop, left ? 3500 : 600);
+      } else timer = setTimeout(stop, 600);
+    } catch (e) { cueSources = null; stop(); }
+    return result;
   }
 
   /* ---------- haptics ---------- */
@@ -5793,6 +5861,8 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     init: init,
     unlock: unlock,
     play: play,
+    cue: cue,
+    duration: duration,
     buzz: buzz,
     startMusic: startMusic,
     sting: sting,
@@ -5853,6 +5923,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     narratorLang: 'hinglish',
     voice: true,
     cinematics: true,
+    pace: 'calm',
     batterySaver: null,   // null = decide from the phone (low memory / few cores → on)
     stories: true,
     tutorialDone: false
@@ -7003,7 +7074,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
   let lastAt = 0;
 
   function setLang(l) { if (LANGS.indexOf(l) !== -1) lang = l; }
-  function setVoice(v) { voiceOn = !!v; }
+  function setVoice(v) { voiceOn = !!v; if (!voiceOn) stopAll(); }
 
   function pick(key) {
     const list = LINES[key];
@@ -7016,42 +7087,99 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     return L === 'en' ? line[1] : L === 'hi' ? line[3] : line[2];
   }
 
-  /* Recorded voice is optional: the first miss for a line remembers itself so
-   * a game without voice files never asks twice. */
-  function playVoice(line) {
-    if (!voiceOn || typeof Audio === 'undefined') return;
-    // one Hindi recording serves both the Hinglish and the Hindi text
-    const vlang = lang === 'en' ? 'en' : 'hi';
-    const url = 'assets/audio/voice/' + vlang + '/' + line[0] + '.mp3';
-    if (voiceMissing[url]) return;
-    const settings = AC.audio && AC.audio.getSettings ? AC.audio.getSettings() : {};
-    if (settings.muted) return;
-    try {
-      if (playing) { playing.pause(); playing = null; }
-      const el = new Audio(url);
-      el.volume = Math.min(1, Math.max(0.1, (settings.sfx != null ? settings.sfx : 0.7) * 1.2));
-      el.onerror = function () { voiceMissing[url] = true; };
-      const p = el.play();
-      if (p && p.catch) p.catch(function () { voiceMissing[url] = true; });
-      playing = el;
-      if (AC.audio && AC.audio.duck) AC.audio.duck(2200);
-    } catch (e) { voiceMissing[url] = true; }
+  // One active line and a small priority queue. Nothing cuts a playing line off
+  // except an explicit skip, voice-off, or leaving the match.
+  let onLine = null;
+  let pending = [];
+  let active = null;
+  let idleWaiters = [];
+
+  function priority(key) {
+    if (/^fort_/.test(key)) return 7;
+    if (/^breach_/.test(key)) return 6;
+    if (/^astra_/.test(key)) return 5;
+    if (/capture|assassinate|both_fell|volley|makara|padma|shield_break/.test(key)) return 4;
+    if (/^trap_/.test(key)) return 3;
+    if (/dawn|dusk|rotate/.test(key)) return 2;
+    return 1;
   }
 
-  let onLine = null;
+  function playVoice(line, opts) {
+    let finish;
+    let timer;
+    let el;
+    const result = { finished: new Promise(function (resolve) { finish = resolve; }), stop: stop };
+    let done = false;
+    function stop() {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (el) { el.onended = el.onerror = null; el.pause(); }
+      if (playing === el) playing = null;
+      finish();
+    }
+    const settings = AC.audio && AC.audio.getSettings ? AC.audio.getSettings() : {};
+    const url = 'assets/audio/voice/' + (lang === 'en' ? 'en' : 'hi') + '/' + line[0] + '.mp3';
+    // Text-only lines still have a short reading gap, skippable like a voice.
+    timer = setTimeout(stop, 1000);
+    if (!voiceOn || opts.voice === false || typeof Audio === 'undefined' || settings.muted || voiceMissing[url]) return result;
+    try {
+      el = new Audio(url);
+      el.volume = Math.min(1, Math.max(0.1, (settings.sfx != null ? settings.sfx : 0.7) * 1.2));
+      el.onended = stop;
+      el.onerror = function () { voiceMissing[url] = true; stop(); };
+      clearTimeout(timer);
+      timer = setTimeout(stop, 3500);
+      playing = el;
+      const p = el.play();
+      if (p && p.catch) p.catch(function () { voiceMissing[url] = true; stop(); });
+      if (AC.audio && AC.audio.duck) AC.audio.duck(3500);
+    } catch (e) { voiceMissing[url] = true; stop(); }
+    return result;
+  }
 
-  /* Say something. `opts.force` skips the spacing that keeps Sanjaya from
-   * talking over himself on busy turns. Returns the line (or null). */
+  function pump() {
+    if (active) return;
+    if (!pending.length) {
+      idleWaiters.splice(0).forEach(function (resolve) { resolve(); });
+      return;
+    }
+    const item = pending.shift();
+    active = item;
+    lastAt = Date.now();
+    if (onLine) onLine(textOf(item.line), item.line, item.key);
+    item.cue = playVoice(item.line, item.opts);
+    item.cue.finished.then(function () {
+      if (active === item) active = null;
+      item.resolve(item.line);
+      pump();
+    });
+  }
+
   function say(key, opts) {
     opts = opts || {};
-    const now = Date.now();
-    if (!opts.force && now - lastAt < 900) return null;
     const line = pick(key);
-    if (!line) return null;
-    lastAt = now;
-    if (onLine) onLine(textOf(line), line, key);
-    if (opts.voice !== false) playVoice(line);
-    return line;
+    if (!line || (!opts.force && Date.now() - lastAt < 900)) return Promise.resolve(null);
+    return new Promise(function (resolve) {
+      const rank = opts.priority || priority(key);
+      pending = pending.filter(function (item) {
+        if (item.rank < rank) { item.resolve(null); return false; }
+        return true;
+      });
+      if (pending.length >= 3) { resolve(null); return; }
+      pending.push({ key: key, line: line, opts: opts, rank: rank, resolve: resolve });
+      pump();
+    });
+  }
+
+  function stopAll() {
+    pending.splice(0).forEach(function (item) { item.resolve(null); });
+    if (active && active.cue) active.cue.stop();
+  }
+
+  function idle() {
+    if (!active && !pending.length) return Promise.resolve();
+    return new Promise(function (resolve) { idleWaiters.push(resolve); });
   }
 
   function allLines() {
@@ -7066,6 +7194,10 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     LINES: LINES,
     LANGS: LANGS,
     say: say,
+    priority: priority,
+    idle: idle,
+    stop: stopAll,
+    skip: function () { if (active && active.cue) active.cue.stop(); },
     setLang: setLang,
     setVoice: setVoice,
     textOf: textOf,
@@ -8001,6 +8133,12 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     const s = app.settings;
     const body =
       '<div class="settings-grid">' +
+        '<div class="slider-row"><label>Battle pace</label>' +
+          '<div class="seg" data-seg="pace">' +
+            [['calm', 'Calm (default)'], ['quick', 'Quick']].map(function (o) {
+              return '<button class="seg-btn' + ((s.pace || 'calm') === o[0] ? ' on' : '') + '" data-segval="' + o[0] + '">' + o[1] + '</button>';
+            }).join('') +
+          '</div></div>' +
         '<div class="slider-row"><label>Sound effects <span id="lbl-sfx">' + Math.round(s.sfx * 100) + '%</span></label>' +
           '<input type="range" min="0" max="100" value="' + Math.round(s.sfx * 100) + '" data-slider="sfx" /></div>' +
         '<div class="slider-row"><label>Ambient score <span id="lbl-music">' + Math.round(s.music * 100) + '%</span></label>' +
@@ -8072,7 +8210,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
         patchSettings(p);
         $$('.seg-btn', seg).forEach(function (n) { n.classList.toggle('on', n === segBtn); });
         sfx('ui');
-        if (AC.sanjaya) AC.sanjaya.say('start_duel', { force: true });
+        if (AC.sanjaya && seg.getAttribute('data-seg') === 'narratorLang') AC.sanjaya.say('start_duel', { force: true });
         return;
       }
       const rowEl = e.target.closest('[data-toggle]');
@@ -8551,6 +8689,10 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     return !!(AC.app && AC.app.settings && AC.app.settings.reducedMotion);
   }
 
+  function calm() {
+    return AC.game && AC.game.calmActive || AC.app && AC.app.settings && AC.app.settings.pace !== 'quick';
+  }
+
   let current = null;
 
   function close(fire) {
@@ -8558,8 +8700,11 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     const c = current;
     current = null;
     clearTimeout(c.timer);
-    c.el.classList.add('stage-out');
-    setTimeout(function () { if (c.el.parentNode) c.el.remove(); }, 220);
+    if (calm()) c.el.remove();
+    else {
+      c.el.classList.add('stage-out');
+      setTimeout(function () { if (c.el.parentNode) c.el.remove(); }, 220);
+    }
     if (fire !== false && c.done) c.done();
   }
 
@@ -8567,9 +8712,8 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
   function show(html, cls, ms, done, opts) {
     if (current) close(true);
     opts = opts || {};
-    // beats were running 2-2.6 s and held the board hostage; 1.5 s reads as a
-    // flourish instead of a takeover
-    if (ms) ms = Math.min(ms, 1500);
+    // Quick retains its 1.5 s flourish; Calm gives each moment its full hold.
+    if (ms && !calm()) ms = Math.min(ms, 1500);
     const el = document.createElement('div');
     el.className = 'stage ' + (cls || '');
     el.setAttribute('role', 'status');
@@ -8577,9 +8721,12 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     el.innerHTML = '<div class="stage-card">' + html + '</div>' +
       (opts.passive ? '' : '<div class="stage-skip">tap to continue</div>');
     document.body.appendChild(el);
-    const hold = reduced() ? Math.min(ms, 1100) : ms;
+    const hold = reduced() && !calm() ? Math.min(ms, 1100) : ms;
     current = { el: el, done: done, timer: setTimeout(function () { close(true); }, hold) };
-    if (!opts.passive) el.addEventListener('click', function () { close(true); });
+    if (!opts.passive) el.addEventListener('click', function () {
+      if (calm() && AC.game && AC.game.skipPace && AC.game.skipPace()) return;
+      close(true);
+    });
     else el.style.pointerEvents = 'none';
     void el.offsetWidth;
     el.classList.add('stage-in');
@@ -8659,7 +8806,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
       '</div>' +
       verdict(kind) +
       '<div class="st-line">' + esc(ev.text) + '</div>';
-    show(html, 'stage-clash stage-' + kind, ev.core ? 2600 : 1900, done);
+    show(html, 'stage-clash stage-' + kind, ev.core ? 2600 : calm() ? 2200 : 1900, done);
     if (navigator && navigator.vibrate && AC.app && AC.app.settings && AC.app.settings.haptics !== false) {
       try { navigator.vibrate(kind === 'win' || kind === 'fort' ? [14, 40, 14] : 26); } catch (e) { /* ignore */ }
     }
@@ -8676,7 +8823,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
       '</div>' +
       verdict(kind) +
       '<div class="st-line">' + esc(ev.text) + '</div>';
-    show(html, 'stage-volley', 1600, done);
+    show(html, 'stage-volley', calm() ? 2200 : 1600, done);
   }
 
   function scan(ev, viewer, done) {
@@ -8699,7 +8846,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
       '<div class="st-gate" aria-hidden="true">' + A.icon('gate') + '<span class="st-crack"></span></div>' +
       verdict('breach') +
       '<div class="st-line">' + (mine ? 'Our gate is broken. One more blow and the fort falls — defend it.' : 'Their gate is broken. One more blow takes the fort.') + '</div>';
-    show(html, 'stage-breach' + (mine ? ' stage-lose' : ' stage-win'), 1900, done);
+    show(html, 'stage-breach' + (mine ? ' stage-lose' : ' stage-win'), calm() ? 2600 : 1900, done);
   }
 
   function astra(ev, viewer, done) {
@@ -8712,7 +8859,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
       '<div class="st-astra-name"><span class="deva">' + esc(def.deva) + '</span><b>' + esc(def.name) + '</b></div>' +
       '<div class="st-astra-by">' + (ours ? 'invoked by your army' : 'invoked by the enemy') + '</div>' +
       '<div class="st-line">' + esc(ev.text) + '</div>';
-    show(html, 'stage-astra stage-astra-' + ev.astra + (ours ? ' ours' : ' theirs'), ev.astra === 'brahma' ? 2600 : 2000, done);
+    show(html, 'stage-astra stage-astra-' + ev.astra + (ours ? ' ours' : ' theirs'), ev.astra === 'brahma' ? 2600 : calm() ? 2200 : 2000, done);
     const c = FX.centerOf(document.getElementById('board'));
     const colors = { vayavya: '#cfe8ff', sammohana: '#c4b5fd', agneya: '#ff8a3d', brahma: '#fff3c4' };
     if (FX && FX.burst) {
@@ -8722,13 +8869,13 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
   }
 
   /* The sky turning is a passive beat: it never blocks the game. */
-  function sky(hour, viewerHour) {
+  function sky(hour, viewerHour, done) {
     const day = hour === 'day';
     const html =
       '<div class="st-sky-mark">' + A.icon(day ? 'sun' : 'moon') + '</div>' +
       '<div class="st-astra-name"><span class="deva">' + (day ? 'दिनमान' : 'रात्रि') + '</span><b>' + (day ? 'Dawn — the hour of Surya' : 'Night — the hour of Chandra') + '</b></div>' +
       '<div class="st-astra-by">' + (viewerHour ? 'Your army strikes at +1 until the sky turns again.' : 'The enemy strikes at +1 until the sky turns again.') + '</div>';
-    show(html, 'stage-sky stage-' + (day ? 'day' : 'night'), 1700, null, { passive: true });
+    show(html, 'stage-sky stage-' + (day ? 'day' : 'night'), 1700, done, { passive: !done });
   }
 
   AC.stage = {
@@ -8948,6 +9095,9 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
   /* ══ lifecycle ═════════════════════════════════════════════════ */
 
   function clearOverlays() {
+    clearTimers();
+    g.busy = false;
+    g.thinking = false;
     Array.prototype.forEach.call(document.querySelectorAll('.curtain'), function (n) { n.remove(); });
     const scrim = document.getElementById('scrim');
     if (scrim) scrim.classList.remove('on');
@@ -8974,6 +9124,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     resetSelection();
     g.slot = null;
     g.over = false;
+    g.calmResultNarrated = false;
     g.busy = false;
     g.thinking = false;
     g.hinted = false;
@@ -9084,6 +9235,10 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
   g.autosave = autosave;
 
   function clearTimers() {
+    cancelPace();
+    sayQueue = [];
+    if (sayTimer) { clearTimeout(sayTimer); sayTimer = null; }
+    if (SJ && SJ.stop) SJ.stop();
     if (g.timerId) { clearInterval(g.timerId); g.timerId = null; }
     if (g.aiTimer) { clearTimeout(g.aiTimer); g.aiTimer = null; }
   }
@@ -9156,6 +9311,10 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
         pill.classList.add('void');
         pill.textContent = oppName(st) + ' is thinking';
         sub.textContent = 'Weighing what it has seen of your army.';
+      } else if (g.calmActive && g.busy) {
+        pill.classList.add('gold');
+        pill.textContent = 'The move unfolds';
+        sub.textContent = 'Watch the field · tap the board to continue';
       } else {
         const owner = st.owner;
         pill.classList.add(owner === 1 ? 'solar' : 'void');
@@ -9466,17 +9625,20 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
 
     // formation links from the last clash: the jaws, the petals
     if (g.links && Date.now() < g.links.until) {
+      out += '<g class="' + (g.calmActive ? 'calm-links' : '') + '">';
       const to = b.byId[g.links.to];
       if (to) {
+        const pathLength = g.calmActive ? ' pathLength="1"' : '';
         (g.links.jaws || []).forEach(function (j) {
           const c = b.byId[j];
-          if (c) out += '<line class="vyuha-link jaws" x1="' + c.x + '" y1="' + c.y + '" x2="' + to.x + '" y2="' + to.y + '"/>';
+          if (c) out += '<line class="vyuha-link jaws"' + pathLength + ' x1="' + c.x + '" y1="' + c.y + '" x2="' + to.x + '" y2="' + to.y + '"/>';
         });
         (g.links.petals || []).forEach(function (j) {
           const c = b.byId[j];
-          if (c) out += '<line class="vyuha-link petals" x1="' + c.x + '" y1="' + c.y + '" x2="' + to.x + '" y2="' + to.y + '"/>';
+          if (c) out += '<line class="vyuha-link petals"' + pathLength + ' x1="' + c.x + '" y1="' + c.y + '" x2="' + to.x + '" y2="' + to.y + '"/>';
         });
       }
+      out += '</g>';
     }
     out += tags;
 
@@ -9553,7 +9715,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     }
 
     const selUnit = g.sel ? st.board[g.sel] : null;
-    const isHumanTurn = !g.thinking && (isPass() || st.owner === 1);
+    const isHumanTurn = !g.thinking && !(g.calmActive && g.busy) && (isPass() || st.owner === 1);
     let info;
     let buttons = '';
 
@@ -9578,10 +9740,10 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
         '<span class="sel-desc">' + esc(g.armed ? 'Tap the target again to strike.' : def.desc + trance) + '</span></span>';
     } else {
       info = '<span class="sel-badge">' + A.icon('sword') + '</span>' +
-        '<span class="sel-text"><span class="sel-name">' + (isHumanTurn ? 'Your move' : 'Waiting') + '</span>' +
+        '<span class="sel-text"><span class="sel-name">' + (isHumanTurn ? 'Your move' : g.calmActive && g.busy && !g.thinking ? 'Watching the move' : 'Waiting') + '</span>' +
         '<span class="sel-desc">' + (isHumanTurn
           ? 'Tap a piece, then a glowing cell. Or invoke an astra.'
-          : oppName(st) + ' is choosing a move.') + '</span></span>';
+          : g.calmActive && g.busy && !g.thinking ? 'Tap the board to continue.' : oppName(st) + ' is choosing a move.') + '</span></span>';
     }
 
     if (isHumanTurn) {
@@ -9916,7 +10078,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
 
   function enterAstra(key) {
     const st = g.state;
-    if (!st || st.phase !== 'battle' || g.thinking) return;
+    if (!st || st.phase !== 'battle' || g.thinking || g.busy) return;
     if (!E.astraReady(st, st.owner, key)) {
       const def = U.ASTRA_DEFS[key];
       const used = st.astrasUsed[st.owner] && st.astrasUsed[st.owner][key];
@@ -10025,8 +10187,12 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
       keys.push('shakti_full');
     }
     if (st.phase === 'battle') {
-      if (st.turnLimit && st.turnLimit - st.turn === 4) speakOnce('last_rounds');
-      else if (!st.turnLimit && capOf(st) - st.turn === 3) speakOnce('sunset_near');
+      const warning = st.turnLimit && st.turnLimit - st.turn === 4 ? 'last_rounds'
+        : !st.turnLimit && capOf(st) - st.turn === 3 ? 'sunset_near' : null;
+      if (warning && !g.said[warning]) {
+        if (g.calmActive) { g.said[warning] = true; keys.push(warning); }
+        else speakOnce(warning);
+      }
     }
     return keys;
   }
@@ -10051,7 +10217,178 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     });
   }
 
+  // A cancellable, skippable sequence. Each wait uses a timer or an audio
+  // ended event; there is no frame loop while the player watches or thinks.
+  let paceRun = null;
+  function alive(run) { return paceRun === run && !run.cancelled && g.state === run.state; }
+  function cancelPace() {
+    const run = paceRun;
+    paceRun = null;
+    if (run) { run.cancelled = true; if (run.skip) run.skip(); }
+    g.calmActive = false;
+    g.paceStep = null;
+    g.links = null;
+  }
+  g.skipPace = function () {
+    if (!paceRun || !paceRun.skip) return false;
+    if (SJ) SJ.skip();
+    paceRun.skip();
+    return true;
+  };
+  function waitPace(run, step, ms, promise, cleanup) {
+    if (!alive(run)) return Promise.resolve();
+    g.paceStep = step;
+    return new Promise(function (resolve) {
+      let done = false;
+      const finish = function () {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        if (run.skip === finish) run.skip = null;
+        if (cleanup) cleanup();
+        resolve();
+      };
+      const timer = ms == null ? null : setTimeout(finish, ms);
+      run.skip = finish;
+      if (promise) Promise.resolve(promise).then(finish, finish);
+    });
+  }
+  function newPaceRun() {
+    cancelPace();
+    sayQueue = [];
+    if (sayTimer) { clearTimeout(sayTimer); sayTimer = null; }
+    const run = { state: g.state, cancelled: false, skip: null };
+    paceRun = run;
+    g.calmActive = true;
+    return run;
+  }
+  async function seeMove(run, action, ai) {
+    const st = run.state;
+    const id = action.from || action.to;
+    let token = document.querySelector('#board .cell[data-id="' + id + '"] .token');
+    if (ai && token) {
+      token.classList.add('calm-preview');
+      await waitPace(run, 'preview', 500, null, function () { token.classList.remove('calm-preview'); });
+      if (!alive(run)) return;
+    }
+    if (action.type !== 'move' && action.type !== 'attack') return;
+    const b = board(), from = b.byId[action.from], to = b.byId[action.to];
+    token = document.querySelector('#board .cell[data-id="' + action.from + '"] .token');
+    let animation;
+    if (!settings().reducedMotion && token && from && to && token.animate) {
+      animation = token.animate([
+        { transform: 'translate(' + from.x + 'px,' + from.y + 'px)' },
+        { transform: 'translate(' + to.x + 'px,' + to.y + 'px)' }
+      ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
+    }
+    await waitPace(run, 'slide', 400, null, function () { if (animation) animation.cancel(); });
+  }
+  async function calmBeat(run, ev, me) {
+    if (!alive(run)) return;
+    const st = run.state;
+    function clearLinks() {
+      if (g.links) { g.links = null; if (g.state === st) renderBoard(); }
+    }
+    let cue = null;
+    let cardDone = Promise.resolve();
+    if (ev.kind === 'clash' && ((ev.jaws || []).length || (ev.petals || []).length)) {
+      g.links = { jaws: (ev.attParts || []).some(function (p) { return p.key === 'makara'; }) ? ev.jaws : [], petals: ev.petals || [], to: ev.at, until: Infinity };
+      renderBoard();
+    }
+    if (ST && settings().cinematics !== false) {
+      cardDone = new Promise(function (resolve) {
+        const closed = function () { clearLinks(); resolve(); };
+        const fn = { clash: 'clash', barrage: 'volley', scan: 'scan', breach: 'breach', astra: 'astra', core: 'clash' }[ev.kind];
+        if (fn) ST[fn](ev.kind === 'core' ? Object.assign({ outcome: 'att', core: true }, ev) : ev, me, closed);
+        else if (ev.kind === 'sky') ST.sky(ev.hour, E.hourOwner(st) === viewerOf(st), closed);
+        else resolve();
+      });
+    }
+    cue = ev.sfx && AU.cue ? AU.cue(ev.sfx) : null;
+    await waitPace(run, 'moment', null, Promise.all([cardDone, cue ? cue.finished : Promise.resolve()]), function () {
+      if (cue) cue.stop();
+      if (ST) ST.close(false);
+      clearLinks();
+    });
+  }
+  async function performCalm(action, existingRun) {
+    const run = existingRun || newPaceRun(), st = run.state;
+    if (!alive(run)) return;
+    g.busy = true;
+    stopClock();
+    // An introduction still speaking finishes before any battle effect starts.
+    if (SJ) await waitPace(run, 'previous-line', null, SJ.idle(), function () { SJ.stop(); });
+    if (!alive(run)) return;
+    const actor = st.owner, me = isAi() ? 1 : actor;
+    // Validate without changing the live board before the slide has finished.
+    const check = E.applyAction(E.clone(st), action);
+    if (!check.ok) {
+      cancelPace(); g.busy = false;
+      FX.toast(check.error || 'That action is not legal.', 'error'); sfx('error'); render(); return;
+    }
+    resetSelection();
+    await seeMove(run, action, isAi() && actor === 2);
+    if (!alive(run)) return;
+    const res = E.applyAction(st, action);
+    render();
+    updateTension();
+    const events = res.events;
+    // A fort/breach can also emit a generic clash. One card tells that moment;
+    // ancillary Shakti is shown silently so chimes never pile onto a voice.
+    const major = events.some(function (ev) { return ev.kind === 'breach' || ev.kind === 'core'; });
+    const hasAstra = events.some(function (ev) { return ev.kind === 'astra'; });
+    const beats = events.filter(function (ev) {
+      if (ev.kind === 'move') return !events.some(function (x) { return x.kind === 'clash'; });
+      if (ev.kind === 'clash' && (major || hasAstra)) return false;
+      return ['clash', 'barrage', 'scan', 'breach', 'astra', 'core', 'sky', 'rotate'].indexOf(ev.kind) !== -1;
+    });
+    for (const ev of beats) {
+      if (ev.kind === 'rotate' && !settings().reducedMotion) spinRings();
+      await calmBeat(run, ev, me);
+      if (!alive(run)) return;
+    }
+    g.lastShakti = { 1: st.shakti[1], 2: st.shakti[2] };
+    const keys = narrate(events, me, st).sort(function (a, b) { return SJ.priority(b) - SJ.priority(a); });
+    if (st.phase === 'over' && !keys.length) keys.push(st.winner === 0 ? 'draw' : st.winner === me ? 'victory' : 'defeat');
+    if (keys.length && SJ && settings().narrator !== false) {
+      await waitPace(run, 'voice', null, SJ.say(keys[0], { force: true }), function () { SJ.stop(); });
+      if (!alive(run)) return;
+    }
+    if (st.phase === 'over') g.calmResultNarrated = true;
+    modeHook('onEvents', { events: events, actor: actor, action: action });
+    if (!alive(run)) return;
+    autosave();
+    if (st.phase === 'over') { cancelPace(); g.busy = false; handleGameOver(); return; }
+    if (isAi() && st.owner === 2) {
+      await waitPace(run, 'breath', 400);
+      if (!alive(run)) return;
+      await calmAi(run);
+    } else {
+      // Show the handover before accepting a second order (or starting its clock).
+      banner('Your turn', U.FACTIONS[st.owner].deva + ' · round ' + st.turn, st.owner === 1 ? 'solar' : 'void');
+      await waitPace(run, 'your-turn', 400);
+      if (!alive(run)) return;
+      cancelPace(); g.busy = false; g.thinking = false;
+      render();
+      if (isPass()) showCurtain(st.owner, 'battle');
+      startClockIfNeeded();
+    }
+  }
+  async function calmAi(run) {
+    const st = run.state;
+    g.thinking = true; g.busy = true; render();
+    await waitPace(run, 'thinking', 900 + Math.random() * 500);
+    if (!alive(run)) return;
+    const act = AI.chooseAction(st, 2, st.config.difficulty || 'veteran', modeHook('aiRng'));
+    g.thinking = false;
+    if (!act) { cancelPace(); g.busy = false; E.endGame(st, 1, 'Chandravansh has no legal action left.', []); handleGameOver(); return; }
+    await performCalm(act, run);
+  }
+  function startCalmAi() { calmAi(newPaceRun()); }
+
   function performAction(action) {
+    if (!g.state || g.busy) return;
+    if (settings().pace !== 'quick') { performCalm(action); return; }
     const st = g.state;
     const mover = action.from ? st.board[action.from] : null;
     const actor = st.owner;
@@ -10157,6 +10494,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     if (g.aiTimer) clearTimeout(g.aiTimer);
     g.thinking = true;
     render();
+    if (settings().pace !== 'quick') { startCalmAi(); return; }
     const diff = g.state.config.difficulty || 'veteran';
     const delay = (U.DIFFICULTIES[diff] || U.DIFFICULTIES.veteran).think + Math.random() * 260;
     g.aiTimer = setTimeout(function () {
@@ -10183,7 +10521,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
   function startClockIfNeeded() {
     const st = g.state;
     if (!st) return;
-    if (!st.config.timer || st.phase !== 'battle' || g.thinking) { stopClock(); return; }
+    if (!st.config.timer || st.phase !== 'battle' || g.thinking || (g.calmActive && g.busy)) { stopClock(); return; }
     const humanTurn = isPass() || st.owner === 1;
     if (!humanTurn) { stopClock(); return; }
     if (g.timerId) return;
@@ -10376,7 +10714,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
   function openAdvisor() {
     const st = g.state;
     if (!st || st.phase !== 'battle') { FX.toast('The advisor only speaks during battle.', 'warn'); return; }
-    if (g.thinking) return;
+    if (g.thinking || g.busy) return;
     if (!(isPass() || st.owner === 1)) return;
     const advice = AI.advise(st, st.owner, 3);
     if (!advice.length) { FX.toast('No legal moves available.', 'warn'); return; }
@@ -10494,7 +10832,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     else if (!isAiGame || outcome === 'win') { AU.sting('victory'); sfx('shankh'); }
     else AU.sting('defeat');
     if (winner !== 0) FX.shake(9);
-    speak([winner === 0 ? 'draw' : (isAiGame ? (outcome === 'win' ? 'victory' : 'defeat') : 'victory')]);
+    if (!g.calmResultNarrated) speak([winner === 0 ? 'draw' : (isAiGame ? (outcome === 'win' ? 'victory' : 'defeat') : 'victory')]);
 
     const extra = modeHook('resultExtras', { outcome: outcome }) || null;
     const astrasUsed = (st.astraLog || []).filter(function (a) { return a.owner === 1; }).length;
@@ -10537,7 +10875,8 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
     if (!g.state || g.state.phase === 'over') return;
     // against the AI the player is always the one leaving, even mid-AI-turn
     const loser = isAi() ? 1 : g.state.owner;
-    if (g.aiTimer) { clearTimeout(g.aiTimer); g.aiTimer = null; }
+    clearTimers();
+    g.busy = false;
     g.thinking = false;
     if (AC.stage && AC.stage.close) AC.stage.close();
     E.endGame(g.state, loser === 1 ? 2 : 1, U.FACTIONS[loser].name + ' left the field.', []);
@@ -10549,6 +10888,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
   function wire() {
     const svg = document.getElementById('board');
     svg.addEventListener('click', function (e) {
+      if (g.skipPace()) return;
       const cell = e.target.closest('[data-id]');
       if (!cell) return;
       onCell(cell.getAttribute('data-id'));
@@ -10604,6 +10944,7 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
 
     const bar = document.getElementById('action-bar');
     bar.addEventListener('click', function (e) {
+      if (g.busy) return;
       const preset = e.target.closest('[data-preset]');
       if (preset) { deployPreset(preset.getAttribute('data-preset')); return; }
       const deploy = e.target.closest('[data-deploy]');

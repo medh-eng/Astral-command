@@ -25,7 +25,7 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(p).pipe(res);
 }).listen(0);
 const base = 'http://127.0.0.1:' + server.address().port + '/';
-const browser = await chromium.launch({ args: ['--mute-audio', '--autoplay-policy=no-user-gesture-required'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ['--mute-audio', '--autoplay-policy=no-user-gesture-required'] });
 const problems = [];
 const note = (m) => { problems.push(m); console.log('  ! ' + m); };
 
@@ -66,6 +66,7 @@ for (const [label, w, h] of [['phone', 390, 844], ['small-phone', 360, 640]]) {
   await page.reload();
   await page.waitForSelector('#screen-home:not([hidden])');
   await page.waitForSelector('#boot', { state: 'hidden' });
+  await page.evaluate(() => AC.ui.patchSettings({ pace: 'quick' }));
   await sleep(600);
   await shot(page, label + '-0-home');
   const boards = ['wheel', 'padma', 'small', 'wheel'];

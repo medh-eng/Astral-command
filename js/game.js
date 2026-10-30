@@ -200,6 +200,9 @@
   /* ══ lifecycle ═════════════════════════════════════════════════ */
 
   function clearOverlays() {
+    clearTimers();
+    g.busy = false;
+    g.thinking = false;
     Array.prototype.forEach.call(document.querySelectorAll('.curtain'), function (n) { n.remove(); });
     const scrim = document.getElementById('scrim');
     if (scrim) scrim.classList.remove('on');
@@ -226,6 +229,7 @@
     resetSelection();
     g.slot = null;
     g.over = false;
+    g.calmResultNarrated = false;
     g.busy = false;
     g.thinking = false;
     g.hinted = false;
@@ -336,6 +340,10 @@
   g.autosave = autosave;
 
   function clearTimers() {
+    cancelPace();
+    sayQueue = [];
+    if (sayTimer) { clearTimeout(sayTimer); sayTimer = null; }
+    if (SJ && SJ.stop) SJ.stop();
     if (g.timerId) { clearInterval(g.timerId); g.timerId = null; }
     if (g.aiTimer) { clearTimeout(g.aiTimer); g.aiTimer = null; }
   }
@@ -408,6 +416,10 @@
         pill.classList.add('void');
         pill.textContent = oppName(st) + ' is thinking';
         sub.textContent = 'Weighing what it has seen of your army.';
+      } else if (g.calmActive && g.busy) {
+        pill.classList.add('gold');
+        pill.textContent = 'The move unfolds';
+        sub.textContent = 'Watch the field · tap the board to continue';
       } else {
         const owner = st.owner;
         pill.classList.add(owner === 1 ? 'solar' : 'void');
@@ -718,17 +730,20 @@
 
     // formation links from the last clash: the jaws, the petals
     if (g.links && Date.now() < g.links.until) {
+      out += '<g class="' + (g.calmActive ? 'calm-links' : '') + '">';
       const to = b.byId[g.links.to];
       if (to) {
+        const pathLength = g.calmActive ? ' pathLength="1"' : '';
         (g.links.jaws || []).forEach(function (j) {
           const c = b.byId[j];
-          if (c) out += '<line class="vyuha-link jaws" x1="' + c.x + '" y1="' + c.y + '" x2="' + to.x + '" y2="' + to.y + '"/>';
+          if (c) out += '<line class="vyuha-link jaws"' + pathLength + ' x1="' + c.x + '" y1="' + c.y + '" x2="' + to.x + '" y2="' + to.y + '"/>';
         });
         (g.links.petals || []).forEach(function (j) {
           const c = b.byId[j];
-          if (c) out += '<line class="vyuha-link petals" x1="' + c.x + '" y1="' + c.y + '" x2="' + to.x + '" y2="' + to.y + '"/>';
+          if (c) out += '<line class="vyuha-link petals"' + pathLength + ' x1="' + c.x + '" y1="' + c.y + '" x2="' + to.x + '" y2="' + to.y + '"/>';
         });
       }
+      out += '</g>';
     }
     out += tags;
 
@@ -805,7 +820,7 @@
     }
 
     const selUnit = g.sel ? st.board[g.sel] : null;
-    const isHumanTurn = !g.thinking && (isPass() || st.owner === 1);
+    const isHumanTurn = !g.thinking && !(g.calmActive && g.busy) && (isPass() || st.owner === 1);
     let info;
     let buttons = '';
 
@@ -830,10 +845,10 @@
         '<span class="sel-desc">' + esc(g.armed ? 'Tap the target again to strike.' : def.desc + trance) + '</span></span>';
     } else {
       info = '<span class="sel-badge">' + A.icon('sword') + '</span>' +
-        '<span class="sel-text"><span class="sel-name">' + (isHumanTurn ? 'Your move' : 'Waiting') + '</span>' +
+        '<span class="sel-text"><span class="sel-name">' + (isHumanTurn ? 'Your move' : g.calmActive && g.busy && !g.thinking ? 'Watching the move' : 'Waiting') + '</span>' +
         '<span class="sel-desc">' + (isHumanTurn
           ? 'Tap a piece, then a glowing cell. Or invoke an astra.'
-          : oppName(st) + ' is choosing a move.') + '</span></span>';
+          : g.calmActive && g.busy && !g.thinking ? 'Tap the board to continue.' : oppName(st) + ' is choosing a move.') + '</span></span>';
     }
 
     if (isHumanTurn) {
@@ -1168,7 +1183,7 @@
 
   function enterAstra(key) {
     const st = g.state;
-    if (!st || st.phase !== 'battle' || g.thinking) return;
+    if (!st || st.phase !== 'battle' || g.thinking || g.busy) return;
     if (!E.astraReady(st, st.owner, key)) {
       const def = U.ASTRA_DEFS[key];
       const used = st.astrasUsed[st.owner] && st.astrasUsed[st.owner][key];
@@ -1277,8 +1292,12 @@
       keys.push('shakti_full');
     }
     if (st.phase === 'battle') {
-      if (st.turnLimit && st.turnLimit - st.turn === 4) speakOnce('last_rounds');
-      else if (!st.turnLimit && capOf(st) - st.turn === 3) speakOnce('sunset_near');
+      const warning = st.turnLimit && st.turnLimit - st.turn === 4 ? 'last_rounds'
+        : !st.turnLimit && capOf(st) - st.turn === 3 ? 'sunset_near' : null;
+      if (warning && !g.said[warning]) {
+        if (g.calmActive) { g.said[warning] = true; keys.push(warning); }
+        else speakOnce(warning);
+      }
     }
     return keys;
   }
@@ -1303,7 +1322,178 @@
     });
   }
 
+  // A cancellable, skippable sequence. Each wait uses a timer or an audio
+  // ended event; there is no frame loop while the player watches or thinks.
+  let paceRun = null;
+  function alive(run) { return paceRun === run && !run.cancelled && g.state === run.state; }
+  function cancelPace() {
+    const run = paceRun;
+    paceRun = null;
+    if (run) { run.cancelled = true; if (run.skip) run.skip(); }
+    g.calmActive = false;
+    g.paceStep = null;
+    g.links = null;
+  }
+  g.skipPace = function () {
+    if (!paceRun || !paceRun.skip) return false;
+    if (SJ) SJ.skip();
+    paceRun.skip();
+    return true;
+  };
+  function waitPace(run, step, ms, promise, cleanup) {
+    if (!alive(run)) return Promise.resolve();
+    g.paceStep = step;
+    return new Promise(function (resolve) {
+      let done = false;
+      const finish = function () {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        if (run.skip === finish) run.skip = null;
+        if (cleanup) cleanup();
+        resolve();
+      };
+      const timer = ms == null ? null : setTimeout(finish, ms);
+      run.skip = finish;
+      if (promise) Promise.resolve(promise).then(finish, finish);
+    });
+  }
+  function newPaceRun() {
+    cancelPace();
+    sayQueue = [];
+    if (sayTimer) { clearTimeout(sayTimer); sayTimer = null; }
+    const run = { state: g.state, cancelled: false, skip: null };
+    paceRun = run;
+    g.calmActive = true;
+    return run;
+  }
+  async function seeMove(run, action, ai) {
+    const st = run.state;
+    const id = action.from || action.to;
+    let token = document.querySelector('#board .cell[data-id="' + id + '"] .token');
+    if (ai && token) {
+      token.classList.add('calm-preview');
+      await waitPace(run, 'preview', 500, null, function () { token.classList.remove('calm-preview'); });
+      if (!alive(run)) return;
+    }
+    if (action.type !== 'move' && action.type !== 'attack') return;
+    const b = board(), from = b.byId[action.from], to = b.byId[action.to];
+    token = document.querySelector('#board .cell[data-id="' + action.from + '"] .token');
+    let animation;
+    if (!settings().reducedMotion && token && from && to && token.animate) {
+      animation = token.animate([
+        { transform: 'translate(' + from.x + 'px,' + from.y + 'px)' },
+        { transform: 'translate(' + to.x + 'px,' + to.y + 'px)' }
+      ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
+    }
+    await waitPace(run, 'slide', 400, null, function () { if (animation) animation.cancel(); });
+  }
+  async function calmBeat(run, ev, me) {
+    if (!alive(run)) return;
+    const st = run.state;
+    function clearLinks() {
+      if (g.links) { g.links = null; if (g.state === st) renderBoard(); }
+    }
+    let cue = null;
+    let cardDone = Promise.resolve();
+    if (ev.kind === 'clash' && ((ev.jaws || []).length || (ev.petals || []).length)) {
+      g.links = { jaws: (ev.attParts || []).some(function (p) { return p.key === 'makara'; }) ? ev.jaws : [], petals: ev.petals || [], to: ev.at, until: Infinity };
+      renderBoard();
+    }
+    if (ST && settings().cinematics !== false) {
+      cardDone = new Promise(function (resolve) {
+        const closed = function () { clearLinks(); resolve(); };
+        const fn = { clash: 'clash', barrage: 'volley', scan: 'scan', breach: 'breach', astra: 'astra', core: 'clash' }[ev.kind];
+        if (fn) ST[fn](ev.kind === 'core' ? Object.assign({ outcome: 'att', core: true }, ev) : ev, me, closed);
+        else if (ev.kind === 'sky') ST.sky(ev.hour, E.hourOwner(st) === viewerOf(st), closed);
+        else resolve();
+      });
+    }
+    cue = ev.sfx && AU.cue ? AU.cue(ev.sfx) : null;
+    await waitPace(run, 'moment', null, Promise.all([cardDone, cue ? cue.finished : Promise.resolve()]), function () {
+      if (cue) cue.stop();
+      if (ST) ST.close(false);
+      clearLinks();
+    });
+  }
+  async function performCalm(action, existingRun) {
+    const run = existingRun || newPaceRun(), st = run.state;
+    if (!alive(run)) return;
+    g.busy = true;
+    stopClock();
+    // An introduction still speaking finishes before any battle effect starts.
+    if (SJ) await waitPace(run, 'previous-line', null, SJ.idle(), function () { SJ.stop(); });
+    if (!alive(run)) return;
+    const actor = st.owner, me = isAi() ? 1 : actor;
+    // Validate without changing the live board before the slide has finished.
+    const check = E.applyAction(E.clone(st), action);
+    if (!check.ok) {
+      cancelPace(); g.busy = false;
+      FX.toast(check.error || 'That action is not legal.', 'error'); sfx('error'); render(); return;
+    }
+    resetSelection();
+    await seeMove(run, action, isAi() && actor === 2);
+    if (!alive(run)) return;
+    const res = E.applyAction(st, action);
+    render();
+    updateTension();
+    const events = res.events;
+    // A fort/breach can also emit a generic clash. One card tells that moment;
+    // ancillary Shakti is shown silently so chimes never pile onto a voice.
+    const major = events.some(function (ev) { return ev.kind === 'breach' || ev.kind === 'core'; });
+    const hasAstra = events.some(function (ev) { return ev.kind === 'astra'; });
+    const beats = events.filter(function (ev) {
+      if (ev.kind === 'move') return !events.some(function (x) { return x.kind === 'clash'; });
+      if (ev.kind === 'clash' && (major || hasAstra)) return false;
+      return ['clash', 'barrage', 'scan', 'breach', 'astra', 'core', 'sky', 'rotate'].indexOf(ev.kind) !== -1;
+    });
+    for (const ev of beats) {
+      if (ev.kind === 'rotate' && !settings().reducedMotion) spinRings();
+      await calmBeat(run, ev, me);
+      if (!alive(run)) return;
+    }
+    g.lastShakti = { 1: st.shakti[1], 2: st.shakti[2] };
+    const keys = narrate(events, me, st).sort(function (a, b) { return SJ.priority(b) - SJ.priority(a); });
+    if (st.phase === 'over' && !keys.length) keys.push(st.winner === 0 ? 'draw' : st.winner === me ? 'victory' : 'defeat');
+    if (keys.length && SJ && settings().narrator !== false) {
+      await waitPace(run, 'voice', null, SJ.say(keys[0], { force: true }), function () { SJ.stop(); });
+      if (!alive(run)) return;
+    }
+    if (st.phase === 'over') g.calmResultNarrated = true;
+    modeHook('onEvents', { events: events, actor: actor, action: action });
+    if (!alive(run)) return;
+    autosave();
+    if (st.phase === 'over') { cancelPace(); g.busy = false; handleGameOver(); return; }
+    if (isAi() && st.owner === 2) {
+      await waitPace(run, 'breath', 400);
+      if (!alive(run)) return;
+      await calmAi(run);
+    } else {
+      // Show the handover before accepting a second order (or starting its clock).
+      banner('Your turn', U.FACTIONS[st.owner].deva + ' · round ' + st.turn, st.owner === 1 ? 'solar' : 'void');
+      await waitPace(run, 'your-turn', 400);
+      if (!alive(run)) return;
+      cancelPace(); g.busy = false; g.thinking = false;
+      render();
+      if (isPass()) showCurtain(st.owner, 'battle');
+      startClockIfNeeded();
+    }
+  }
+  async function calmAi(run) {
+    const st = run.state;
+    g.thinking = true; g.busy = true; render();
+    await waitPace(run, 'thinking', 900 + Math.random() * 500);
+    if (!alive(run)) return;
+    const act = AI.chooseAction(st, 2, st.config.difficulty || 'veteran', modeHook('aiRng'));
+    g.thinking = false;
+    if (!act) { cancelPace(); g.busy = false; E.endGame(st, 1, 'Chandravansh has no legal action left.', []); handleGameOver(); return; }
+    await performCalm(act, run);
+  }
+  function startCalmAi() { calmAi(newPaceRun()); }
+
   function performAction(action) {
+    if (!g.state || g.busy) return;
+    if (settings().pace !== 'quick') { performCalm(action); return; }
     const st = g.state;
     const mover = action.from ? st.board[action.from] : null;
     const actor = st.owner;
@@ -1409,6 +1599,7 @@
     if (g.aiTimer) clearTimeout(g.aiTimer);
     g.thinking = true;
     render();
+    if (settings().pace !== 'quick') { startCalmAi(); return; }
     const diff = g.state.config.difficulty || 'veteran';
     const delay = (U.DIFFICULTIES[diff] || U.DIFFICULTIES.veteran).think + Math.random() * 260;
     g.aiTimer = setTimeout(function () {
@@ -1435,7 +1626,7 @@
   function startClockIfNeeded() {
     const st = g.state;
     if (!st) return;
-    if (!st.config.timer || st.phase !== 'battle' || g.thinking) { stopClock(); return; }
+    if (!st.config.timer || st.phase !== 'battle' || g.thinking || (g.calmActive && g.busy)) { stopClock(); return; }
     const humanTurn = isPass() || st.owner === 1;
     if (!humanTurn) { stopClock(); return; }
     if (g.timerId) return;
@@ -1628,7 +1819,7 @@
   function openAdvisor() {
     const st = g.state;
     if (!st || st.phase !== 'battle') { FX.toast('The advisor only speaks during battle.', 'warn'); return; }
-    if (g.thinking) return;
+    if (g.thinking || g.busy) return;
     if (!(isPass() || st.owner === 1)) return;
     const advice = AI.advise(st, st.owner, 3);
     if (!advice.length) { FX.toast('No legal moves available.', 'warn'); return; }
@@ -1746,7 +1937,7 @@
     else if (!isAiGame || outcome === 'win') { AU.sting('victory'); sfx('shankh'); }
     else AU.sting('defeat');
     if (winner !== 0) FX.shake(9);
-    speak([winner === 0 ? 'draw' : (isAiGame ? (outcome === 'win' ? 'victory' : 'defeat') : 'victory')]);
+    if (!g.calmResultNarrated) speak([winner === 0 ? 'draw' : (isAiGame ? (outcome === 'win' ? 'victory' : 'defeat') : 'victory')]);
 
     const extra = modeHook('resultExtras', { outcome: outcome }) || null;
     const astrasUsed = (st.astraLog || []).filter(function (a) { return a.owner === 1; }).length;
@@ -1789,7 +1980,8 @@
     if (!g.state || g.state.phase === 'over') return;
     // against the AI the player is always the one leaving, even mid-AI-turn
     const loser = isAi() ? 1 : g.state.owner;
-    if (g.aiTimer) { clearTimeout(g.aiTimer); g.aiTimer = null; }
+    clearTimers();
+    g.busy = false;
     g.thinking = false;
     if (AC.stage && AC.stage.close) AC.stage.close();
     E.endGame(g.state, loser === 1 ? 2 : 1, U.FACTIONS[loser].name + ' left the field.', []);
@@ -1801,6 +1993,7 @@
   function wire() {
     const svg = document.getElementById('board');
     svg.addEventListener('click', function (e) {
+      if (g.skipPace()) return;
       const cell = e.target.closest('[data-id]');
       if (!cell) return;
       onCell(cell.getAttribute('data-id'));
@@ -1856,6 +2049,7 @@
 
     const bar = document.getElementById('action-bar');
     bar.addEventListener('click', function (e) {
+      if (g.busy) return;
       const preset = e.target.closest('[data-preset]');
       if (preset) { deployPreset(preset.getAttribute('data-preset')); return; }
       const deploy = e.target.closest('[data-deploy]');
