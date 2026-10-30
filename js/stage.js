@@ -37,6 +37,9 @@
   function show(html, cls, ms, done, opts) {
     if (current) close(true);
     opts = opts || {};
+    // beats were running 2-2.6 s and held the board hostage; 1.5 s reads as a
+    // flourish instead of a takeover
+    if (ms) ms = Math.min(ms, 1500);
     const el = document.createElement('div');
     el.className = 'stage ' + (cls || '');
     el.setAttribute('role', 'status');
