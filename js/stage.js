@@ -171,7 +171,9 @@
   function astra(ev, viewer, done) {
     const def = (U.ASTRA_DEFS || {})[ev.astra] || { name: ev.astra, deva: '' };
     const ours = ev.owner === viewer;
+    const anim = A.artFor('astra:' + ev.astra + '-anim');
     const html =
+      (anim ? '<img class="st-astra-anim" src="' + anim + '" alt="" aria-hidden="true">' : '') +
       '<div class="st-astra-mark">' + A.astraMark(ev.astra) + '</div>' +
       '<div class="st-astra-name"><span class="deva">' + esc(def.deva) + '</span><b>' + esc(def.name) + '</b></div>' +
       '<div class="st-astra-by">' + (ours ? 'invoked by your army' : 'invoked by the enemy') + '</div>' +

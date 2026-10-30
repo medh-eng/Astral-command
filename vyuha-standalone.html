@@ -2165,6 +2165,26 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
   background-position: center;
 }
 
+/* the astra moment: the painted animation fills the stage behind the words */
+.stage { position: relative; overflow: hidden; }
+.st-astra-anim {
+  position: absolute;
+  inset: -6% ;
+  width: 112%;
+  height: 112%;
+  object-fit: contain;
+  opacity: 0.92;
+  pointer-events: none;
+  z-index: 0;
+  filter: drop-shadow(0 0 40px rgba(224, 169, 74, 0.25));
+  animation: astraIn 0.5s ease-out both;
+}
+.stage > *:not(.st-astra-anim) { position: relative; z-index: 1; }
+@keyframes astraIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 0.92; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .st-astra-anim { animation: none; }
+}
+
 </style>
 </head>
 <body>
@@ -8368,7 +8388,9 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
   function astra(ev, viewer, done) {
     const def = (U.ASTRA_DEFS || {})[ev.astra] || { name: ev.astra, deva: '' };
     const ours = ev.owner === viewer;
+    const anim = A.artFor('astra:' + ev.astra + '-anim');
     const html =
+      (anim ? '<img class="st-astra-anim" src="' + anim + '" alt="" aria-hidden="true">' : '') +
       '<div class="st-astra-mark">' + A.astraMark(ev.astra) + '</div>' +
       '<div class="st-astra-name"><span class="deva">' + esc(def.deva) + '</span><b>' + esc(def.name) + '</b></div>' +
       '<div class="st-astra-by">' + (ours ? 'invoked by your army' : 'invoked by the enemy') + '</div>' +
