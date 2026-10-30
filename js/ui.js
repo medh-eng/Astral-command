@@ -121,8 +121,10 @@
         const action = opts.actions[idx];
         if (!action) return;
         if (action.sfx !== false) sfx(action.sfx || 'ui');
-        if (action.close !== false) handle.close();
+        // the button acts first (it may read an input or answer a promise),
+        // then the dialog closes — closing first answered every confirm "Cancel"
         if (action.onClick) action.onClick(handle);
+        if (action.close !== false) handle.close();
       }
     });
     return handle;
@@ -143,7 +145,9 @@
             close: true
           }
         ],
-        onClose: function () { resolve(false); }
+        // the dialog closes before a button's own handler runs, so a plain close
+        // must wait a tick — otherwise it answers "Cancel" before "Concede" can
+        onClose: function () { setTimeout(function () { resolve(false); }, 0); }
       });
       void m;
     });

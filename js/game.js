@@ -1787,7 +1787,11 @@
 
   g.resign = function () {
     if (!g.state || g.state.phase === 'over') return;
-    const loser = g.state.owner;
+    // against the AI the player is always the one leaving, even mid-AI-turn
+    const loser = isAi() ? 1 : g.state.owner;
+    if (g.aiTimer) { clearTimeout(g.aiTimer); g.aiTimer = null; }
+    g.thinking = false;
+    if (AC.stage && AC.stage.close) AC.stage.close();
     E.endGame(g.state, loser === 1 ? 2 : 1, U.FACTIONS[loser].name + ' left the field.', []);
     handleGameOver();
   };

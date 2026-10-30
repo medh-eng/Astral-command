@@ -362,6 +362,33 @@ async function run() {
   ok(/Daily Chakravyuha #3/.test(text) && /Can you get out/.test(text), 'the share card reads well');
   AC.app.modals.slice().forEach((m) => m.close());
 
+  // ── dialogs answer what was tapped (Concede used to do nothing) ──
+  AC.game.start({ mode: 'ai', board: 'wheel', difficulty: 'veteran' });
+  await sleep(10);
+  AC.app.modals.slice().forEach((m) => m.close());
+  const lockBtn = $('#action-bar [data-deploy="lock"]'); if (lockBtn) click(lockBtn);
+  await sleep(10);
+  AC.app.modals.slice().forEach((m) => m.close());
+  AC.ui.openPause();
+  click($('[data-p="resign"]'));
+  click($('.modal [data-act="0"]'));
+  await sleep(10);
+  ok(AC.game.state.phase !== 'over', 'Cancel keeps the battle going');
+  AC.ui.openPause();
+  click($('[data-p="resign"]'));
+  click($('.modal [data-act="1"]'));
+  await sleep(10);
+  ok(AC.game.state.phase === 'over' && AC.game.state.winner === 2, 'Concede ends the battle as a loss');
+  AC.app.modals.slice().forEach((m) => m.close());
+  const renamed = AC.ui.promptText ? null : 'skip';
+  if (!renamed) {
+    const pr = AC.ui.promptText({ title: 'Name', value: 'Arjun' });
+    await sleep(10);
+    $('#prompt-input').value = 'Partha';
+    click($('.modal [data-act="1"]'));
+    ok((await pr) === 'Partha', 'a text prompt returns what was typed');
+  }
+
   // ── profile hub and a calm home ──
   AC.ui.show('home');
   await sleep(10);
