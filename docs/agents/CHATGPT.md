@@ -13,6 +13,63 @@ Batch 1 and 2 are merged and good: Daily fixes, Drishti panel, balance screening
 pack. Of your 25 Daily drafts, the 17 that held the 30–55% band in both seed banks are now
 **live from 1 Nov** (`MODIFIERS_II` in `js/modes.js`); "The gate is open" is retired.
 
+### 3.0 — FIRST: Calm pace (the Commander's request, 30 Oct 20:17)
+
+**The problem, in the Commander's words:** the game is too fast. The player strikes, and before
+they have seen what happened the AI has already moved and it is their turn again. Sanjaya's line
+for the player's strike is cut off by his line for the AI's move. Sound effects and voice
+overlap. *"Let the player play one move and enjoy what he has done."*
+
+**Director's decision:** no End-turn button (it doubles every tap). Instead a **calm rhythm**
+the player can always cut short by tapping. Add a setting **Battle pace: Calm (default) /
+Quick**; Quick keeps today's behaviour exactly.
+
+One turn in Calm, in this order — nothing starts until the previous step is done:
+
+1. **The move is seen.** The piece *slides* to its cell (350–450 ms, ease-out) instead of
+   jumping. For the AI's move, first glow the piece it will move for ~500 ms, then slide it.
+2. **The sound lands.** The effect (clash, volley, breach, astra) plays as the stage card opens.
+3. **The moment holds.** The stage card stays ~2.2 s (clash), ~2.6 s (fort, Brahmastra). The
+   Makara jaw / Padma links draw over ~900 ms *during* the card and stay until it closes.
+4. **Then Sanjaya speaks** — only after the effect has finished (start the voice when the
+   effect's audio ends, or 600 ms after it starts if its length is unknown). **One line per
+   side's turn**: if a turn produced several events, say the most important one (fort > breach >
+   astra > capture > trap > sky). Lines **queue, never interrupt**; drop a waiting line if a
+   newer one of higher importance arrives.
+5. **A breath.** When the voice ends (its `ended` event, max 3.5 s), wait ~400 ms, then show
+   "Shakuni is thinking" for 900–1400 ms, then the AI's turn runs steps 1–4.
+6. **Your turn** banner, then input is live.
+
+**Tap anywhere on the stage or board to skip ahead** one step (stops the voice, closes the
+card) — a player in a hurry must never be held. Reduced motion: no slide, gaps kept. The calm
+pauses must be timers or `ended` events — **no animation loops while waiting** (keep the phone
+cool rule below).
+
+**Where the code is:**
+- `js/game.js` — `performAction()` (~line 1306: events → `sfx`, `FX`, `speak(narrate(...))`,
+  `playBeats(beats, me, finish)`; `finish` calls `scheduleAi()`), `playBeats()` (~1393),
+  `scheduleAi()` (~1408, `think` delay from `U.DIFFICULTIES`), `speak()` (~105), `narrate()` (~1241).
+  Today the voice is fired at the same moment as the effect and the cinematic.
+- `js/stage.js` — `show()`: line 42 caps every beat at 1500 ms (`ms = Math.min(ms, 1500)`);
+  in Calm raise the cap to the times above.
+- `js/sanjaya.js` — `say()` and `playVoice()` (~172–205): `playVoice` pauses whatever was
+  playing (that is the cut-off). Turn this into a small queue that returns a Promise resolving
+  on `ended`/error/timeout.
+- `js/audio.js` — `play()`; expose a cue's duration if known (`sfxEls[name].duration`).
+- `js/storage.js` default `pace: 'calm'`; `js/ui.js` `openSettings()` — a segment like the
+  narrator-language one.
+
+**Done when:**
+- With Calm: a plain move → AI move begins ~1.5–2 s later; a clash → ~4–5 s later. Sanjaya's
+  two lines never overlap, and his voice never starts while an effect is still sounding.
+- With Quick: timings as on `main` today.
+- New `tests/ui.mjs` checks: pace setting exists and defaults to Calm; in Calm the AI does not
+  move before the player's beat and line have finished (use fake timers or a short test scale).
+- `tests/*.mjs`, `tools/perf-idle.mjs` (< 3% busy), `tools/playtest-bot.mjs` ("no problems";
+  give it Quick pace or longer waits) all pass. Rebuild the standalone, bump `sw.js` cache.
+- Branch + PR with a 20-second screen recording or GIF of one Calm turn on a phone viewport.
+  The Commander tests it on his phone before merge.
+
 | # | Task | Deliver |
 |---|---|---|
 | 3.1 | **Four avatar portraits** — Drona, Bhishma, Draupadi, Dhrishtadyumna. Prompts in [`ART.md`](../prompts/ART.md) → *Four more portraits*. Same set look as the five heroes. | `incoming/art/heroes/*.png` |

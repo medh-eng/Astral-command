@@ -1,5 +1,8 @@
 # Next tasks — from the Commander, 30 Oct 2026
 
+> **30 Oct 20:17 — Calm pace** (one move, then breathe; effect first, then Sanjaya; no overlaps):
+> assigned to ChatGPT as batch **3.0**, top priority, full spec in `docs/agents/CHATGPT.md`.
+>
 > **Status (Director, 30 Oct evening):** 1 and 2 are done. 3 has proposed rewrites waiting for the
 > Commander in `docs/HANDOFF-2026-10-30-director.md`. 4 is handed to ChatGPT (batch 3.2, 3.3).
 
