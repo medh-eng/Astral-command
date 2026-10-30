@@ -9420,6 +9420,13 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     if (!focus || focus.owner === viewer) return '';
 
     if (selUnit && selUnit.owner === viewer && g.mode !== 'astra') {
+      // Divya-drishti is reconnaissance, not a strike. A focused enemy may
+      // be out of scan range, so never present combat odds while in this mode.
+      if (g.mode === 'special' && U.UNIT_DEFS[selUnit.key].hasScan) {
+        return '<div class="intel-section"><div class="intel-label">Divya-drishti · ' +
+          (focus.revealed ? esc(focus.name) : 'unknown enemy') + '</div>' +
+          '<div class="intel-note">Reveal without combat. Tap a marked enemy within two cells to scan; no piece is harmed.</div></div>';
+      }
       const isBarrage = g.mode === 'special' && U.UNIT_DEFS[selUnit.key].hasRanged;
       const o = E.strikeOdds(st, viewer, g.sel, focusId, isBarrage);
       if (!o) return '';

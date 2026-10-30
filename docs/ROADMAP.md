@@ -3,7 +3,7 @@
 The live status board. Ticked = on `main` and playable. Owner tags: **[C]** Commander (Pon),
 **[D]** Director (Claude), **[G]** ChatGPT, **[S]** Sarvam AI.
 
-Last updated: **29 Oct 2026**; Director baseline with ChatGPT takeover progress below.
+Last updated: **30 Oct 2026**; Director baseline plus ChatGPT agent audit below.
 
 ---
 
@@ -33,9 +33,9 @@ Last updated: **29 Oct 2026**; Director baseline with ChatGPT takeover progress 
 - [x] **[D]** Shakti diyas and four astras with targeting, cinematics and sounds
 - [x] **[D]** Sanjaya narrates (Hinglish / हिन्दी / English), plays recorded voice when it exists
 - [x] **[D]** Opponents Sainik / Dronacharya / Shakuni; titles Shishya → Atimaharathi
-- [ ] **[C][G]** Art pack III — astra emblems, Sanjaya portrait, day/night skies, daily card, store art (`docs/prompts/ART.md`, priority 1 items first)
-- [ ] **[C]** Sound pack III — conch, gate breach, dawn, dusk, four astra stingers, trap, Divya-drishti, diya (`docs/prompts/AUDIO.md`)
-- [ ] **[C][S]** Sanjaya's voice, 44 lines in Hindi and English (`docs/prompts/VOICE.md`, `docs/voice/sanjaya-lines.csv`)
+- [ ] **[C][G]** Art pack III — Sanjaya portrait, Padma board, day/night skies and Daily card delivered; four astra emblems, full-screen effects, gate breach art and store art remain (`docs/prompts/ART.md` status section)
+- [x] **[C][S]** Sound pack III — core conch, gate, dawn/dusk, four astra stingers, Divya-drishti and Shakti cues delivered (`docs/prompts/AUDIO.md`); optional last-five-round tension loop remains
+- [x] **[C][S]** Sanjaya's recorded voice — 44 Hindi and 44 English lines delivered; native-speaker quality review still pending (`incoming/voice/VOICE.md`)
 - [ ] **[S]** Hindi and Marathi translation of the interface strings (`docs/agents/SARVAM.md`, task 2)
 - [ ] **[C]** Five real people play Pehla Yuddh and one Daily on their own phones; notes go below
 
@@ -46,7 +46,7 @@ Last updated: **29 Oct 2026**; Director baseline with ChatGPT takeover progress 
 - [ ] **[D]** Dvandva — equal strength becomes a 3-second bluff duel (Astra / Shastra / Kavach) instead of a setting
 - [ ] **[D]** Campaign map: the seven vyuhas (Chakra, Padma, Krauncha, Makara, Suchi, Shyena, Sarvatobhadra), one lesson each
 - [ ] **[D]** Facing (already built for the lotus) introduced in the Krauncha chapter
-- [ ] **[D][G]** 30 hand-checked Daily modifiers and layouts (ChatGPT drafts, Director simulates). Takeover branch: 25 new drafts and 3,600 simulated matches across both boards, 20 candidates inside the target on both; awaiting independent seeds, review and promotion. See `incoming/text/README.md`.
+- [ ] **[D][G]** 30 hand-checked Daily modifiers and layouts (ChatGPT drafts, Director simulates). The merged batch has 25 new drafts; independent 7,200-match screening finds 17 passing both seed banks on both boards, with further human/seed validation and versioned promotion pending. Existing `open` is above the target raider win band. See `incoming/text/README.md` and `HANDOFF-2026-10-30.md`.
 - [ ] **[C][G]** Hero portraits (warriors, never deities) — `docs/prompts/ART.md` §6
 
 ## Phase D — Social
@@ -86,6 +86,8 @@ written up here first.
 *(Add a dated line per session: who played, device, what confused them, what they loved.)*
 
 
-## ChatGPT takeover — 29 October 2026
+## ChatGPT takeover and review — 29–30 October 2026
 
-Code and writing prepared on a review branch, not marked shipped here: Sunday lotus Daily fix, fully seeded Daily AI including save/resume, bounded modifier support, current desktop/phone screenshot harness, five writing tasks, and root `AGENTS.md`. Details, verification and next priorities: [`HANDOFF-2026-10-29.md`](HANDOFF-2026-10-29.md). Priority 1 art, voice, translations and real-person playtests remain open.
+PR #1 was merged: Sunday lotus Daily fix, seeded Daily AI including save/resume, bounded modifier support, screenshot harness, draft writing and root `AGENTS.md` are now on `main`. `incoming/text/` drafts are not promoted to live gameplay simply by being present. Later commits supplied Sanjaya, sky, Padma and Daily artwork plus recorded sound/voice. See historical [`HANDOFF-2026-10-29.md`](HANDOFF-2026-10-29.md).
+
+The 30 October agent review proposes a Divya-drishti Intel-label fix with regression tests, adds independent Daily balance evidence, and documents a live-game walkthrough, gamer recommendations and SWOT. It awaits Director/Commander PR review. See [`HANDOFF-2026-10-30.md`](HANDOFF-2026-10-30.md). Native-language review and uncoached real-device playtests remain open.

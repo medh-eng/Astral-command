@@ -336,6 +336,19 @@ async function run() {
   ok(/2 \/ 6/.test($('#coach').textContent), 'moving the chariot completes step one');
   ok(game.state.owner === 1, 'the entranced enemy passes its turn');
 
+  // A scan must never be described as a strike merely because the player
+  // focuses on an enemy beyond the Divyadrishti's two-cell reach.
+  clickCell('5,2');
+  click($('#action-bar [data-mode="special"]'));
+  clickCell('3,3');
+  const scanIntel = $('#intel-panel').textContent;
+  ok(/Divya-drishti/.test(scanIntel) && /Reveal without combat/.test(scanIntel) &&
+    !/Strike odds|You win|You lose/i.test(scanIntel), 'scan mode shows reconnaissance guidance, not combat odds');
+  clickCell('3,2');
+  await sleep(20);
+  document.querySelectorAll('.stage').forEach((n) => n.click());
+  ok(/3 \/ 6/.test($('#coach').textContent), 'a legal scan still reveals the enemy and advances the lesson');
+
   // ── Daily Chakravyuha ──
   AC.modes.startDaily();
   await sleep(30);

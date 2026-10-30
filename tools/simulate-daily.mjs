@@ -2,6 +2,8 @@
  * node tools/simulate-daily.mjs [games per modifier per board=60]
  * Optional --seed=0x51f15e selects an independent seed bank.
  * Optional --write saves incoming/text/daily-balance.json.
+ * Optional --output=incoming/text/daily-balance-<label>.json saves a separate
+ * report, preserving the first seed bank for independent confirmation.
  */
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -17,6 +19,10 @@ const mods = M.MODIFIERS.concat(JSON.parse(fs.readFileSync(new URL('incoming/tex
 const seedArg = process.argv.find(a => a.startsWith('--seed='));
 const seedBase = seedArg ? Number(seedArg.slice(7)) : 0x51f15e;
 assert.ok(Number.isInteger(seedBase) && seedBase >= 0 && seedBase <= 0xffffffff);
+const outputArg = process.argv.find(a => a.startsWith('--output='));
+const output = outputArg ? outputArg.slice('--output='.length) : 'incoming/text/daily-balance.json';
+assert.match(output, /^incoming\/text\/daily-balance(?:-[a-z0-9-]+)?\.json$/,
+  'balance reports must stay inside incoming/text/ with a daily-balance filename');
 const results = [];
 const base = M.dailyInfo(new Date('2026-11-01T12:00:00+05:30'));
 for (const mod of mods) {
@@ -46,8 +52,8 @@ for (const mod of mods) {
     console.log(`${mod.key.padEnd(16)} ${boardKey.padEnd(5)} ${wins}/${games} (${row.winPercent}%) ${row.inTarget ? 'screen-in' : 'hold'}`);
   }
 }
-if (process.argv.includes('--write')) {
-  fs.writeFileSync(new URL('incoming/text/daily-balance.json', root), JSON.stringify({
+if (process.argv.includes('--write') || outputArg) {
+  fs.writeFileSync(new URL(output, root), JSON.stringify({
     seedBase,
     method: 'Dronacharya vs Dronacharya; paired seed bank seedBase + i * 0x9e3779b9; both geometries; 30–55% screening band. Small samples, not human balance validation. Candidates remain drafts.',
     gamesPerVariantPerBoard: games, results

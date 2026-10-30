@@ -5,7 +5,7 @@ Read this file before starting work, then read:
 1. `docs/DIRECTOR.md` — Claude's design, rules, respect charter and integration instructions.
 2. `docs/ROADMAP.md` — current owners and pending work.
 3. Your brief: `docs/agents/CHATGPT.md` or `docs/agents/SARVAM.md`.
-4. `docs/HANDOFF-2026-10-29.md` — the temporary takeover batch and next steps, until superseded.
+4. `docs/HANDOFF-2026-10-30.md` — latest status, play review, independent balance and next steps. The 29 Oct handoff remains historical.
 
 The user is Commander and final authority. Claude is Director. ChatGPT and Sarvam AI are agents. Follow the Director's assignments within the Commander's instructions. The Commander authorised ChatGPT to take over part of development for two days starting 29 October 2026; this does not transfer final authority.
 
