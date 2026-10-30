@@ -2,7 +2,7 @@
  * Network-first for navigation so updates land immediately, cache-first for
  * the static shell so the game still boots with no connection.
  */
-const CACHE = 'vyuha-v15';
+const CACHE = 'vyuha-v16';
 const SHELL = [
   './',
   './index.html',
@@ -43,7 +43,9 @@ const SHELL = [
   './assets/art/banners/chandravansh.jpg',
   './assets/art/banners/suryavansh.jpg',
   './assets/art/opt/ui/table.jpg',
-  './assets/art/opt/ui/panel.jpg'
+  './assets/art/opt/ui/panel.jpg',
+  './assets/art/opt/ui/day.jpg',
+  './assets/art/opt/ui/night.jpg'
 ];
 
 self.addEventListener('install', (event) => {
