@@ -104,3 +104,7 @@ written up here first.
 PR #1 was merged: Sunday lotus Daily fix, seeded Daily AI including save/resume, bounded modifier support, screenshot harness, draft writing and root `AGENTS.md` are now on `main`. `incoming/text/` drafts are not promoted to live gameplay simply by being present. Later commits supplied Sanjaya, sky, Padma and Daily artwork plus recorded sound/voice. See historical [`HANDOFF-2026-10-29.md`](HANDOFF-2026-10-29.md).
 
 The 30 October agent review proposes a Divya-drishti Intel-label fix with regression tests, adds independent Daily balance evidence, and documents a live-game walkthrough, gamer recommendations and SWOT. It awaits Director/Commander PR review. See [`HANDOFF-2026-10-30.md`](HANDOFF-2026-10-30.md). Native-language review and uncoached real-device playtests remain open.
+
+## ChatGPT batch 3.0 — Calm pace proposed (30 October 2026)
+
+Branch `chatgpt/3.0-calm-pace` adds default Calm/Quick settings, ordered move/effect/card/narration/AI handovers, skippable waits and regression coverage. All required checks are recorded in [`HANDOFF-2026-10-30-calm-pace.md`](HANDOFF-2026-10-30-calm-pace.md), with a 20-second phone-viewport recording. This is pending PR review and the Commander's phone test; it is not yet on `main`. The handoff explicitly records the conflict between full sequential audio and the brief's 4–5 second clash estimate. Other Batch 3 tasks are unchanged.

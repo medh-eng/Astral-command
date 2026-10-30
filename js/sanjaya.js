@@ -154,7 +154,7 @@
   let lastAt = 0;
 
   function setLang(l) { if (LANGS.indexOf(l) !== -1) lang = l; }
-  function setVoice(v) { voiceOn = !!v; }
+  function setVoice(v) { voiceOn = !!v; if (!voiceOn) stopAll(); }
 
   function pick(key) {
     const list = LINES[key];
@@ -167,42 +167,99 @@
     return L === 'en' ? line[1] : L === 'hi' ? line[3] : line[2];
   }
 
-  /* Recorded voice is optional: the first miss for a line remembers itself so
-   * a game without voice files never asks twice. */
-  function playVoice(line) {
-    if (!voiceOn || typeof Audio === 'undefined') return;
-    // one Hindi recording serves both the Hinglish and the Hindi text
-    const vlang = lang === 'en' ? 'en' : 'hi';
-    const url = 'assets/audio/voice/' + vlang + '/' + line[0] + '.mp3';
-    if (voiceMissing[url]) return;
-    const settings = AC.audio && AC.audio.getSettings ? AC.audio.getSettings() : {};
-    if (settings.muted) return;
-    try {
-      if (playing) { playing.pause(); playing = null; }
-      const el = new Audio(url);
-      el.volume = Math.min(1, Math.max(0.1, (settings.sfx != null ? settings.sfx : 0.7) * 1.2));
-      el.onerror = function () { voiceMissing[url] = true; };
-      const p = el.play();
-      if (p && p.catch) p.catch(function () { voiceMissing[url] = true; });
-      playing = el;
-      if (AC.audio && AC.audio.duck) AC.audio.duck(2200);
-    } catch (e) { voiceMissing[url] = true; }
+  // One active line and a small priority queue. Nothing cuts a playing line off
+  // except an explicit skip, voice-off, or leaving the match.
+  let onLine = null;
+  let pending = [];
+  let active = null;
+  let idleWaiters = [];
+
+  function priority(key) {
+    if (/^fort_/.test(key)) return 7;
+    if (/^breach_/.test(key)) return 6;
+    if (/^astra_/.test(key)) return 5;
+    if (/capture|assassinate|both_fell|volley|makara|padma|shield_break/.test(key)) return 4;
+    if (/^trap_/.test(key)) return 3;
+    if (/dawn|dusk|rotate/.test(key)) return 2;
+    return 1;
   }
 
-  let onLine = null;
+  function playVoice(line, opts) {
+    let finish;
+    let timer;
+    let el;
+    const result = { finished: new Promise(function (resolve) { finish = resolve; }), stop: stop };
+    let done = false;
+    function stop() {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (el) { el.onended = el.onerror = null; el.pause(); }
+      if (playing === el) playing = null;
+      finish();
+    }
+    const settings = AC.audio && AC.audio.getSettings ? AC.audio.getSettings() : {};
+    const url = 'assets/audio/voice/' + (lang === 'en' ? 'en' : 'hi') + '/' + line[0] + '.mp3';
+    // Text-only lines still have a short reading gap, skippable like a voice.
+    timer = setTimeout(stop, 1000);
+    if (!voiceOn || opts.voice === false || typeof Audio === 'undefined' || settings.muted || voiceMissing[url]) return result;
+    try {
+      el = new Audio(url);
+      el.volume = Math.min(1, Math.max(0.1, (settings.sfx != null ? settings.sfx : 0.7) * 1.2));
+      el.onended = stop;
+      el.onerror = function () { voiceMissing[url] = true; stop(); };
+      clearTimeout(timer);
+      timer = setTimeout(stop, 3500);
+      playing = el;
+      const p = el.play();
+      if (p && p.catch) p.catch(function () { voiceMissing[url] = true; stop(); });
+      if (AC.audio && AC.audio.duck) AC.audio.duck(3500);
+    } catch (e) { voiceMissing[url] = true; stop(); }
+    return result;
+  }
 
-  /* Say something. `opts.force` skips the spacing that keeps Sanjaya from
-   * talking over himself on busy turns. Returns the line (or null). */
+  function pump() {
+    if (active) return;
+    if (!pending.length) {
+      idleWaiters.splice(0).forEach(function (resolve) { resolve(); });
+      return;
+    }
+    const item = pending.shift();
+    active = item;
+    lastAt = Date.now();
+    if (onLine) onLine(textOf(item.line), item.line, item.key);
+    item.cue = playVoice(item.line, item.opts);
+    item.cue.finished.then(function () {
+      if (active === item) active = null;
+      item.resolve(item.line);
+      pump();
+    });
+  }
+
   function say(key, opts) {
     opts = opts || {};
-    const now = Date.now();
-    if (!opts.force && now - lastAt < 900) return null;
     const line = pick(key);
-    if (!line) return null;
-    lastAt = now;
-    if (onLine) onLine(textOf(line), line, key);
-    if (opts.voice !== false) playVoice(line);
-    return line;
+    if (!line || (!opts.force && Date.now() - lastAt < 900)) return Promise.resolve(null);
+    return new Promise(function (resolve) {
+      const rank = opts.priority || priority(key);
+      pending = pending.filter(function (item) {
+        if (item.rank < rank) { item.resolve(null); return false; }
+        return true;
+      });
+      if (pending.length >= 3) { resolve(null); return; }
+      pending.push({ key: key, line: line, opts: opts, rank: rank, resolve: resolve });
+      pump();
+    });
+  }
+
+  function stopAll() {
+    pending.splice(0).forEach(function (item) { item.resolve(null); });
+    if (active && active.cue) active.cue.stop();
+  }
+
+  function idle() {
+    if (!active && !pending.length) return Promise.resolve();
+    return new Promise(function (resolve) { idleWaiters.push(resolve); });
   }
 
   function allLines() {
@@ -217,6 +274,10 @@
     LINES: LINES,
     LANGS: LANGS,
     say: say,
+    priority: priority,
+    idle: idle,
+    stop: stopAll,
+    skip: function () { if (active && active.cue) active.cue.stop(); },
     setLang: setLang,
     setVoice: setVoice,
     textOf: textOf,

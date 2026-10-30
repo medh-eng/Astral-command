@@ -77,9 +77,163 @@ const click = (el) => {
 const clickCell = (id) => click(document.querySelector('.cell[data-id="' + id + '"]'));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Deterministic fake timers cover the real game/stage/narrator sequence. Audio
+// completions are controlled independently of the card, as they are in a browser.
+async function calmPaceChecks() {
+  AC.game.clearOverlays();
+  if (AC.modes.clear) AC.modes.clear();
+  const original = { set: w.setTimeout, clear: w.clearTimeout, now: w.Date.now, random: w.Math.random,
+    Audio: w.Audio, cue: AC.audio.cue, choose: AC.ai.chooseAction };
+  let now = 0, serial = 0, jobs = new Map(), voices = [], cues = [], choices = [], voiceMs = 1000, cueMs = 600;
+  const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };
+  w.setTimeout = (fn, ms = 0) => { const id = ++serial; jobs.set(id, { at: now + ms, fn }); return id; };
+  w.clearTimeout = (id) => jobs.delete(id);
+  w.Date.now = () => now;
+  w.Math.random = () => 0;
+  async function tick(ms) {
+    await flush();
+    const end = now + ms;
+    for (;;) {
+      const next = [...jobs.entries()].filter(([, v]) => v.at <= end).sort((a, b) => a[1].at - b[1].at)[0];
+      if (!next) break;
+      jobs.delete(next[0]); now = next[1].at; next[1].fn(); await flush();
+    }
+    now = end; await flush();
+  }
+  w.Audio = class {
+    constructor(url) { this.url = url; this.started = null; this.stopped = null; }
+    play() { this.started = now; voices.push(this); this.timer = w.setTimeout(() => { if (this.onended) this.onended(); }, voiceMs); return Promise.resolve(); }
+    pause() { w.clearTimeout(this.timer); this.stopped = now; }
+  };
+  AC.audio.cue = (name) => {
+    let resolve;
+    const item = { name, started: now, stopped: null, duration: cueMs / 1000, finished: new Promise((r) => { resolve = r; }),
+      stop() { if (this.stopped != null) return; this.stopped = now; w.clearTimeout(this.timer); resolve(); } };
+    item.timer = w.setTimeout(() => item.stop(), cueMs);
+    cues.push(item); return item;
+  };
+  AC.ai.chooseAction = (st, owner) => {
+    choices.push(now);
+    return AC.engine.allLegalActions(st, owner).find((a) => a.type === 'move' && !st.board[a.to]);
+  };
+  function battle(clash = false, reduced = false) {
+    AC.app.modals.slice().forEach((m) => m.close());
+    AC.ui.patchSettings({ pace: 'calm', narrator: true, voice: true, stories: false, cinematics: true, reducedMotion: reduced });
+    const st = AC.engine.newState({ mode: 'ai', board: 'small', difficulty: 'archon', timer: 30, rules: { gates: true, hours: true, vyuha: true, astras: true } });
+    AC.engine.beginBattle(st);
+    st.owner = 1; st.viewer = 1;
+    AC.game.startPrepared(st, { save: false });
+    const action = AC.engine.allLegalActions(st, 1).find((a) => a.type === 'move' && !st.board[a.to]);
+    if (clash) st.board[action.to] = AC.engine.createArmy(2).find((u) => u.key === '3');
+    AC.game.render(); voices = []; cues = []; choices = [];
+    return { st, action };
+  }
+  try {
+    let { st, action } = battle(true);
+    const start = now;
+    AC.game.perform(action); await tick(399);
+    ok(st.stats.actions === 0 && AC.game.busy, 'Calm shows the slide before resolving the move');
+    await tick(1);
+    ok(!!$('.stage-clash') && voices.length === 0, 'Calm opens the card and effect before Sanjaya');
+    ok(AC.game.timerId == null && AC.game.timeLeft === 30, 'the player clock waits throughout the Calm presentation');
+    await tick(2199);
+    ok(choices.length === 0 && voices.length === 0, 'AI and voice wait for the whole player beat');
+    await tick(1);
+    ok(voices.length === 1 && cues.every((c) => c.stopped <= voices[0].started), 'voice starts after the card and every effect ends');
+    await tick(999);
+    ok(choices.length === 0 && AC.game.busy, 'AI cannot move while the player line is sounding');
+    await tick(1);
+    ok(AC.game.paceStep === 'breath', 'a 400 ms breath follows the voice ended event');
+    await tick(400);
+    ok(AC.game.thinking && choices.length === 0, 'the opponent thinking indicator precedes its move');
+    await tick(900);
+    ok(choices[0] - start === 4900 && !!$('.calm-preview'), 'clash → AI preview takes 4.9 s with a one-second line');
+    await tick(499);
+    ok(st.stats.actions === 1, 'AI glows for 500 ms before sliding');
+    await tick(401);
+    ok(st.stats.actions === 2, 'AI resolves only after its own preview and slide');
+    ok(!/Your move/.test($('#action-bar').textContent) && /unfolds/.test($('#hud-turn').textContent), 'Calm keeps the turn handover hidden while the AI moment is playing');
+    await tick(600 + 400);
+    ok(!AC.game.busy && !AC.game.thinking && st.owner === 1, 'your-turn banner finishes before input is live');
+    ok(AC.game.timerId != null && AC.game.timeLeft === 30, 'the full player clock starts when input unlocks');
+
+    cueMs = 100;
+    ({ st, action } = battle(false, true));
+    const plainAt = now;
+    AC.game.perform(action); await tick(399);
+    ok(st.stats.actions === 0, 'reduced motion keeps the Calm gap without a slide');
+    await tick(1401);
+    ok(choices[0] - plainAt === 1800, 'plain move → AI preview takes 1.8 s');
+
+    cueMs = 3000;
+    ({ st, action } = battle(true));
+    AC.game.perform(action); await tick(2600);
+    ok(voices.length === 0 && choices.length === 0, 'a long effect outlasting its card still blocks the voice and AI');
+    await tick(800);
+    ok(voices.length === 1 && voices[0].started === now, 'an effect ended event releases narration');
+
+    ({ st, action } = battle(true));
+    AC.game.perform(action); await tick(400);
+    const actions = st.stats.actions;
+    click($('#board'));
+    await tick(0);
+    ok(!$('.stage') && cues[0].stopped === now && AC.game.paceStep === 'voice', 'board tap skips the current moment and stops its effect');
+    click($('#board')); await tick(0);
+    ok(voices[0].stopped === now && AC.game.paceStep === 'breath' && st.stats.actions === actions, 'next tap stops the voice without issuing another order');
+    click($('#board')); await tick(0);
+    ok(AC.game.paceStep === 'thinking', 'the breath can be skipped too');
+
+    // Cancel a pending match; its asynchronous continuation must never mutate a replacement.
+    AC.game.start({ mode: 'ai', board: 'wheel', difficulty: 'veteran' });
+    const replacement = AC.game.state;
+    await tick(10000);
+    ok(AC.game.state === replacement && replacement.phase === 'deploy1' && !AC.game.busy, 'starting another match cancels stale Calm continuations');
+
+    AC.sanjaya.stop(); await tick(0);
+    voices = [];
+    AC.sanjaya.say('win_capture', { force: true });
+    AC.sanjaya.say('dawn', { force: true });
+    AC.sanjaya.say('fort_won', { force: true });
+    ok(voices.length === 1 && voices[0].stopped == null, 'queued narration never interrupts the current line');
+    await tick(1000);
+    ok(voices.length === 2 && /fort_won/.test(voices[1].url), 'a higher-priority line replaces a waiting sky line');
+    await tick(1000);
+    ok(voices.length === 2, 'the discarded waiting line is not played later');
+    voiceMs = 10000;
+    AC.sanjaya.say('win_capture', { force: true });
+    await tick(3500);
+    ok(voices.at(-1).stopped === now, 'voice timeout is bounded to 3.5 seconds');
+
+    voiceMs = 1000;
+    ({ st, action } = battle(true));
+    AC.ui.patchSettings({ pace: 'quick', narrator: false });
+    const quickAt = now;
+    AC.game.perform(action);
+    ok(st.stats.actions === 1, 'Quick still applies a move immediately');
+    await tick(1499);
+    ok(!!$('.stage') && choices.length === 0, 'Quick still holds a clash for the original 1.5 s cap');
+    await tick(1 + AC.units.DIFFICULTIES.archon.think);
+    ok(choices[0] - quickAt === 1500 + AC.units.DIFFICULTIES.archon.think, 'Quick retains the original difficulty think delay');
+
+    cueMs = 600;
+    ({ st, action } = battle(true));
+    AC.game.perform(action); await tick(400);
+    AC.ui.show('home'); await tick(10000);
+    ok(st.stats.actions === 1 && !AC.game.busy && !$('.stage'), 'leaving the battle cancels cards, audio and delayed AI actions');
+  } finally {
+    AC.game.clearOverlays();
+    AC.sanjaya.stop();
+    w.setTimeout = original.set; w.clearTimeout = original.clear; w.Date.now = original.now; w.Math.random = original.random;
+    w.Audio = original.Audio; AC.audio.cue = original.cue; AC.ai.chooseAction = original.choose;
+  }
+}
+
 async function run() {
   await sleep(900);
   ok(!!AC, 'AC namespace loaded');
+  ok(AC.app.settings.pace === 'calm', 'battle pace defaults to Calm');
+  // Existing synchronous interaction smoke tests exercise unchanged Quick.
+  AC.ui.patchSettings({ pace: 'quick' });
   await sleep(200);
   ok(!$('#screen-home').hidden, 'no login wall: a first-time player lands on home');
   ok(AC.app.profile && AC.app.profile.name === 'Yoddha', 'and is a yoddha straight away');
@@ -164,6 +318,10 @@ async function run() {
   AC.app.modals.slice().forEach((m) => m.close());
   AC.ui.openSettings();
   ok($$('.modal-backdrop [data-toggle]').length > 5, 'settings toggles render');
+  ok($$('[data-seg="pace"] .seg-btn').length === 2, 'Battle pace offers Calm and Quick');
+  click($('[data-seg="pace"] [data-segval="calm"]'));
+  ok(AC.storage.getSettings().pace === 'calm', 'Calm choice is persisted');
+  click($('[data-seg="pace"] [data-segval="quick"]'));
   AC.app.modals.slice().forEach((m) => m.close());
 
   // ── the Chakravyuha wheel ──
@@ -408,6 +566,8 @@ async function run() {
   ok($('[data-data="export"]') && $('[data-data="import"]') && $('[data-data="reset"]'), 'backup and reset live in Settings');
   ok(document.documentElement.classList.contains('lite') === AC.app.liteOn(), 'battery saver follows the setting');
   AC.app.modals.slice().forEach((m) => m.close());
+
+  await calmPaceChecks();
 
   // jsdom has no media stack and no canvas backend; those notices are not
   // game errors (audio is verified in the browser instead)

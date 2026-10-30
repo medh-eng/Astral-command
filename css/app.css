@@ -2179,9 +2179,9 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
 .app::before { opacity: 0.5; }
 .boot.done, .boot[hidden] { display: none; }
 .boot.done * { animation: none !important; }
-.home-chakra .hc-spokes { animation: chakraSlow 9s cubic-bezier(.2, .7, .3, 1) 1 both; }
-.home-chakra .hc-inner { animation: chakraSlow 7s cubic-bezier(.2, .7, .3, 1) 1 reverse both; }
-.card-pulse { animation-iteration-count: 3; }
+.home-chakra .hc-spokes { animation: none; }
+.home-chakra .hc-inner { animation: none; }
+.card-pulse { animation: none; }
 .diya.lit { animation: diyaLit .5s ease-out 1; }
 @keyframes diyaLit { from { opacity: .4; transform: scale(.8); } to { opacity: 1; transform: none; } }
 .astra-btn.ready { animation: astraReady 2s ease-in-out 2; box-shadow: 0 0 10px rgba(255, 190, 90, 0.22); }
@@ -2256,3 +2256,9 @@ html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animati
 .data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 380px) { .av-pick .av { --av: 46px; } .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .btn-danger-ghost { color: #fda4af; border-color: rgba(244, 63, 94, 0.35); }
+
+/* Calm's preview is held still; links draw once and remain until the card closes. */
+.calm-preview .tok-disc { stroke: #f2cf8b; stroke-width: 0.14; }
+.calm-links .vyuha-link { stroke-dasharray: 1; stroke-dashoffset: 0; animation: calmLinkDraw .9s ease-out both; }
+@keyframes calmLinkDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.reduce-motion .calm-links .vyuha-link { animation: none; }

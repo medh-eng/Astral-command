@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 let chromium; try { ({ chromium } = require('playwright')); } catch (e) { ({ chromium } = require(require('node:child_process').execSync('npm root -g').toString().trim() + '/playwright')); }
 import http from 'node:http';
+import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,7 +25,7 @@ const server = http.createServer((req, res) => {
 }).listen(0);
 const base = 'http://127.0.0.1:' + server.address().port + '/';
 
-const browser = await chromium.launch({ args: ['--mute-audio'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ['--mute-audio'] });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
 const page = await ctx.newPage();
 const errors = [];
@@ -79,12 +80,12 @@ await page.evaluate(() => AC.app.modals.slice().forEach((m) => m.close()));
 await page.click('#action-bar [data-deploy="lock"]');
 await page.waitForFunction(() => AC.game.state && AC.game.state.phase === 'battle');
 await page.evaluate(() => AC.app.modals.slice().forEach((m) => m.close()));
-await page.waitForFunction(() => !AC.game.aiBusy && AC.game.state.turn === 1, null, { timeout: 30000 }).catch(() => {});
+await page.waitForFunction(() => !AC.game.busy && !AC.game.thinking && AC.game.state.turn === 1, null, { timeout: 30000 }).catch(() => {});
 rows.push(await measure('battle-idle'));
 // select a piece to arm odds/pulses
 await page.evaluate(() => {
-  const s = AC.game.state; const id = Object.keys(s.board).find((c) => s.board[c] && s.board[c].owner === 1 && s.board[c].rank !== 'F' && s.board[c].rank !== 'B');
-  const el = document.querySelector('#board [data-cell="' + id + '"]'); if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  const s = AC.game.state; const id = Object.keys(s.board).find((c) => s.board[c] && s.board[c].owner === 1 && AC.engine.isMovable(s.board[c]));
+  const el = document.querySelector('#board [data-id="' + id + '"]'); if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 });
 rows.push(await measure('battle-selected'));
 // mid-battle look: lamps lit, an astra ready, a last move, a cracked gate, late-game tension
@@ -92,9 +93,9 @@ await page.evaluate(() => {
   const st = AC.game.state; st.shakti = { 1: 5, 2: 3 };
   const mine = Object.keys(st.board).filter((c) => st.board[c] && st.board[c].owner === 1);
   st.lastMove = { from: mine[0], to: mine[0], type: 'move' };
-  const fort = Object.keys(st.board).find((c) => st.board[c] && st.board[c].rank === 'F' && st.board[c].owner === 1);
+  const fort = Object.keys(st.board).find((c) => st.board[c] && st.board[c].key === 'F' && st.board[c].owner === 1);
   if (fort) st.board[fort].breached = true;
-  st.round = Math.max(st.round, 24);
+  st.turn = Math.max(st.turn, 24);
   AC.game.render();
   const shell = document.getElementById('board-shell'); if (shell) shell.classList.add('tension');
 });
@@ -104,3 +105,7 @@ const renderMs = await page.evaluate(() => { const t = performance.now(); for (l
 console.log(JSON.stringify({ renderMsPerCall_4xThrottle: +renderMs.toFixed(1) }));
 if (errors.length) console.log('errors:', errors);
 await browser.close(); server.close();
+
+assert.equal(errors.length, 0, 'idle probe runtime errors: ' + errors.join('; '));
+rows.forEach((row) => assert.ok(row.busyPct < 3, row.screen + ': must stay under 3% busy, got ' + row.busyPct + '%'));
+console.log('Every screen under 3% busy.');
