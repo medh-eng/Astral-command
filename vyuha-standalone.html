@@ -7,7 +7,10 @@
 <meta name="description" content="VYUHA — a hidden-rank war of formations from the Indian epics. Break the Chakravyuha, play the Daily puzzle, challenge your friends." />
 <meta property="og:title" content="VYUHA · व्यूह — Abhimanyu got in. Can you get out?" />
 <meta property="og:description" content="A hidden-rank strategy game of the epics: formations, the hours of Surya and Chandra, astras, and a Daily Chakravyuha for all of India." />
-<meta property="og:image" content="assets/art/opt/ui/hero.jpg" />
+<meta property="og:image" content="https://medh-eng.github.io/vyuha/assets/art/opt/ui/hero.jpg" />
+<meta property="og:image:width" content="1600" />
+<meta property="og:image:height" content="893" />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <!-- VYUHA single-file build — no server or network required -->
@@ -1967,34 +1970,7 @@ html.cb {
 .stage.stage-in { opacity: 1; }
 .stage.stage-out { opacity: 0; }
 .stage-card {
-  position: relative; width: min(520px, 100%);
-  padding: 18px 20px 16px; border-radius: 20px; text-align: center;
-  border: 1px solid rgba(242, 207, 139, 0.4);
-  background: linear-gradient(180deg, rgba(30, 22, 14, 0.96), rgba(12, 10, 18, 0.97));
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(242, 207, 139, 0.15);
-  transform: scale(0.9); transition: transform .26s cubic-bezier(.2, .9, .3, 1.2);
-}
-.stage-in .stage-card { transform: scale(1); }
-.stage-skip { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(240, 228, 205, 0.45); }
-.st-kicker { font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--solar); margin-bottom: 10px; }
-.st-kicker .deva { font-size: 14px; letter-spacing: 0.02em; text-transform: none; }
-.st-arena { display: grid; grid-template-columns: minmax(0, 1fr) 60px minmax(0, 1fr); align-items: center; gap: 4px; }
-.st-arena.st-solo { grid-template-columns: 80px minmax(0, 1fr); }
-.st-piece { display: grid; justify-items: center; gap: 3px; }
-.st-left { animation: stInLeft .38s cubic-bezier(.2, .9, .3, 1.1) both; }
-.st-right { animation: stInRight .38s cubic-bezier(.2, .9, .3, 1.1) both; }
-@keyframes stInLeft { from { transform: translateX(-60px); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes stInRight { from { transform: translateX(60px); opacity: 0; } to { transform: none; opacity: 1; } }
-.st-disc { width: 78px; height: 78px; border-radius: 50%; display: grid; place-items: center; border: 2px solid; animation: stHit .5s .34s ease both; }
-.st-piece.solar .st-disc { border-color: rgba(224, 169, 74, 0.9); background: radial-gradient(circle at 35% 30%, rgba(90, 62, 20, 0.98), rgba(30, 20, 8, 0.98)); color: #f7e3b6; box-shadow: 0 0 26px rgba(224, 169, 74, 0.35); }
-.st-piece.void .st-disc { border-color: rgba(139, 143, 240, 0.9); background: radial-gradient(circle at 35% 30%, rgba(40, 44, 110, 0.98), rgba(14, 14, 40, 0.98)); color: #d7dbff; box-shadow: 0 0 26px rgba(139, 143, 240, 0.35); }
-.st-disc .emblem { width: 54px; height: 54px; }
-.st-disc .emblem-art { width: 58px; height: 58px; }
-@keyframes stHit { 30% { transform: scale(1.12); } 60% { transform: scale(0.96); } 100% { transform: scale(1); } }
-.st-name { font-size: 12.5px; font-weight: 700; }
-.st-name .deva { color: var(--solar-2); font-weight: 400; }
-.st-rank { font-family: var(--display); font-size: 26px; line-height: 1; color: #fde9c0; animation: stFlip .4s .55s ease both; }
-.st-rank i { font-style: normal; font-size: 0.7em; color: #6ee7b7; margin-left: 2px; }
+  position: relative; ߍvo+^����ם; font-size: 0.7em; color: #6ee7b7; margin-left: 2px; }
 @keyframes stFlip { from { transform: rotateX(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
 .st-bonus { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; animation: stFlip .3s .7s ease both; }
 .st-chip { display: inline-flex; align-items: center; gap: 2px; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 99px; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line-strong); }
@@ -6303,7 +6279,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     astra: function (n) { return 'assets/art/opt/astras/' + n + '.webp'; },
     portrait: function (n) { return 'assets/art/opt/portraits/' + n + '.webp'; },
     hero: function (n) { return 'assets/art/opt/heroes/' + n + '.webp'; },
-    sky: function (n) { return 'assets/art/opt/sky/' + n + '.jpg'; }
+    sky: function (n) { return 'assets/art/opt/ui/' + n + '.jpg'; }
   };
 
   function slotPath(slot) {

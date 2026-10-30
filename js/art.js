@@ -110,7 +110,7 @@
     astra: function (n) { return 'assets/art/opt/astras/' + n + '.webp'; },
     portrait: function (n) { return 'assets/art/opt/portraits/' + n + '.webp'; },
     hero: function (n) { return 'assets/art/opt/heroes/' + n + '.webp'; },
-    sky: function (n) { return 'assets/art/opt/sky/' + n + '.jpg'; }
+    sky: function (n) { return 'assets/art/opt/ui/' + n + '.jpg'; }
   };
 
   function slotPath(slot) {
