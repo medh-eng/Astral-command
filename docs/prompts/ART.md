@@ -138,6 +138,25 @@ epic, painted with dignity in the temple-punk style.
 | `ghatotkacha.png` | A towering half-rakshasa warrior at night, wild hair, kind eyes, dark armour edged with silver, moonlight behind him. |
 | `abhimanyu.png` | A brave teenage warrior in a chariot-rider's armour, a broken chariot wheel held as a shield, determined, dust and sunrise behind. |
 
+### Four more portraits — the profile avatars (30 Oct)
+
+The profile hub offers ten avatars. Six are painted (the five heroes above and Sanjaya); these
+four still show a carved sigil until their art lands. **Same framing, lighting and black
+background as the five heroes**, so all ten read as one set in a circle 46–76 px wide: keep the
+face in the upper-middle third and fill the frame chest-up.
+
+`incoming/art/heroes/<file>.png` · **1024 × 1024** · flat black background.
+
+| File | Prompt subject |
+|---|---|
+| `drona.png` | An elderly teacher-warrior, white beard and topknot, a calm stern face, a bow resting on one shoulder, plain brass-edged armour over a scholar's shawl. |
+| `bhishma.png` | A towering grandsire-warrior, long white hair and beard, a silver breastplate, a quiet unbending gaze; dignity and age, not anger. |
+| `draupadi.png` | A queen of the Pandavas: strong, composed, dark eyes, long open hair, a deep red and gold sari with a brass-work border, jewellery restrained; regal, never ornamental. |
+| `dhrishtadyumna.png` | A young commander born of fire: lean, alert, short beard, a sword held upright before the chest, armour edged with ember-orange light. |
+
+The Director keys the black, crops to a square, and saves `assets/art/opt/heroes/<file>.webp`
+at 512 px. The hub then shows the painting instead of the sigil, with no code change.
+
 ---
 
 ## Priority 4 — folk-art editions (cosmetic, later)
@@ -215,7 +234,8 @@ incoming/art/editions/*-board.jpg     2048²             P4
 | ~~2~~ | ~~Astra full-screen art ×4~~ **DONE** | — | `assets/art/opt/astras/<key>-anim.webp` — 30-frame loop, 640 px, played on the astra beat |
 | 3 | **Sanjaya loop** — still wanted | Commander | The supplied gif (3.3 MB) is archived in `masters/`. A 1–1.5 s loop under 800 KB lets him move on the opening and the result screen; during play he stays as the still portrait. |
 | 4 | **Gate breach still** | Commander | 1080×1920, the fort gate cracking — the other big moment. |
-| 5 | Hero portraits ×5 (Arjuna, Karna, Bhima, Ghatotkacha, Abhimanyu) | ChatGPT | Phase C; warriors, never deities, 512² black bg. |
+| ~~5~~ | ~~Hero portraits ×5~~ **DONE** | — | `assets/art/opt/heroes/*.webp`; they are also profile avatars now |
+| 5b | **Avatar portraits ×4** — Drona, Bhishma, Draupadi, Dhrishtadyumna | ChatGPT | See *Four more portraits* above. Until they land, the hub shows sigils. |
 | 6 | Campaign map of the seven vyuhas | Commander | 3:2 parchment, seven brass medallions. |
 | 7 | Store art (icon, feature graphic, 6 screenshots, 30 s trailer) | Commander | Phase E. |
 

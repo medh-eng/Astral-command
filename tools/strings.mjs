@@ -39,7 +39,7 @@ Object.values(U.BOARDS).forEach((b) => put('board.' + b.key + '.blurb', b.blurb)
 Object.values(U.DIFFICULTIES).forEach((d) => put('opponent.' + d.key + '.blurb', d.blurb));
 Object.values(U.SCENARIOS).forEach((s) => put('scenario.' + s.key + '.blurb', s.blurb));
 M.LESSON.forEach((l) => { put('lesson.' + l.key + '.title', l.title); put('lesson.' + l.key + '.text', l.text); });
-M.MODIFIERS.forEach((m) => { put('daily.' + m.key + '.name', m.name); put('daily.' + m.key + '.one', m.one); });
+M.MODIFIERS.concat(M.MODIFIERS_II || []).forEach((m) => { put('daily.' + m.key + '.name', m.name); put('daily.' + m.key + '.one', m.one); });
 
 // the main interface labels
 Object.assign(out, {

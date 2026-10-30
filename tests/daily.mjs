@@ -58,4 +58,14 @@ for (const difficulty of ['recruit', 'veteran', 'archon']) {
   assert.deepEqual(ai.chooseAction(a, a.owner, difficulty, ra),
     ai.chooseAction(restored, restored.owner, difficulty, rr), 'restoring continues the saved RNG');
 }
+// Catalogue II starts on 1 Nov 2026 (IST): earlier puzzles never change, and
+// the retired "gate is open" never appears after it.
+assert.equal(M.dailyInfo(new Date('2026-10-30T12:00:00+05:30')).mod.key, 'open', 'past puzzles keep their modifier');
+assert.equal(M.dailyInfo(new Date('2026-10-31T12:00:00+05:30')).mod.key, 'twin', 'past puzzles keep their modifier');
+for (let d = 0; d < 120; d++) {
+  const info = M.dailyInfo(new Date(Date.UTC(2026, 10, 1, 6) + d * 86400000));
+  assert.notEqual(info.mod.key, 'open', 'the retired modifier stays retired');
+  assert.ok(M.MODIFIERS_II.includes(info.mod), 'catalogue II from 1 Nov');
+}
+assert.equal(M.MODIFIERS_II.length, 21);
 console.log('Daily regressions passed: 30 modifiers, both boards, IST rollover, seeded AI and saved RNG.');

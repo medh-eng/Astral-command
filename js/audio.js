@@ -666,6 +666,30 @@
     if (el) fade(el, 0, 400).then(function () { try { el.pause(); } catch (e) { /* ignore */ } });
   }
 
+  /* When the phone locks or the player switches app, everything goes quiet:
+   * the score pauses, the audio engine sleeps, and both come back on return.
+   * A game left playing music in the background is a warm phone in a pocket. */
+  let sleptEl = null;
+  function onVisibility() {
+    const hidden = root.document && root.document.visibilityState === 'hidden';
+    if (hidden) {
+      const el = musicState.el;
+      if (el && !el.paused) { sleptEl = el; try { el.pause(); } catch (e) { /* ignore */ } }
+      if (ctx && ctx.state === 'running' && ctx.suspend) ctx.suspend().catch(function () {});
+    } else {
+      if (ctx && ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(function () {});
+      if (sleptEl && sleptEl === musicState.el && !settings.muted && settings.musicOn !== false) {
+        const p = sleptEl.play && sleptEl.play();
+        if (p && p.catch) p.catch(function () {});
+      }
+      sleptEl = null;
+    }
+  }
+  if (root.document && root.document.addEventListener) {
+    root.document.addEventListener('visibilitychange', onVisibility);
+    root.addEventListener && root.addEventListener('pagehide', function () { onVisibility(); });
+  }
+
   AC.audio = {
     supported: supported,
     init: init,

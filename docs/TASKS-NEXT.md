@@ -1,5 +1,8 @@
 # Next tasks — from the Commander, 30 Oct 2026
 
+> **Status (Director, 30 Oct evening):** 1 and 2 are done. 3 has proposed rewrites waiting for the
+> Commander in `docs/HANDOFF-2026-10-30-director.md`. 4 is handed to ChatGPT (batch 3.2, 3.3).
+
 Written down so a fresh chat (or Claude) can pick up without re-reading anything.
 State of the project: see `docs/WORKLOG.md`. Art status: `docs/prompts/ART.md`.
 

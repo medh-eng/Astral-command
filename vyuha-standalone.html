@@ -2167,7 +2167,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
 }
 
 /* the astra moment: the painted animation fills the stage behind the words */
-.stage { position: relative; overflow: hidden; }
+.stage { overflow: hidden; }  /* stays position: fixed — a relative stage fell behind the board */
 .st-astra-anim {
   position: absolute;
   inset: -6% ;
@@ -2188,6 +2188,94 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
 
 /* the gate breach: the painted doors fill the stage behind the words */
 .st-breach-art { opacity: 0.95; object-fit: cover; inset: -10%; width: 120%; height: 120%; }
+
+/* ── Shanti: a still screen while the player thinks ──────────────────
+ * A phone heats when the browser repaints sixty times a second for nothing.
+ * Every glow below is kept, but held still, or played a few times and then
+ * stopped. Nothing here loops forever except a pulse the player is waiting
+ * on (an armed strike, the last seconds of the clock). Measured with
+ * tools/perf-idle.mjs: idle main-thread time fell from ~40% to ~1%.     */
+.app::before, .app::after, .board-shell::before { animation: none !important; }
+.app::before { opacity: 0.5; }
+.boot.done, .boot[hidden] { display: none; }
+.boot.done * { animation: none !important; }
+.home-chakra .hc-spokes { animation: chakraSlow 9s cubic-bezier(.2, .7, .3, 1) 1 both; }
+.home-chakra .hc-inner { animation: chakraSlow 7s cubic-bezier(.2, .7, .3, 1) 1 reverse both; }
+.card-pulse { animation-iteration-count: 3; }
+.diya.lit { animation: diyaLit .5s ease-out 1; }
+@keyframes diyaLit { from { opacity: .4; transform: scale(.8); } to { opacity: 1; transform: none; } }
+.astra-btn.ready { animation: astraReady 2s ease-in-out 2; box-shadow: 0 0 10px rgba(255, 190, 90, 0.22); }
+.board-shell.tension { animation: none; box-shadow: inset 0 0 34px rgba(200, 69, 43, 0.2); }
+.cell.last-move .cell-fill { animation: lastPulse 1.9s ease-in-out 2; stroke-opacity: 0.8; }
+.tok-crack circle, .tok-trance { animation: none; }
+.cell.coach-hint .cell-fill { animation-iteration-count: 6; }
+.vyuha-link { animation: linkFlow 0.8s linear 3, linkFade 2.2s ease forwards; }
+
+/* Battery saver (Settings → Graphics, on by default on low-memory phones):
+ * no frosted glass, no painted astra films, lighter shadows. */
+html.lite *, html.lite *::before, html.lite *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.lite .st-astra-anim, html.lite .st-breach-art { display: none !important; }
+html.lite .diya.lit, html.lite .home-chakra .hc-bindu { filter: none; }
+html.lite .home-chakra .hc-spokes, html.lite .home-chakra .hc-inner,
+html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animation: none !important; }
+
+/* ── the player's avatar and the profile hub ─────────────────────── */
+.av {
+  --av: 44px; --ring: rgba(224, 169, 74, 0.85);
+  position: relative; display: inline-grid; place-items: center; flex: none;
+  width: var(--av); height: var(--av); border-radius: 50%;
+  background: radial-gradient(circle at 30% 20%, rgba(224, 169, 74, 0.22), rgba(12, 10, 20, 0.95));
+  box-shadow: 0 0 0 2px var(--ring), 0 2px 10px rgba(0, 0, 0, 0.45);
+  color: var(--solar-2);
+}
+.av .av-img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: 50% 20%; display: block; }
+.av .av-sigil { width: 58%; height: 58%; }
+.av-frame-silver { --ring: rgba(205, 214, 230, 0.9); }
+.av-frame-saffron { --ring: rgba(240, 138, 36, 0.95); }
+.av-frame-indigo { --ring: rgba(139, 143, 240, 0.95); }
+.av-frame-none { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); }
+.av-tint-warm .av-img { filter: sepia(0.35) saturate(1.25) hue-rotate(-8deg); }
+.av-tint-cool .av-img { filter: saturate(0.8) hue-rotate(195deg) brightness(0.95); }
+.av-tint-mono .av-img { filter: grayscale(1) contrast(1.1); }
+.av-badge {
+  position: absolute; right: -4px; bottom: -4px; min-width: 18px; height: 18px; padding: 0 3px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 1px;
+  border-radius: 9px; background: #1a1424; border: 1px solid var(--ring);
+  color: var(--solar-2); font-size: 9.5px; font-weight: 800; line-height: 1;
+}
+.av-badge .ico { width: 12px; height: 12px; }
+.av-badge-txt { font-family: var(--display); font-weight: 400; font-size: 9px; padding: 0 5px; }
+#home-sigil.avatar { background: none; box-shadow: none; border: 0; padding: 0; cursor: pointer; }
+.top-name { cursor: pointer; }
+
+.hub-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
+.hub-name { font-family: var(--display); font-size: 22px; line-height: 1.1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hub-title { color: var(--solar-2); font-size: 13px; margin-top: 2px; }
+.hub-next { color: var(--dim); font-size: 11.5px; margin-top: 2px; }
+.hub-h { margin: 16px 0 8px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+.hub-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.hub-grid .stat-cell { padding: 8px 4px; }
+.hub-standing { display: grid; gap: 6px; }
+.stand-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(242, 207, 139, 0.16); background: rgba(255, 255, 255, 0.025); font-size: 13px; }
+.stand-row.beaten { border-color: rgba(242, 207, 139, 0.55); background: rgba(240, 138, 36, 0.08); }
+.stand-row .stand-wl { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+.stand-row .stand-mark { color: var(--solar-2); font-weight: 700; }
+.av-picker { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; justify-items: center; }
+.av-pick { display: grid; justify-items: center; gap: 4px; background: none; border: 0; color: var(--dim); font-size: 10.5px; cursor: pointer; padding: 2px; min-width: 0; }
+.av-pick .av { --av: 52px; }
+.av-pick.on { color: var(--light); }
+.av-pick.on .av { box-shadow: 0 0 0 3px #ffd98a, 0 0 14px rgba(255, 200, 100, 0.45); }
+.av-pick span:last-child { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-seg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.hub-seg .seg-label { width: 100%; font-size: 12px; color: var(--dim); }
+.hub-photo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hub-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 380px) { .av-pick .av { --av: 46px; } .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.btn-danger-ghost { color: #fda4af; border-color: rgba(244, 63, 94, 0.35); }
 
 </style>
 </head>
@@ -2350,17 +2438,6 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
           </button>
         </div>
 
-        <div class="panel stat-panel">
-          <div class="panel-head">
-            <span>Your record</span>
-            <button class="link-btn" id="btn-reset-stats">reset</button>
-          </div>
-          <div class="stat-grid" id="stat-grid"></div>
-          <div class="winrate">
-            <div class="winrate-bar"><span id="winrate-fill"></span></div>
-            <div class="winrate-label" id="winrate-label">No battles yet</div>
-          </div>
-        </div>
       </div>
 
       <aside class="home-side">
@@ -2368,19 +2445,8 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
           <div class="panel-head"><span>Sanjaya says</span></div>
           <div class="sanjaya-says"><span class="sanjaya-face" id="home-sanjaya"></span><p class="briefing" id="home-briefing">The armies are gathering, Maharaj.</p></div>
         </div>
-        <div class="panel">
-          <div class="panel-head"><span>Quick settings</span></div>
-          <div class="quick-settings" id="quick-settings"></div>
-        </div>
-        <div class="panel panel-quiet">
-          <div class="panel-head"><span>Data</span></div>
-          <div class="data-actions">
-            <button class="btn btn-ghost btn-sm" id="btn-export">Export backup</button>
-            <button class="btn btn-ghost btn-sm" id="btn-import">Import backup</button>
-            <input type="file" id="file-import" accept="application/json,.json" hidden />
-          </div>
-          <p class="fineprint">Your profile, saves and settings stay on this device. Backups move them to another.</p>
-        </div>
+        <input type="file" id="file-import" accept="application/json,.json" hidden />
+        <input type="file" id="file-photo" accept="image/*" hidden />
       </aside>
     </div>
   </section>
@@ -4331,7 +4397,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
       if (!hasAnyLegalMoves(state, other(next), true)) {
         endGame(state, 0, 'Stalemate — neither commander has a legal action left.', events);
       } else {
-        endGame(state, other(next), faction(next) + ' has no legal action left — the field is conceded.', events);
+        endGame(state, other(next), faction(next) + ' has no piece left that can move — only the fort and its traps stand. The field is conceded.', events);
       }
       return;
     }
@@ -5698,6 +5764,30 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     if (el) fade(el, 0, 400).then(function () { try { el.pause(); } catch (e) { /* ignore */ } });
   }
 
+  /* When the phone locks or the player switches app, everything goes quiet:
+   * the score pauses, the audio engine sleeps, and both come back on return.
+   * A game left playing music in the background is a warm phone in a pocket. */
+  let sleptEl = null;
+  function onVisibility() {
+    const hidden = root.document && root.document.visibilityState === 'hidden';
+    if (hidden) {
+      const el = musicState.el;
+      if (el && !el.paused) { sleptEl = el; try { el.pause(); } catch (e) { /* ignore */ } }
+      if (ctx && ctx.state === 'running' && ctx.suspend) ctx.suspend().catch(function () {});
+    } else {
+      if (ctx && ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(function () {});
+      if (sleptEl && sleptEl === musicState.el && !settings.muted && settings.musicOn !== false) {
+        const p = sleptEl.play && sleptEl.play();
+        if (p && p.catch) p.catch(function () {});
+      }
+      sleptEl = null;
+    }
+  }
+  if (root.document && root.document.addEventListener) {
+    root.document.addEventListener('visibilitychange', onVisibility);
+    root.addEventListener && root.addEventListener('pagehide', function () { onVisibility(); });
+  }
+
   AC.audio = {
     supported: supported,
     init: init,
@@ -5763,6 +5853,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     narratorLang: 'hinglish',
     voice: true,
     cinematics: true,
+    batterySaver: null,   // null = decide from the phone (low memory / few cores → on)
     stories: true,
     tutorialDone: false
   };
@@ -5892,7 +5983,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
   function listProfiles() {
     return loadDb().profiles.map(function (p) {
       return {
-        id: p.id, name: p.name, sigil: p.sigil, createdAt: p.createdAt,
+        id: p.id, name: p.name, sigil: p.sigil, avatar: p.avatar || null, createdAt: p.createdAt,
         stats: p.stats, lastPlayed: p.lastPlayed, hasPin: !!p.pin
       };
     });
@@ -5974,6 +6065,20 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     return true;
   }
 
+  /* Merge a few fields into a profile (avatar, frame, tint, badge, photo).
+   * A player's photo is stored here as a small data URL and never leaves
+   * this device. */
+  function updateProfile(id, patch) {
+    const db = loadDb();
+    const p = db.profiles.filter(function (x) { return x.id === id; })[0];
+    if (!p) return null;
+    Object.keys(patch || {}).forEach(function (k) {
+      if (k === 'id' || k === 'pin' || k === 'stats') return;
+      p[k] = patch[k];
+    });
+    return saveDb(db) ? p : null;
+  }
+
   function recordResult(profileId, result) {
     const db = loadDb();
     const p = db.profiles.filter(function (x) { return x.id === profileId; })[0];
@@ -5987,6 +6092,12 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     s.captures += result.captures || 0;
     s.cores += result.cores || 0;
     s.plies += result.plies || 0;
+    // the standing: wins and losses against each opponent
+    if (result.difficulty) {
+      s.byDiff = s.byDiff || {};
+      const d = (s.byDiff[result.difficulty] = s.byDiff[result.difficulty] || { w: 0, l: 0, d: 0 });
+      if (result.outcome === 'win') d.w++; else if (result.outcome === 'loss') d.l++; else d.d++;
+    }
     p.lastPlayed = nowIso();
     saveDb(db);
     return s;
@@ -6168,6 +6279,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     setActiveProfile: setActiveProfile,
     deleteProfile: deleteProfile,
     renameProfile: renameProfile,
+    updateProfile: updateProfile,
     recordResult: recordResult,
     resetStats: resetStats,
     getSettings: getSettings,
@@ -6487,7 +6599,56 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
       '<path d="M16 2.5v2.5M16 27v2.5M7 5l1.4 2M25 5l-1.4 2" ' + S + ' stroke-opacity="0.6"/></svg>';
   }
 
+  /* ── the player's avatar ──────────────────────────────────────────
+   * Ten portraits to choose from (painted where the art exists, a carved
+   * sigil until it does), or the player's own photo, kept on the device.
+   * Customisation: a frame, a tint and a badge. */
+  const AVATARS = [
+    { key: 'arjuna', name: 'Arjuna', deva: 'अर्जुन', slot: 'hero:arjuna', sigil: 'eye' },
+    { key: 'karna', name: 'Karna', deva: 'कर्ण', slot: 'hero:karna', sigil: 'sun' },
+    { key: 'bhima', name: 'Bhima', deva: 'भीम', slot: 'hero:bhima', sigil: 'gear' },
+    { key: 'abhimanyu', name: 'Abhimanyu', deva: 'अभिमन्यु', slot: 'hero:abhimanyu', sigil: 'wing' },
+    { key: 'ghatotkach', name: 'Ghatotkacha', deva: 'घटोत्कच', slot: 'hero:ghatotkach', sigil: 'comet' },
+    { key: 'sanjaya', name: 'Sanjaya', deva: 'संजय', slot: 'portrait:sanjaya', sigil: 'eye' },
+    { key: 'drona', name: 'Drona', deva: 'द्रोण', slot: 'hero:drona', sigil: 'dagger' },
+    { key: 'bhishma', name: 'Bhishma', deva: 'भीष्म', slot: 'hero:bhishma', sigil: 'crystal' },
+    { key: 'draupadi', name: 'Draupadi', deva: 'द्रौपदी', slot: 'hero:draupadi', sigil: 'sun' },
+    { key: 'dhrishtadyumna', name: 'Dhrishtadyumna', deva: 'धृष्टद्युम्न', slot: 'hero:dhrishtadyumna', sigil: 'chevron' }
+  ];
+  const FRAMES = [['brass', 'Brass'], ['silver', 'Silver'], ['saffron', 'Saffron'], ['indigo', 'Indigo'], ['none', 'None']];
+  const TINTS = [['none', 'Natural'], ['warm', 'Dawn'], ['cool', 'Night'], ['mono', 'Ink']];
+  const BADGES = [['none', 'None'], ['title', 'Title'], ['sun', 'Surya'], ['moon', 'Chandra'], ['diya', 'Streak']];
+
+  /* `p` is a profile; `opts.size` in px; `opts.title` the short title text
+   * for the title badge; `opts.streak` for the streak badge. */
+  function avatar(p, opts) {
+    opts = opts || {};
+    const av = (p && p.avatar) || {};
+    const frame = av.frame || 'brass';
+    const tint = av.tint || 'none';
+    const badge = av.badge || 'none';
+    let face = '';
+    if (av.photo) face = '<img class="av-img" src="' + av.photo + '" alt="" draggable="false">';
+    else {
+      const a = AVATARS.filter(function (x) { return x.key === av.pick; })[0];
+      const painted = a ? artFor(a.slot) : null;
+      face = painted ? '<img class="av-img" src="' + painted + '" alt="" draggable="false">' : sigil(a ? a.sigil : (p && p.sigil) || 'chevron', 'av-sigil');
+    }
+    let b = '';
+    if (badge === 'sun') b = '<span class="av-badge">' + icon('sun') + '</span>';
+    else if (badge === 'moon') b = '<span class="av-badge">' + icon('moon') + '</span>';
+    else if (badge === 'diya') b = '<span class="av-badge av-badge-num">' + icon('diya') + (opts.streak || 0) + '</span>';
+    else if (badge === 'title' && opts.title) b = '<span class="av-badge av-badge-txt">' + opts.title + '</span>';
+    return '<span class="av av-frame-' + frame + ' av-tint-' + tint + ' ' + (opts.cls || '') + '"' +
+      (opts.size ? ' style="--av:' + opts.size + 'px"' : '') + '>' + face + b + '</span>';
+  }
+
   AC.art = {
+    avatar: avatar,
+    AVATARS: AVATARS,
+    AVATAR_FRAMES: FRAMES,
+    AVATAR_TINTS: TINTS,
+    AVATAR_BADGES: BADGES,
     emblem: emblem,
     astraMark: astraMark,
     sanjayaMark: sanjayaMark,
@@ -6711,20 +6872,20 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
       ['start_duel_2', 'The night is old, Maharaj. The war begins before dawn.', 'Raat dhal rahi hai, Maharaj. Yuddh subah se pehle shuru hota hai.', 'रात ढल रही है, महाराज। युद्ध सुबह से पहले शुरू होता है।']
     ],
     start_abhimanyu: [
-      ['start_abhimanyu_1', 'Abhimanyu knew how to break in. Now we learn if you can break through.', 'Abhimanyu andar jaana jaanta tha. Ab dekhte hain aap todke dikhate ho ya nahi.', 'अभिमन्यु अंदर जाना जानता था। अब देखते हैं आप तोड़ के दिखाते हो या नहीं।']
+      ['start_abhimanyu_1', 'Abhimanyu knew how to break in. Now we learn if you can break through.', 'Abhimanyu andar jaana jaanta tha. Ab dekhte hain aap todke dikhate hain ya nahi.', 'अभिमन्यु अंदर जाना जानता था। अब देखते हैं आप तोड़ के दिखाते हैं या नहीं।']
     ],
     start_daily: [
       ['start_daily_1', 'Today’s Chakravyuha is drawn, Maharaj. Everyone faces the same wheel.', 'Aaj ka Chakravyuha taiyaar hai, Maharaj. Sabke saamne wahi chakra hai.', 'आज का चक्रव्यूह तैयार है, महाराज। सबके सामने वही चक्र है।']
     ],
     start_tutorial: [
-      ['start_tutorial_1', 'Guru Drona holds the enemy still. Learn the field, Maharaj.', 'Guru Drona ne dushman ko rok rakha hai. Maidan seekh lijiye, Maharaj.', 'गुरु द्रोण ने दुश्मन को रोक रखा है। मैदान सीख लीजिए, महाराज।']
+      ['start_tutorial_1', 'Guru Drona holds the enemy still. Learn the field, Maharaj.', 'Guru Drona dushman ko roke hue hain. Maidan samajh lijiye, Maharaj.', 'गुरु द्रोण दुश्मन को रोके हुए हैं। मैदान समझ लीजिए, महाराज।']
     ],
     win_capture: [
       ['win_capture_1', 'A clean blow, Maharaj. Their piece falls.', 'Kya vaar tha, Maharaj! Unka mohra gir gaya.', 'क्या वार था, महाराज! उनका मोहरा गिर गया।'],
       ['win_capture_2', 'Our line pushes forward.', 'Hamari pankti aage badh rahi hai.', 'हमारी पंक्ति आगे बढ़ रही है।']
     ],
     lose_capture: [
-      ['lose_capture_1', 'We lost one, Maharaj. They were stronger than they looked.', 'Humne ek kho diya, Maharaj. Woh dikhne se zyada taaqatwar the.', 'हमने एक खो दिया, महाराज। वो दिखने से ज़्यादा ताक़तवर थे।'],
+      ['lose_capture_1', 'We lost one, Maharaj. They were stronger than they looked.', 'Humne ek mohra kho diya, Maharaj. Woh dikhne se zyada taaqatwar the.', 'हमने एक मोहरा खो दिया, महाराज। वो दिखने से ज़्यादा ताक़तवर थे।'],
       ['lose_capture_2', 'Repelled. Now we know what stands there.', 'Rok diya gaya. Ab pata hai wahan kaun khada hai.', 'रोक दिया गया। अब पता है वहाँ कौन खड़ा है।']
     ],
     both_fell: [
@@ -6734,7 +6895,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
       ['trap_hit_1', 'A Shataghni! The trap held, Maharaj.', 'Shataghni! Jaal ne pakad liya, Maharaj.', 'शतघ्नी! जाल ने पकड़ लिया, महाराज।']
     ],
     trap_defused: [
-      ['trap_defused_1', 'The Yantrik takes the trap apart. The lane is open.', 'Yantrik ne jaal khol diya. Raasta saaf hai.', 'यंत्रिक ने जाल खोल दिया। रास्ता साफ़ है।']
+      ['trap_defused_1', 'The Yantrik takes the trap apart. The lane is open.', 'Yantrik ne jaal bekaar kar diya. Raasta saaf hai.', 'यंत्रिक ने जाल बेकार कर दिया। रास्ता साफ़ है।']
     ],
     assassinate: [
       ['assassinate_1', 'The Chara struck first — and a commander fell!', 'Chara ne pehla vaar kiya — aur ek senapati gir gaya!', 'चर ने पहला वार किया — और एक सेनापति गिर गया!']
@@ -7101,11 +7262,21 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
   }
 
   /* ── settings application ────────────────────────────────────── */
+  /* Battery saver: the player's choice, or — until they choose — on for phones
+   * with little memory or few cores, which are the ones that run hot. */
+  function liteOn(s) {
+    if (s.batterySaver === true || s.batterySaver === false) return s.batterySaver;
+    const nav = (typeof navigator !== "undefined" && navigator) || {};
+    return (nav.deviceMemory && nav.deviceMemory <= 4) || (nav.hardwareConcurrency && nav.hardwareConcurrency <= 4) || false;
+  }
+  app.liteOn = function () { return liteOn(app.settings); };
+
   function applySettings() {
     const s = app.settings;
     document.documentElement.classList.toggle('cb', !!s.colorblind);
     document.documentElement.classList.toggle('hc', !!s.highContrast);
     document.documentElement.classList.toggle('reduce-motion', !!s.reducedMotion);
+    document.documentElement.classList.toggle('lite', liteOn(s));
     AU.setSettings({ sfx: s.sfx, music: s.music, muted: s.muted, haptics: s.haptics });
     FX.setReducedMotion(s.reducedMotion);
     if (AC.sanjaya) {
@@ -7370,7 +7541,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     const p = app.profile;
     const name = p ? p.name : 'Guest';
     document.getElementById('home-name').textContent = name;
-    document.getElementById('home-sigil').innerHTML = p ? A.sigil(p.sigil) : A.sigil('chevron');
+    document.getElementById('home-sigil').innerHTML = A.avatar ? A.avatar(p, { size: 40, title: titleFor((p && p.stats && p.stats.wins) || 0)[1], streak: (p && p.stats && p.stats.streak) || 0 }) : A.sigil('chevron');
 
     const stats = (p && p.stats) || { wins: 0, losses: 0, draws: 0, matches: 0, captures: 0, cores: 0, bestStreak: 0 };
     document.getElementById('home-rank').textContent = rankLabel(stats) + ' · ' + stats.matches + ' battle' + (stats.matches === 1 ? '' : 's');
@@ -7414,14 +7585,6 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     document.getElementById('saves-sub').textContent = saves.length + ' of 3 slots used';
     document.getElementById('btn-resume').disabled = !auto;
 
-    const winRate = stats.matches ? Math.round((stats.wins / stats.matches) * 100) : 0;
-    document.getElementById('stat-grid').innerHTML =
-      statCell(stats.wins, 'Wins') + statCell(stats.losses, 'Losses') +
-      statCell(winRate + '%', 'Win rate') + statCell(stats.bestStreak || 0, 'Best streak');
-    document.getElementById('winrate-fill').style.width = winRate + '%';
-    document.getElementById('winrate-label').textContent = stats.matches
-      ? stats.wins + ' wins · ' + stats.draws + ' shared · ' + stats.captures + ' pieces taken · ' + stats.cores + ' forts taken · next title: ' + nextTitle(stats)
-      : 'No battles yet — the field is yours to take.';
 
     const sj = document.getElementById('home-sanjaya');
     if (sj) sj.innerHTML = A.sanjayaMark();
@@ -7446,7 +7609,6 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
       Array.prototype.slice.call(tpl.content.firstElementChild.childNodes).forEach(function (n) { spokes.appendChild(n); });
     }
 
-    renderQuickSettings();
     if (AC.game) AC.game.updateResumeState();
   }
 
@@ -7476,7 +7638,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
   function nextTitle(stats) {
     const w = stats.wins || 0;
     const next = TITLES.filter(function (x) { return x[0] > w; })[0];
-    return next ? next[1] + ' at ' + next[0] + ' wins' : 'none — you are an Atimaharathi';
+    return next ? next[1] + ' at ' + next[0] + (next[0] === 1 ? ' win' : ' wins') : 'none — you are an Atimaharathi';
   }
 
   function describeSave(save) {
@@ -7530,16 +7692,8 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
       sfx('select');
       if (AC.modes) AC.modes.startDaily();
     });
-    document.getElementById('home-name').addEventListener('click', function () {
-      if (!app.profile) return;
-      promptText({ kicker: 'Your name', title: 'What should Sanjaya call you?', label: 'Name', value: app.profile.name, maxlength: 18 })
-        .then(function (name) {
-          if (!name) return;
-          S.renameProfile(app.profile.id, name);
-          app.profile = S.getProfile(app.profile.id);
-          renderHome();
-        });
-    });
+    document.getElementById('home-name').addEventListener('click', function () { sfx('ui'); openProfile(); });
+    document.getElementById('home-sigil').addEventListener('click', function () { sfx('ui'); openProfile(); });
     document.getElementById('btn-tutorial').addEventListener('click', function () {
       sfx('select');
       if (AC.modes) AC.modes.startTutorial();
@@ -7554,50 +7708,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     document.getElementById('btn-rules').addEventListener('click', function () { sfx('ui'); openCodex(); });
     document.getElementById('btn-home-rules').addEventListener('click', function () { sfx('ui'); openCodex(); });
     document.getElementById('btn-home-settings').addEventListener('click', function () { sfx('ui'); openSettings(); });
-    document.getElementById('btn-signout').addEventListener('click', function () {
-      sfx('ui');
-      confirm({
-        title: 'Switch player?',
-        message: 'Your profile and saved games stay on this device. You can come back to it any time.',
-        confirmLabel: 'Switch'
-      }).then(function (ok) {
-        if (!ok) return;
-        app.profile = null;
-        app.guest = false;
-        S.clearSession();
-        S.setActiveProfile(null);
-        show('auth');
-      });
-    });
-    document.getElementById('btn-reset-stats').addEventListener('click', function () {
-      if (!app.profile) { FX.toast('Guest records are not stored.', 'warn'); return; }
-      confirm({ title: 'Reset your record?', message: 'Wins, losses, streaks and your title will be cleared. Saved games are untouched.', confirmLabel: 'Reset', danger: true })
-        .then(function (ok) {
-          if (!ok) return;
-          S.resetStats(app.profile.id);
-          app.profile = S.getProfile(app.profile.id);
-          renderHome();
-          FX.toast('Record cleared.', 'success');
-        });
-    });
-    document.getElementById('btn-export').addEventListener('click', function () {
-      sfx('save');
-      const data = S.exportAll();
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'vyuha-backup-' + new Date().toISOString().slice(0, 10) + '.json';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-      FX.toast('Backup downloaded.', 'success');
-    });
-    document.getElementById('btn-import').addEventListener('click', function () {
-      sfx('ui');
-      document.getElementById('file-import').click();
-    });
+    document.getElementById('btn-signout').addEventListener('click', function () { sfx('ui'); openProfile(); });
     document.getElementById('file-import').addEventListener('change', function (e) {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
@@ -7906,12 +8017,19 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
           toggleRow('Tap twice to strike', 'confirmActions', s.confirmActions !== false) +
           toggleRow('Show intel panel', 'showIntel', s.showIntel !== false) +
           toggleRow('Board coordinates', 'coordinates', s.coordinates !== false) +
+          toggleRow('Battery saver (cooler phone)', 'batterySaver', liteOn(s)) +
           toggleRow('Reduced motion', 'reducedMotion', !!s.reducedMotion) +
           toggleRow('Colour-blind palette', 'colorblind', !!s.colorblind) +
           toggleRow('High contrast', 'highContrast', !!s.highContrast) +
         '</div>' +
       '</div>' +
-      '<p class="fineprint">Every setting is stored on this device.</p>';
+      '<div class="hub-h">Your data</div>' +
+      '<div class="data-actions">' +
+        '<button class="btn btn-ghost btn-sm" data-data="export">' + A.icon('download') + 'Export backup</button>' +
+        '<button class="btn btn-ghost btn-sm" data-data="import">Import backup</button>' +
+        '<button class="btn btn-ghost btn-sm btn-danger-ghost" data-data="reset">Reset record</button>' +
+      '</div>' +
+      '<p class="fineprint">Every setting, profile and save stays on this device. A backup moves them to another.</p>';
 
     const m = modal({
       kicker: 'Preferences',
@@ -7934,6 +8052,14 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     });
 
     m.el.addEventListener('click', function (e) {
+      const dataBtn = e.target.closest('[data-data]');
+      if (dataBtn) {
+        const what = dataBtn.getAttribute('data-data');
+        if (what === 'export') exportBackup();
+        else if (what === 'import') { sfx('ui'); document.getElementById('file-import').click(); }
+        else resetRecord();
+        return;
+      }
       const segBtn = e.target.closest('[data-segval]');
       if (segBtn) {
         const seg = segBtn.closest('[data-seg]');
@@ -7961,6 +8087,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
       else if (key === 'showIntel') patch.showIntel = !(app.settings.showIntel !== false);
       else if (key === 'coordinates') patch.coordinates = !(app.settings.coordinates !== false);
       else if (key === 'reducedMotion') patch.reducedMotion = !app.settings.reducedMotion;
+      else if (key === 'batterySaver') patch.batterySaver = !liteOn(app.settings);
       else if (key === 'colorblind') patch.colorblind = !app.settings.colorblind;
       else if (key === 'highContrast') patch.highContrast = !app.settings.highContrast;
       patchSettings(patch);
@@ -7969,6 +8096,178 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
       rowEl.setAttribute('aria-checked', on ? 'true' : 'false');
       sfx('ui');
     });
+  }
+
+  /* ── data actions (live in Settings) ─────────────────────────── */
+  function exportBackup() {
+    sfx('save');
+    const data = S.exportAll();
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'vyuha-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    FX.toast('Backup downloaded.', 'success');
+  }
+
+  function resetRecord() {
+    if (!app.profile) { FX.toast('Guest records are not stored.', 'warn'); return; }
+    confirm({ title: 'Reset your record?', message: 'Wins, losses, streaks and your title will be cleared. Saved games are untouched.', confirmLabel: 'Reset', danger: true })
+      .then(function (ok) {
+        if (!ok) return;
+        S.resetStats(app.profile.id);
+        app.profile = S.getProfile(app.profile.id);
+        renderHome();
+        FX.toast('Record cleared.', 'success');
+      });
+  }
+
+  /* ── the profile hub ─────────────────────────────────────────────
+   * Name, record, standing against each opponent, avatar (ten portraits or
+   * the player's own photo) and its frame, tint and badge. */
+  function shrinkPhoto(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !/^image\//.test(file.type)) { reject(new Error('Choose a photo.')); return; }
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = function () {
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const c = document.createElement('canvas');
+        c.width = c.height = 256;
+        const cx = c.getContext('2d');
+        cx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 256, 256);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('That photo could not be read.')); };
+      img.src = url;
+    });
+  }
+
+  function openProfile() {
+    let p = app.profile;
+    if (!p) { show('auth'); return; }
+    const m = modal({ kicker: 'Yoddha', title: 'Your profile', body: '<div id="hub"></div>', actions: [{ label: 'Done', cls: 'btn-primary' }] });
+    const host = m.el.querySelector('#hub');
+
+    function save(patch) {
+      const av = Object.assign({}, p.avatar || {}, patch);
+      if (!S.updateProfile(p.id, { avatar: av })) { FX.toast('Not enough room on this device for that.', 'error'); return; }
+      app.profile = p = S.getProfile(p.id);
+      paint();
+      renderHome();
+    }
+
+    function paint() {
+      const st = p.stats || { wins: 0, losses: 0, draws: 0, matches: 0, captures: 0, cores: 0, bestStreak: 0, streak: 0 };
+      const av = p.avatar || {};
+      const t = titleFor(st.wins || 0);
+      const winRate = st.matches ? Math.round((st.wins / st.matches) * 100) : 0;
+      const daily = AC.modes && AC.modes.dailyStatus ? AC.modes.dailyStatus() : null;
+      const by = st.byDiff || {};
+      const opp = ['recruit', 'veteran', 'archon'];
+      let best = -1;
+      opp.forEach(function (k, i) { if (by[k] && by[k].w) best = i; });
+      const standing = opp.map(function (k, i) {
+        const d = U.DIFFICULTIES[k] || { label: k };
+        const r = by[k] || { w: 0, l: 0, d: 0 };
+        return '<div class="stand-row' + (r.w ? ' beaten' : '') + '"><span>' + esc(d.label) + (i === best ? ' <span class="stand-mark">· your level</span>' : '') +
+          '</span><span class="stand-wl">' + r.w + ' won · ' + r.l + ' lost</span></div>';
+      }).join('');
+      const nextOpp = best < 2 ? (U.DIFFICULTIES[opp[best + 1]] || {}).label : null;
+
+      host.innerHTML =
+        '<div class="hub-top">' + A.avatar(p, { size: 76, title: t[1], streak: st.streak || 0 }) +
+          '<div><div class="hub-name">' + esc(p.name) + ' <button class="link-btn" data-hub="rename">change name</button></div>' +
+          '<div class="hub-title">' + t[1] + ' ' + t[2] + '</div>' +
+          '<div class="hub-next">Next title: ' + esc(nextTitle(st)) + '</div></div>' +
+        '</div>' +
+        '<div class="hub-h">Record</div>' +
+        '<div class="hub-grid">' +
+          statCell(st.wins || 0, 'Wins') + statCell(st.losses || 0, 'Losses') +
+          statCell(winRate + '%', 'Win rate') + statCell(st.streak || 0, 'Streak') +
+          statCell(st.bestStreak || 0, 'Best run') + statCell(st.captures || 0, 'Taken') +
+          statCell(st.cores || 0, 'Forts') + statCell(daily ? (daily.streak || 0) : 0, 'Daily streak') +
+        '</div>' +
+        '<div class="hub-h">Level of play</div>' +
+        '<div class="hub-standing">' + standing + '</div>' +
+        (nextOpp ? '<p class="fineprint">' + (best < 0 ? 'Win a battle against ' + esc(nextOpp) + ' to set your level.' : 'Beat ' + esc(nextOpp) + ' to rise.') + '</p>' : '<p class="fineprint">You have beaten Shakuni. Few can say so.</p>') +
+        '<div class="hub-h">Avatar</div>' +
+        '<div class="av-picker">' + A.AVATARS.map(function (a) {
+          const on = !av.photo && av.pick === a.key;
+          return '<button class="av-pick' + (on ? ' on' : '') + '" data-pick="' + a.key + '" aria-label="' + esc(a.name) + '">' +
+            A.avatar({ avatar: { pick: a.key, frame: av.frame, tint: av.tint } }) + '<span>' + esc(a.name) + '</span></button>';
+        }).join('') + '</div>' +
+        '<div class="hub-h">Your own photo</div>' +
+        '<div class="hub-photo">' +
+          '<button class="btn btn-ghost btn-sm" data-hub="photo">' + (av.photo ? 'Change photo' : 'Use a photo') + '</button>' +
+          (av.photo ? '<button class="btn btn-ghost btn-sm" data-hub="nophoto">Remove photo</button>' : '') +
+        '</div>' +
+        '<p class="fineprint">Your photo stays on this device. It is never uploaded or shared.</p>' +
+        '<div class="hub-h">Customise</div>' +
+        seg('Frame', 'frame', A.AVATAR_FRAMES, av.frame || 'brass') +
+        seg('Tint', 'tint', A.AVATAR_TINTS, av.tint || 'none') +
+        seg('Badge', 'badge', A.AVATAR_BADGES, av.badge || 'none') +
+        '<div class="hub-foot"><button class="link-btn" data-hub="switch">Switch player</button></div>';
+    }
+    function seg(label, key, list, cur) {
+      return '<div class="hub-seg"><span class="seg-label">' + label + '</span><div class="seg">' + list.map(function (o) {
+        return '<button class="seg-btn' + (o[0] === cur ? ' on' : '') + '" data-av="' + key + '" data-val="' + o[0] + '">' + o[1] + '</button>';
+      }).join('') + '</div></div>';
+    }
+
+    host.addEventListener('click', function (e) {
+      const pick = e.target.closest('[data-pick]');
+      if (pick) { sfx('select'); save({ pick: pick.getAttribute('data-pick'), photo: null }); return; }
+      const avb = e.target.closest('[data-av]');
+      if (avb) { sfx('ui'); const patch = {}; patch[avb.getAttribute('data-av')] = avb.getAttribute('data-val'); save(patch); return; }
+      const h = e.target.closest('[data-hub]');
+      if (!h) return;
+      const what = h.getAttribute('data-hub');
+      if (what === 'rename') {
+        promptText({ kicker: 'Your name', title: 'What should Sanjaya call you?', label: 'Name', value: p.name, maxlength: 18 })
+          .then(function (name) {
+            if (!name) return;
+            S.renameProfile(p.id, name);
+            app.profile = p = S.getProfile(p.id);
+            paint();
+            renderHome();
+          });
+      } else if (what === 'photo') {
+        const input = document.getElementById('file-photo');
+        input.onchange = function () {
+          const file = input.files && input.files[0];
+          input.value = '';
+          if (!file) return;
+          shrinkPhoto(file).then(function (data) {
+            save({ photo: data });
+            if (p.avatar && p.avatar.photo) FX.toast('Photo set. It stays on this device.', 'success');
+          }).catch(function (err) { FX.toast(err.message, 'error'); });
+        };
+        input.click();
+      } else if (what === 'nophoto') {
+        save({ photo: null });
+      } else if (what === 'switch') {
+        confirm({
+          title: 'Switch player?',
+          message: 'Your profile and saved games stay on this device. You can come back to it any time.',
+          confirmLabel: 'Switch'
+        }).then(function (ok) {
+          if (!ok) return;
+          m.close();
+          app.profile = null;
+          app.guest = false;
+          S.clearSession();
+          S.setActiveProfile(null);
+          show('auth');
+        });
+      }
+    });
+    paint();
   }
 
   /* ── saved games ─────────────────────────────────────────────── */
@@ -8172,7 +8471,11 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     setTimeout(function () {
       clearTimeout(watchdog);
       const bootEl = document.getElementById('boot');
-      if (bootEl) bootEl.classList.add('done');
+      if (bootEl) {
+        bootEl.classList.add('done');
+        // gone for good: a hidden splash kept its spinner animating all game
+        setTimeout(function () { bootEl.hidden = true; }, 450);
+      }
       if (profile) {
         app.profile = profile;
         show('home');
@@ -8209,6 +8512,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     applySettings: applySettings,
     patchSettings: patchSettings,
     boot: boot,
+    openProfile: openProfile,
     esc: esc,
     timeAgo: timeAgo,
     describeSave: describeSave,
@@ -10171,7 +10475,8 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
         outcome: outcome,
         captures: (st.captured[1] || []).length,
         cores: (st.captured[1] || []).filter(function (d) { return d.key === 'F'; }).length,
-        plies: st.stats.actions
+        plies: st.stats.actions,
+        difficulty: st.config && st.config.difficulty
       });
       AC.app.profile = S.getProfile(AC.app.profile.id);
     }
@@ -10580,6 +10885,34 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     { key: 'open', deva: 'द्वार', name: 'The gate is open', one: 'The fort’s gate is already broken — but the defence holds three Shakti.', knobs: { gateOpen: true, startShakti: { raiders: 2, defenders: 3 } } }
   ];
 
+  /* Catalogue II — from Daily #5 (1 Nov 2026, IST). The four original
+   * variants that stayed in the 30–55% raider band, plus the seventeen drafts
+   * that stayed in it on both boards across two independent seed banks
+   * (10,800 AI games, incoming/text/daily-balance*.json). "The gate is open"
+   * is retired: raiders won 57–72% of the time. Earlier dates keep the first
+   * catalogue, so their puzzles, results and streaks stay the same. */
+  const CATALOGUE_II_FROM = Date.UTC(2026, 10, 1);
+  const MODIFIERS_II = MODIFIERS.filter(function (m) { return m.key !== 'open'; }).concat([
+    {"key": "sharad", "deva": "शरद", "name": "Sharad patience", "one": "You have 28 rounds, but the defenders begin with one Shakti.", "knobs": {"turnLimit": 28, "startShakti": {"raiders": 2, "defenders": 1}}},
+    {"key": "hemant", "deva": "हेमंत", "name": "Hemant watch", "one": "Night opens the battle, and you have 28 rounds.", "knobs": {"startNight": true, "turnLimit": 28}},
+    {"key": "grishma", "deva": "ग्रीष्म", "name": "Grishma haste", "one": "You have 22 rounds and three starting Shakti.", "knobs": {"turnLimit": 22, "startShakti": {"raiders": 3, "defenders": 0}}},
+    {"key": "varsha", "deva": "वर्षा", "name": "Varsha wheel", "one": "The rings turn every four rounds, with 26 rounds to finish.", "knobs": {"rotateEvery": 4, "turnLimit": 26}},
+    {"key": "diya", "deva": "दीप", "name": "Lamps at dusk", "one": "Both armies begin with two Shakti.", "knobs": {"startShakti": {"raiders": 2, "defenders": 2}}},
+    {"key": "patang", "deva": "पतंग", "name": "Kite wind", "one": "The rings turn every three rounds; you begin with three Shakti.", "knobs": {"rotateEvery": 3, "startShakti": {"raiders": 3, "defenders": 0}}},
+    {"key": "rang", "deva": "रंग", "name": "Colours of spring", "one": "Both armies begin with three Shakti.", "knobs": {"startShakti": {"raiders": 3, "defenders": 3}}},
+    {"key": "monsoon-night", "deva": "मेघ", "name": "Monsoon night", "one": "Night comes first and the rings turn every four rounds.", "knobs": {"startNight": true, "rotateEvery": 4, "turnLimit": 28}},
+    {"key": "long-watch", "deva": "पहरा", "name": "Long watch", "one": "You have 30 rounds against defenders with two starting Shakti.", "knobs": {"turnLimit": 30, "startShakti": {"raiders": 2, "defenders": 2}}},
+    {"key": "last-lamp", "deva": "दीया", "name": "Last lamp", "one": "The raiders begin with one Shakti and have 28 rounds.", "knobs": {"turnLimit": 28, "startShakti": {"raiders": 1, "defenders": 0}}},
+    {"key": "swift-dawn", "deva": "भोर", "name": "Swift dawn", "one": "The rings turn every three rounds, with 28 rounds to finish.", "knobs": {"rotateEvery": 3, "turnLimit": 28}},
+    {"key": "chariot-road", "deva": "रथ", "name": "Chariot road", "one": "The raiders exchange their Divyadrishti for a third Rath.", "knobs": {"raiders": ["9", "7", "6", "2", "2", "2", "1", "3"], "turnLimit": 28}},
+    {"key": "engineers-path", "deva": "यंत्र", "name": "Engineers’ path", "one": "A second Yantrik replaces one of your two Rath.", "knobs": {"raiders": ["9", "7", "6", "5", "2", "3", "1", "3"]}},
+    {"key": "cavalry-road", "deva": "अश्व", "name": "Cavalry road", "one": "A second Ashvarohi replaces one of your two Rath.", "knobs": {"raiders": ["9", "7", "6", "5", "7", "2", "1", "3"], "turnLimit": 22}},
+    {"key": "two-shadows", "deva": "छाया", "name": "Two shadows", "one": "A second Chara replaces one of your two Rath.", "knobs": {"raiders": ["9", "7", "6", "5", "2", "1", "1", "3"], "turnLimit": 26}},
+    {"key": "night-reserve", "deva": "संध्या", "name": "Night reserve", "one": "Night comes first; both armies begin with one Shakti.", "knobs": {"startNight": true, "startShakti": {"raiders": 1, "defenders": 1}, "turnLimit": 30}},
+    {"key": "turning-petal", "deva": "पंखुड़ी", "name": "Turning petal", "one": "The rings turn every six rounds; each side begins with one Shakti.", "knobs": {"rotateEvery": 6, "startShakti": {"raiders": 1, "defenders": 1}, "turnLimit": 28}}
+  ]);
+  function catalogueFor(day) { return day.utc >= CATALOGUE_II_FROM ? MODIFIERS_II : MODIFIERS; }
+
   function validateModifier(mod) {
     if (!mod || !/^[a-z][a-z0-9-]*$/.test(mod.key || '') ||
         !['deva', 'name', 'one'].every(function (k) { return typeof mod[k] === 'string' && mod[k].trim(); })) {
@@ -10626,7 +10959,8 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     const day = istDay(date);
     const n = Math.floor((day.utc - DAILY_EPOCH) / 86400000) + 1;
     const rng = mulberry32(hashStr('vyuha-daily-' + day.key));
-    const mod = MODIFIERS[Math.floor(rng() * MODIFIERS.length)];
+    const list = catalogueFor(day);
+    const mod = list[Math.floor(rng() * list.length)];
     const boardKey = day.dow === 0 ? 'padma' : 'wheel';
     return { n: n, day: day, seed: hashStr('vyuha-daily-' + day.key), mod: mod, boardKey: boardKey };
   }
@@ -10869,6 +11203,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
     buildTutorial: buildTutorial,
     LESSON: LESSON,
     MODIFIERS: MODIFIERS,
+    MODIFIERS_II: MODIFIERS_II,
     clear: function () { active = null; }
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

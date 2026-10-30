@@ -31,6 +31,7 @@
     narratorLang: 'hinglish',
     voice: true,
     cinematics: true,
+    batterySaver: null,   // null = decide from the phone (low memory / few cores → on)
     stories: true,
     tutorialDone: false
   };
@@ -160,7 +161,7 @@
   function listProfiles() {
     return loadDb().profiles.map(function (p) {
       return {
-        id: p.id, name: p.name, sigil: p.sigil, createdAt: p.createdAt,
+        id: p.id, name: p.name, sigil: p.sigil, avatar: p.avatar || null, createdAt: p.createdAt,
         stats: p.stats, lastPlayed: p.lastPlayed, hasPin: !!p.pin
       };
     });
@@ -242,6 +243,20 @@
     return true;
   }
 
+  /* Merge a few fields into a profile (avatar, frame, tint, badge, photo).
+   * A player's photo is stored here as a small data URL and never leaves
+   * this device. */
+  function updateProfile(id, patch) {
+    const db = loadDb();
+    const p = db.profiles.filter(function (x) { return x.id === id; })[0];
+    if (!p) return null;
+    Object.keys(patch || {}).forEach(function (k) {
+      if (k === 'id' || k === 'pin' || k === 'stats') return;
+      p[k] = patch[k];
+    });
+    return saveDb(db) ? p : null;
+  }
+
   function recordResult(profileId, result) {
     const db = loadDb();
     const p = db.profiles.filter(function (x) { return x.id === profileId; })[0];
@@ -255,6 +270,12 @@
     s.captures += result.captures || 0;
     s.cores += result.cores || 0;
     s.plies += result.plies || 0;
+    // the standing: wins and losses against each opponent
+    if (result.difficulty) {
+      s.byDiff = s.byDiff || {};
+      const d = (s.byDiff[result.difficulty] = s.byDiff[result.difficulty] || { w: 0, l: 0, d: 0 });
+      if (result.outcome === 'win') d.w++; else if (result.outcome === 'loss') d.l++; else d.d++;
+    }
     p.lastPlayed = nowIso();
     saveDb(db);
     return s;
@@ -436,6 +457,7 @@
     setActiveProfile: setActiveProfile,
     deleteProfile: deleteProfile,
     renameProfile: renameProfile,
+    updateProfile: updateProfile,
     recordResult: recordResult,
     resetStats: resetStats,
     getSettings: getSettings,

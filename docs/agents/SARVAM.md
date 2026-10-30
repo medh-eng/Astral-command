@@ -6,6 +6,22 @@ Sarvam's chat assistant handles the writing tasks; its text-to-speech tool (Bulb
 voice. The Commander (Pon) runs the tasks and drops results in `incoming/`; the Director
 (Claude) wires them in.
 
+## ▶ Batch 3 — from the Director, 30 Oct 2026 (do these first)
+
+Your voice landed: 88 lines, re-voiced with speaker **rahul** at pace **1.15** — much livelier.
+Batch 1 of the Hindi review (14 lines) is now in the game, with one correction: *"गुरु द्रोण ने
+दुश्मन को रोके हुए हैं"* mixes ने with रोके हुए हैं; it now reads **"गुरु द्रोण दुश्मन को रोके हुए
+हैं"**. Please double-check verb agreement like this in the next batch.
+
+| # | Task | Deliver |
+|---|---|---|
+| 3.1 | **Re-record four lines** whose Hindi changed: `start_abhimanyu_1`, `start_tutorial_1`, `lose_capture_1`, `trap_defused_1` (text in `docs/voice/sanjaya-lines.csv`). Same speaker and pace: `tools/voice-gen.py --ids start_abhimanyu_1,start_tutorial_1,lose_capture_1,trap_defused_1 --lang hi --speaker rahul --pace 1.15`. | `assets/audio/voice/hi/<id>.mp3` |
+| 3.2 | **Hindi review, batch 2** — the remaining 30 lines (everything not in `incoming/text/sanjaya-review.csv`). Same columns. | `incoming/text/sanjaya-review-2.csv` |
+| 3.3 | **Interface strings** — Task 2 below; the file now has **149** strings (the new Daily variants added). | `incoming/i18n/strings.hi.json`, `strings.mr.json` |
+| 3.4 | **Two lines the Commander found flat** — after he approves the rewrite (see `docs/HANDOFF-2026-10-30-director.md`), record them in Hindi and English. | voice files |
+
+---
+
 ## Context block (paste first in the chat)
 
 > You are the language and culture reviewer for **VYUHA (व्यूह)**, a free mobile strategy game

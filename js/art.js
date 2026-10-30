@@ -293,7 +293,56 @@
       '<path d="M16 2.5v2.5M16 27v2.5M7 5l1.4 2M25 5l-1.4 2" ' + S + ' stroke-opacity="0.6"/></svg>';
   }
 
+  /* ── the player's avatar ──────────────────────────────────────────
+   * Ten portraits to choose from (painted where the art exists, a carved
+   * sigil until it does), or the player's own photo, kept on the device.
+   * Customisation: a frame, a tint and a badge. */
+  const AVATARS = [
+    { key: 'arjuna', name: 'Arjuna', deva: 'अर्जुन', slot: 'hero:arjuna', sigil: 'eye' },
+    { key: 'karna', name: 'Karna', deva: 'कर्ण', slot: 'hero:karna', sigil: 'sun' },
+    { key: 'bhima', name: 'Bhima', deva: 'भीम', slot: 'hero:bhima', sigil: 'gear' },
+    { key: 'abhimanyu', name: 'Abhimanyu', deva: 'अभिमन्यु', slot: 'hero:abhimanyu', sigil: 'wing' },
+    { key: 'ghatotkach', name: 'Ghatotkacha', deva: 'घटोत्कच', slot: 'hero:ghatotkach', sigil: 'comet' },
+    { key: 'sanjaya', name: 'Sanjaya', deva: 'संजय', slot: 'portrait:sanjaya', sigil: 'eye' },
+    { key: 'drona', name: 'Drona', deva: 'द्रोण', slot: 'hero:drona', sigil: 'dagger' },
+    { key: 'bhishma', name: 'Bhishma', deva: 'भीष्म', slot: 'hero:bhishma', sigil: 'crystal' },
+    { key: 'draupadi', name: 'Draupadi', deva: 'द्रौपदी', slot: 'hero:draupadi', sigil: 'sun' },
+    { key: 'dhrishtadyumna', name: 'Dhrishtadyumna', deva: 'धृष्टद्युम्न', slot: 'hero:dhrishtadyumna', sigil: 'chevron' }
+  ];
+  const FRAMES = [['brass', 'Brass'], ['silver', 'Silver'], ['saffron', 'Saffron'], ['indigo', 'Indigo'], ['none', 'None']];
+  const TINTS = [['none', 'Natural'], ['warm', 'Dawn'], ['cool', 'Night'], ['mono', 'Ink']];
+  const BADGES = [['none', 'None'], ['title', 'Title'], ['sun', 'Surya'], ['moon', 'Chandra'], ['diya', 'Streak']];
+
+  /* `p` is a profile; `opts.size` in px; `opts.title` the short title text
+   * for the title badge; `opts.streak` for the streak badge. */
+  function avatar(p, opts) {
+    opts = opts || {};
+    const av = (p && p.avatar) || {};
+    const frame = av.frame || 'brass';
+    const tint = av.tint || 'none';
+    const badge = av.badge || 'none';
+    let face = '';
+    if (av.photo) face = '<img class="av-img" src="' + av.photo + '" alt="" draggable="false">';
+    else {
+      const a = AVATARS.filter(function (x) { return x.key === av.pick; })[0];
+      const painted = a ? artFor(a.slot) : null;
+      face = painted ? '<img class="av-img" src="' + painted + '" alt="" draggable="false">' : sigil(a ? a.sigil : (p && p.sigil) || 'chevron', 'av-sigil');
+    }
+    let b = '';
+    if (badge === 'sun') b = '<span class="av-badge">' + icon('sun') + '</span>';
+    else if (badge === 'moon') b = '<span class="av-badge">' + icon('moon') + '</span>';
+    else if (badge === 'diya') b = '<span class="av-badge av-badge-num">' + icon('diya') + (opts.streak || 0) + '</span>';
+    else if (badge === 'title' && opts.title) b = '<span class="av-badge av-badge-txt">' + opts.title + '</span>';
+    return '<span class="av av-frame-' + frame + ' av-tint-' + tint + ' ' + (opts.cls || '') + '"' +
+      (opts.size ? ' style="--av:' + opts.size + 'px"' : '') + '>' + face + b + '</span>';
+  }
+
   AC.art = {
+    avatar: avatar,
+    AVATARS: AVATARS,
+    AVATAR_FRAMES: FRAMES,
+    AVATAR_TINTS: TINTS,
+    AVATAR_BADGES: BADGES,
     emblem: emblem,
     astraMark: astraMark,
     sanjayaMark: sanjayaMark,

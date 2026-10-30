@@ -1731,7 +1731,8 @@
         outcome: outcome,
         captures: (st.captured[1] || []).length,
         cores: (st.captured[1] || []).filter(function (d) { return d.key === 'F'; }).length,
-        plies: st.stats.actions
+        plies: st.stats.actions,
+        difficulty: st.config && st.config.difficulty
       });
       AC.app.profile = S.getProfile(AC.app.profile.id);
     }

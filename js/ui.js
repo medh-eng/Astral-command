@@ -182,11 +182,21 @@
   }
 
   /* ── settings application ────────────────────────────────────── */
+  /* Battery saver: the player's choice, or — until they choose — on for phones
+   * with little memory or few cores, which are the ones that run hot. */
+  function liteOn(s) {
+    if (s.batterySaver === true || s.batterySaver === false) return s.batterySaver;
+    const nav = (typeof navigator !== "undefined" && navigator) || {};
+    return (nav.deviceMemory && nav.deviceMemory <= 4) || (nav.hardwareConcurrency && nav.hardwareConcurrency <= 4) || false;
+  }
+  app.liteOn = function () { return liteOn(app.settings); };
+
   function applySettings() {
     const s = app.settings;
     document.documentElement.classList.toggle('cb', !!s.colorblind);
     document.documentElement.classList.toggle('hc', !!s.highContrast);
     document.documentElement.classList.toggle('reduce-motion', !!s.reducedMotion);
+    document.documentElement.classList.toggle('lite', liteOn(s));
     AU.setSettings({ sfx: s.sfx, music: s.music, muted: s.muted, haptics: s.haptics });
     FX.setReducedMotion(s.reducedMotion);
     if (AC.sanjaya) {
@@ -451,7 +461,7 @@
     const p = app.profile;
     const name = p ? p.name : 'Guest';
     document.getElementById('home-name').textContent = name;
-    document.getElementById('home-sigil').innerHTML = p ? A.sigil(p.sigil) : A.sigil('chevron');
+    document.getElementById('home-sigil').innerHTML = A.avatar ? A.avatar(p, { size: 40, title: titleFor((p && p.stats && p.stats.wins) || 0)[1], streak: (p && p.stats && p.stats.streak) || 0 }) : A.sigil('chevron');
 
     const stats = (p && p.stats) || { wins: 0, losses: 0, draws: 0, matches: 0, captures: 0, cores: 0, bestStreak: 0 };
     document.getElementById('home-rank').textContent = rankLabel(stats) + ' · ' + stats.matches + ' battle' + (stats.matches === 1 ? '' : 's');
@@ -495,14 +505,6 @@
     document.getElementById('saves-sub').textContent = saves.length + ' of 3 slots used';
     document.getElementById('btn-resume').disabled = !auto;
 
-    const winRate = stats.matches ? Math.round((stats.wins / stats.matches) * 100) : 0;
-    document.getElementById('stat-grid').innerHTML =
-      statCell(stats.wins, 'Wins') + statCell(stats.losses, 'Losses') +
-      statCell(winRate + '%', 'Win rate') + statCell(stats.bestStreak || 0, 'Best streak');
-    document.getElementById('winrate-fill').style.width = winRate + '%';
-    document.getElementById('winrate-label').textContent = stats.matches
-      ? stats.wins + ' wins · ' + stats.draws + ' shared · ' + stats.captures + ' pieces taken · ' + stats.cores + ' forts taken · next title: ' + nextTitle(stats)
-      : 'No battles yet — the field is yours to take.';
 
     const sj = document.getElementById('home-sanjaya');
     if (sj) sj.innerHTML = A.sanjayaMark();
@@ -527,7 +529,6 @@
       Array.prototype.slice.call(tpl.content.firstElementChild.childNodes).forEach(function (n) { spokes.appendChild(n); });
     }
 
-    renderQuickSettings();
     if (AC.game) AC.game.updateResumeState();
   }
 
@@ -557,7 +558,7 @@
   function nextTitle(stats) {
     const w = stats.wins || 0;
     const next = TITLES.filter(function (x) { return x[0] > w; })[0];
-    return next ? next[1] + ' at ' + next[0] + ' wins' : 'none — you are an Atimaharathi';
+    return next ? next[1] + ' at ' + next[0] + (next[0] === 1 ? ' win' : ' wins') : 'none — you are an Atimaharathi';
   }
 
   function describeSave(save) {
@@ -611,16 +612,8 @@
       sfx('select');
       if (AC.modes) AC.modes.startDaily();
     });
-    document.getElementById('home-name').addEventListener('click', function () {
-      if (!app.profile) return;
-      promptText({ kicker: 'Your name', title: 'What should Sanjaya call you?', label: 'Name', value: app.profile.name, maxlength: 18 })
-        .then(function (name) {
-          if (!name) return;
-          S.renameProfile(app.profile.id, name);
-          app.profile = S.getProfile(app.profile.id);
-          renderHome();
-        });
-    });
+    document.getElementById('home-name').addEventListener('click', function () { sfx('ui'); openProfile(); });
+    document.getElementById('home-sigil').addEventListener('click', function () { sfx('ui'); openProfile(); });
     document.getElementById('btn-tutorial').addEventListener('click', function () {
       sfx('select');
       if (AC.modes) AC.modes.startTutorial();
@@ -635,50 +628,7 @@
     document.getElementById('btn-rules').addEventListener('click', function () { sfx('ui'); openCodex(); });
     document.getElementById('btn-home-rules').addEventListener('click', function () { sfx('ui'); openCodex(); });
     document.getElementById('btn-home-settings').addEventListener('click', function () { sfx('ui'); openSettings(); });
-    document.getElementById('btn-signout').addEventListener('click', function () {
-      sfx('ui');
-      confirm({
-        title: 'Switch player?',
-        message: 'Your profile and saved games stay on this device. You can come back to it any time.',
-        confirmLabel: 'Switch'
-      }).then(function (ok) {
-        if (!ok) return;
-        app.profile = null;
-        app.guest = false;
-        S.clearSession();
-        S.setActiveProfile(null);
-        show('auth');
-      });
-    });
-    document.getElementById('btn-reset-stats').addEventListener('click', function () {
-      if (!app.profile) { FX.toast('Guest records are not stored.', 'warn'); return; }
-      confirm({ title: 'Reset your record?', message: 'Wins, losses, streaks and your title will be cleared. Saved games are untouched.', confirmLabel: 'Reset', danger: true })
-        .then(function (ok) {
-          if (!ok) return;
-          S.resetStats(app.profile.id);
-          app.profile = S.getProfile(app.profile.id);
-          renderHome();
-          FX.toast('Record cleared.', 'success');
-        });
-    });
-    document.getElementById('btn-export').addEventListener('click', function () {
-      sfx('save');
-      const data = S.exportAll();
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'vyuha-backup-' + new Date().toISOString().slice(0, 10) + '.json';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-      FX.toast('Backup downloaded.', 'success');
-    });
-    document.getElementById('btn-import').addEventListener('click', function () {
-      sfx('ui');
-      document.getElementById('file-import').click();
-    });
+    document.getElementById('btn-signout').addEventListener('click', function () { sfx('ui'); openProfile(); });
     document.getElementById('file-import').addEventListener('change', function (e) {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
@@ -987,12 +937,19 @@
           toggleRow('Tap twice to strike', 'confirmActions', s.confirmActions !== false) +
           toggleRow('Show intel panel', 'showIntel', s.showIntel !== false) +
           toggleRow('Board coordinates', 'coordinates', s.coordinates !== false) +
+          toggleRow('Battery saver (cooler phone)', 'batterySaver', liteOn(s)) +
           toggleRow('Reduced motion', 'reducedMotion', !!s.reducedMotion) +
           toggleRow('Colour-blind palette', 'colorblind', !!s.colorblind) +
           toggleRow('High contrast', 'highContrast', !!s.highContrast) +
         '</div>' +
       '</div>' +
-      '<p class="fineprint">Every setting is stored on this device.</p>';
+      '<div class="hub-h">Your data</div>' +
+      '<div class="data-actions">' +
+        '<button class="btn btn-ghost btn-sm" data-data="export">' + A.icon('download') + 'Export backup</button>' +
+        '<button class="btn btn-ghost btn-sm" data-data="import">Import backup</button>' +
+        '<button class="btn btn-ghost btn-sm btn-danger-ghost" data-data="reset">Reset record</button>' +
+      '</div>' +
+      '<p class="fineprint">Every setting, profile and save stays on this device. A backup moves them to another.</p>';
 
     const m = modal({
       kicker: 'Preferences',
@@ -1015,6 +972,14 @@
     });
 
     m.el.addEventListener('click', function (e) {
+      const dataBtn = e.target.closest('[data-data]');
+      if (dataBtn) {
+        const what = dataBtn.getAttribute('data-data');
+        if (what === 'export') exportBackup();
+        else if (what === 'import') { sfx('ui'); document.getElementById('file-import').click(); }
+        else resetRecord();
+        return;
+      }
       const segBtn = e.target.closest('[data-segval]');
       if (segBtn) {
         const seg = segBtn.closest('[data-seg]');
@@ -1042,6 +1007,7 @@
       else if (key === 'showIntel') patch.showIntel = !(app.settings.showIntel !== false);
       else if (key === 'coordinates') patch.coordinates = !(app.settings.coordinates !== false);
       else if (key === 'reducedMotion') patch.reducedMotion = !app.settings.reducedMotion;
+      else if (key === 'batterySaver') patch.batterySaver = !liteOn(app.settings);
       else if (key === 'colorblind') patch.colorblind = !app.settings.colorblind;
       else if (key === 'highContrast') patch.highContrast = !app.settings.highContrast;
       patchSettings(patch);
@@ -1050,6 +1016,178 @@
       rowEl.setAttribute('aria-checked', on ? 'true' : 'false');
       sfx('ui');
     });
+  }
+
+  /* ── data actions (live in Settings) ─────────────────────────── */
+  function exportBackup() {
+    sfx('save');
+    const data = S.exportAll();
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'vyuha-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    FX.toast('Backup downloaded.', 'success');
+  }
+
+  function resetRecord() {
+    if (!app.profile) { FX.toast('Guest records are not stored.', 'warn'); return; }
+    confirm({ title: 'Reset your record?', message: 'Wins, losses, streaks and your title will be cleared. Saved games are untouched.', confirmLabel: 'Reset', danger: true })
+      .then(function (ok) {
+        if (!ok) return;
+        S.resetStats(app.profile.id);
+        app.profile = S.getProfile(app.profile.id);
+        renderHome();
+        FX.toast('Record cleared.', 'success');
+      });
+  }
+
+  /* ── the profile hub ─────────────────────────────────────────────
+   * Name, record, standing against each opponent, avatar (ten portraits or
+   * the player's own photo) and its frame, tint and badge. */
+  function shrinkPhoto(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !/^image\//.test(file.type)) { reject(new Error('Choose a photo.')); return; }
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = function () {
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const c = document.createElement('canvas');
+        c.width = c.height = 256;
+        const cx = c.getContext('2d');
+        cx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 256, 256);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('That photo could not be read.')); };
+      img.src = url;
+    });
+  }
+
+  function openProfile() {
+    let p = app.profile;
+    if (!p) { show('auth'); return; }
+    const m = modal({ kicker: 'Yoddha', title: 'Your profile', body: '<div id="hub"></div>', actions: [{ label: 'Done', cls: 'btn-primary' }] });
+    const host = m.el.querySelector('#hub');
+
+    function save(patch) {
+      const av = Object.assign({}, p.avatar || {}, patch);
+      if (!S.updateProfile(p.id, { avatar: av })) { FX.toast('Not enough room on this device for that.', 'error'); return; }
+      app.profile = p = S.getProfile(p.id);
+      paint();
+      renderHome();
+    }
+
+    function paint() {
+      const st = p.stats || { wins: 0, losses: 0, draws: 0, matches: 0, captures: 0, cores: 0, bestStreak: 0, streak: 0 };
+      const av = p.avatar || {};
+      const t = titleFor(st.wins || 0);
+      const winRate = st.matches ? Math.round((st.wins / st.matches) * 100) : 0;
+      const daily = AC.modes && AC.modes.dailyStatus ? AC.modes.dailyStatus() : null;
+      const by = st.byDiff || {};
+      const opp = ['recruit', 'veteran', 'archon'];
+      let best = -1;
+      opp.forEach(function (k, i) { if (by[k] && by[k].w) best = i; });
+      const standing = opp.map(function (k, i) {
+        const d = U.DIFFICULTIES[k] || { label: k };
+        const r = by[k] || { w: 0, l: 0, d: 0 };
+        return '<div class="stand-row' + (r.w ? ' beaten' : '') + '"><span>' + esc(d.label) + (i === best ? ' <span class="stand-mark">· your level</span>' : '') +
+          '</span><span class="stand-wl">' + r.w + ' won · ' + r.l + ' lost</span></div>';
+      }).join('');
+      const nextOpp = best < 2 ? (U.DIFFICULTIES[opp[best + 1]] || {}).label : null;
+
+      host.innerHTML =
+        '<div class="hub-top">' + A.avatar(p, { size: 76, title: t[1], streak: st.streak || 0 }) +
+          '<div><div class="hub-name">' + esc(p.name) + ' <button class="link-btn" data-hub="rename">change name</button></div>' +
+          '<div class="hub-title">' + t[1] + ' ' + t[2] + '</div>' +
+          '<div class="hub-next">Next title: ' + esc(nextTitle(st)) + '</div></div>' +
+        '</div>' +
+        '<div class="hub-h">Record</div>' +
+        '<div class="hub-grid">' +
+          statCell(st.wins || 0, 'Wins') + statCell(st.losses || 0, 'Losses') +
+          statCell(winRate + '%', 'Win rate') + statCell(st.streak || 0, 'Streak') +
+          statCell(st.bestStreak || 0, 'Best run') + statCell(st.captures || 0, 'Taken') +
+          statCell(st.cores || 0, 'Forts') + statCell(daily ? (daily.streak || 0) : 0, 'Daily streak') +
+        '</div>' +
+        '<div class="hub-h">Level of play</div>' +
+        '<div class="hub-standing">' + standing + '</div>' +
+        (nextOpp ? '<p class="fineprint">' + (best < 0 ? 'Win a battle against ' + esc(nextOpp) + ' to set your level.' : 'Beat ' + esc(nextOpp) + ' to rise.') + '</p>' : '<p class="fineprint">You have beaten Shakuni. Few can say so.</p>') +
+        '<div class="hub-h">Avatar</div>' +
+        '<div class="av-picker">' + A.AVATARS.map(function (a) {
+          const on = !av.photo && av.pick === a.key;
+          return '<button class="av-pick' + (on ? ' on' : '') + '" data-pick="' + a.key + '" aria-label="' + esc(a.name) + '">' +
+            A.avatar({ avatar: { pick: a.key, frame: av.frame, tint: av.tint } }) + '<span>' + esc(a.name) + '</span></button>';
+        }).join('') + '</div>' +
+        '<div class="hub-h">Your own photo</div>' +
+        '<div class="hub-photo">' +
+          '<button class="btn btn-ghost btn-sm" data-hub="photo">' + (av.photo ? 'Change photo' : 'Use a photo') + '</button>' +
+          (av.photo ? '<button class="btn btn-ghost btn-sm" data-hub="nophoto">Remove photo</button>' : '') +
+        '</div>' +
+        '<p class="fineprint">Your photo stays on this device. It is never uploaded or shared.</p>' +
+        '<div class="hub-h">Customise</div>' +
+        seg('Frame', 'frame', A.AVATAR_FRAMES, av.frame || 'brass') +
+        seg('Tint', 'tint', A.AVATAR_TINTS, av.tint || 'none') +
+        seg('Badge', 'badge', A.AVATAR_BADGES, av.badge || 'none') +
+        '<div class="hub-foot"><button class="link-btn" data-hub="switch">Switch player</button></div>';
+    }
+    function seg(label, key, list, cur) {
+      return '<div class="hub-seg"><span class="seg-label">' + label + '</span><div class="seg">' + list.map(function (o) {
+        return '<button class="seg-btn' + (o[0] === cur ? ' on' : '') + '" data-av="' + key + '" data-val="' + o[0] + '">' + o[1] + '</button>';
+      }).join('') + '</div></div>';
+    }
+
+    host.addEventListener('click', function (e) {
+      const pick = e.target.closest('[data-pick]');
+      if (pick) { sfx('select'); save({ pick: pick.getAttribute('data-pick'), photo: null }); return; }
+      const avb = e.target.closest('[data-av]');
+      if (avb) { sfx('ui'); const patch = {}; patch[avb.getAttribute('data-av')] = avb.getAttribute('data-val'); save(patch); return; }
+      const h = e.target.closest('[data-hub]');
+      if (!h) return;
+      const what = h.getAttribute('data-hub');
+      if (what === 'rename') {
+        promptText({ kicker: 'Your name', title: 'What should Sanjaya call you?', label: 'Name', value: p.name, maxlength: 18 })
+          .then(function (name) {
+            if (!name) return;
+            S.renameProfile(p.id, name);
+            app.profile = p = S.getProfile(p.id);
+            paint();
+            renderHome();
+          });
+      } else if (what === 'photo') {
+        const input = document.getElementById('file-photo');
+        input.onchange = function () {
+          const file = input.files && input.files[0];
+          input.value = '';
+          if (!file) return;
+          shrinkPhoto(file).then(function (data) {
+            save({ photo: data });
+            if (p.avatar && p.avatar.photo) FX.toast('Photo set. It stays on this device.', 'success');
+          }).catch(function (err) { FX.toast(err.message, 'error'); });
+        };
+        input.click();
+      } else if (what === 'nophoto') {
+        save({ photo: null });
+      } else if (what === 'switch') {
+        confirm({
+          title: 'Switch player?',
+          message: 'Your profile and saved games stay on this device. You can come back to it any time.',
+          confirmLabel: 'Switch'
+        }).then(function (ok) {
+          if (!ok) return;
+          m.close();
+          app.profile = null;
+          app.guest = false;
+          S.clearSession();
+          S.setActiveProfile(null);
+          show('auth');
+        });
+      }
+    });
+    paint();
   }
 
   /* ── saved games ─────────────────────────────────────────────── */
@@ -1253,7 +1391,11 @@
     setTimeout(function () {
       clearTimeout(watchdog);
       const bootEl = document.getElementById('boot');
-      if (bootEl) bootEl.classList.add('done');
+      if (bootEl) {
+        bootEl.classList.add('done');
+        // gone for good: a hidden splash kept its spinner animating all game
+        setTimeout(function () { bootEl.hidden = true; }, 450);
+      }
       if (profile) {
         app.profile = profile;
         show('home');
@@ -1290,6 +1432,7 @@
     applySettings: applySettings,
     patchSettings: patchSettings,
     boot: boot,
+    openProfile: openProfile,
     esc: esc,
     timeAgo: timeAgo,
     describeSave: describeSave,

@@ -1223,7 +1223,7 @@
       if (!hasAnyLegalMoves(state, other(next), true)) {
         endGame(state, 0, 'Stalemate — neither commander has a legal action left.', events);
       } else {
-        endGame(state, other(next), faction(next) + ' has no legal action left — the field is conceded.', events);
+        endGame(state, other(next), faction(next) + ' has no piece left that can move — only the fort and its traps stand. The field is conceded.', events);
       }
       return;
     }

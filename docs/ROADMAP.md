@@ -3,7 +3,7 @@
 The live status board. Ticked = on `main` and playable. Owner tags: **[C]** Commander (Pon),
 **[D]** Director (Claude), **[G]** ChatGPT, **[S]** Sarvam AI.
 
-Last updated: **30 Oct 2026**; Director baseline plus ChatGPT agent audit below.
+Last updated: **30 Oct 2026 (evening)** — Director: the cool-phone pass, the profile hub, Daily catalogue II.
 
 ---
 
@@ -20,6 +20,17 @@ Last updated: **30 Oct 2026**; Director baseline plus ChatGPT agent audit below.
 - [x] **[D]** Every sci-fi string retired (Aetherfront, Astral AI, Nexus Core, Sapper, Mine…); "stratego" removed from the package keywords
 - [x] **[D]** The player's half of the Chakravyuha is at the bottom of the screen
 - [x] **[C]** Rename the GitHub repo from `Astral-command` to `vyuha` (Settings → General → Repository name; GitHub redirects the old links, but the Pages URL changes — update `PUBLIC_URL` in `js/modes.js` the same day)
+
+## Phase A+ — Smooth and cool on a phone ✅ (30 Oct)
+
+- [x] **[D]** No looping animation while the player thinks: idle main-thread time ~40% → ~0% on every screen (`tools/perf-idle.mjs`)
+- [x] **[D]** Battery saver (Settings) — on by default for phones with ≤4 GB or ≤4 cores: no frosted glass, no astra films
+- [x] **[D]** Music and audio engine pause when the phone locks or the app goes to the background
+- [x] **[D]** Fixed: astra and clash cinematics fell *behind* the board (a CSS override from the art batch)
+- [x] **[D]** Robot playtest on two phone sizes (`tools/playtest-bot.mjs`): 8 battles, lesson, Daily, settings — no errors, no stuck turns
+- [x] **[D]** Home screen calm: record, quick settings and data moved off it; backups live in Settings
+- [x] **[D]** Profile hub: name, record, level of play per opponent, ten avatars, frame/tint/badge, own photo (kept on the device)
+- [ ] **[C]** Play 20 minutes on your own phone and say whether it still warms up
 
 ## Phase B — The hook ✅ (art and audio still to come)
 
@@ -46,8 +57,10 @@ Last updated: **30 Oct 2026**; Director baseline plus ChatGPT agent audit below.
 - [ ] **[D]** Dvandva — equal strength becomes a 3-second bluff duel (Astra / Shastra / Kavach) instead of a setting
 - [ ] **[D]** Campaign map: the seven vyuhas (Chakra, Padma, Krauncha, Makara, Suchi, Shyena, Sarvatobhadra), one lesson each
 - [ ] **[D]** Facing (already built for the lotus) introduced in the Krauncha chapter
-- [ ] **[D][G]** 30 hand-checked Daily modifiers and layouts (ChatGPT drafts, Director simulates). The merged batch has 25 new drafts; independent 7,200-match screening finds 17 passing both seed banks on both boards, with further human/seed validation and versioned promotion pending. Existing `open` is above the target raider win band. See `incoming/text/README.md` and `HANDOFF-2026-10-30.md`.
-- [ ] **[C][G]** Hero portraits (warriors, never deities) — `docs/prompts/ART.md` §6
+- [x] **[D][G]** Daily catalogue II live from 1 Nov 2026: 21 variants that held 30–55% raider wins on both boards in two independent seed banks; `open` retired; earlier dates unchanged. Retune of the 8 held drafts → ChatGPT batch 3.4
+- [ ] **[D][G]** (history) 30 hand-checked Daily modifiers and layouts (ChatGPT drafts, Director simulates). The merged batch has 25 new drafts; independent 7,200-match screening finds 17 passing both seed banks on both boards, with further human/seed validation and versioned promotion pending. Existing `open` is above the target raider win band. See `incoming/text/README.md` and `HANDOFF-2026-10-30.md`.
+- [x] **[C][G]** Hero portraits ×5 delivered (also profile avatars)
+- [ ] **[G]** Four more avatar portraits — Drona, Bhishma, Draupadi, Dhrishtadyumna (`ART.md`, *Four more portraits*)
 
 ## Phase D — Social
 

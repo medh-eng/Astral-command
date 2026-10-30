@@ -5,6 +5,22 @@ this file and not ticked in `docs/prompts/ART.md`, it did not happen.
 
 ---
 
+## 30 Oct 2026 (evening, Director) — a cool phone, a calm home, the profile hub
+
+- **Heat:** idle main-thread time 20–42% → under 1% on every screen. Every infinite CSS loop on
+  a resting screen removed or capped at 2–3 plays. Battery saver setting (auto on low-memory
+  phones). Music and the audio engine pause in the background. Probe: `tools/perf-idle.mjs`.
+- **Glitches:** cinematics fell behind the board (`.stage { position: relative }`) — fixed; the
+  no-moves ending reworded; the tall Sanjaya portrait clipped to its avatar circle.
+- **Robot player:** `tools/playtest-bot.mjs` — taps through real battles on two phone sizes.
+- **Home:** record, quick settings and data blocks gone; backups and reset in Settings.
+- **Profile hub:** name, record, level of play per opponent, ten avatars, frame/tint/badge,
+  own photo kept on the device.
+- **Daily catalogue II** from 1 Nov: 21 variants, `open` retired, past dates unchanged.
+- **Sanjaya:** review batch 1 applied (one fix corrected); voice script regenerated.
+- **Repo:** loose originals moved from the root and `incoming/` to `masters/`.
+- Details and the two Sanjaya rewrites awaiting approval: `docs/HANDOFF-2026-10-30-director.md`.
+
 ## 30 Oct 2026 — art, voice, and the loading fix
 
 ### Fixed

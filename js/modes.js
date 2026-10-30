@@ -212,6 +212,34 @@
     { key: 'open', deva: 'द्वार', name: 'The gate is open', one: 'The fort’s gate is already broken — but the defence holds three Shakti.', knobs: { gateOpen: true, startShakti: { raiders: 2, defenders: 3 } } }
   ];
 
+  /* Catalogue II — from Daily #5 (1 Nov 2026, IST). The four original
+   * variants that stayed in the 30–55% raider band, plus the seventeen drafts
+   * that stayed in it on both boards across two independent seed banks
+   * (10,800 AI games, incoming/text/daily-balance*.json). "The gate is open"
+   * is retired: raiders won 57–72% of the time. Earlier dates keep the first
+   * catalogue, so their puzzles, results and streaks stay the same. */
+  const CATALOGUE_II_FROM = Date.UTC(2026, 10, 1);
+  const MODIFIERS_II = MODIFIERS.filter(function (m) { return m.key !== 'open'; }).concat([
+    {"key": "sharad", "deva": "शरद", "name": "Sharad patience", "one": "You have 28 rounds, but the defenders begin with one Shakti.", "knobs": {"turnLimit": 28, "startShakti": {"raiders": 2, "defenders": 1}}},
+    {"key": "hemant", "deva": "हेमंत", "name": "Hemant watch", "one": "Night opens the battle, and you have 28 rounds.", "knobs": {"startNight": true, "turnLimit": 28}},
+    {"key": "grishma", "deva": "ग्रीष्म", "name": "Grishma haste", "one": "You have 22 rounds and three starting Shakti.", "knobs": {"turnLimit": 22, "startShakti": {"raiders": 3, "defenders": 0}}},
+    {"key": "varsha", "deva": "वर्षा", "name": "Varsha wheel", "one": "The rings turn every four rounds, with 26 rounds to finish.", "knobs": {"rotateEvery": 4, "turnLimit": 26}},
+    {"key": "diya", "deva": "दीप", "name": "Lamps at dusk", "one": "Both armies begin with two Shakti.", "knobs": {"startShakti": {"raiders": 2, "defenders": 2}}},
+    {"key": "patang", "deva": "पतंग", "name": "Kite wind", "one": "The rings turn every three rounds; you begin with three Shakti.", "knobs": {"rotateEvery": 3, "startShakti": {"raiders": 3, "defenders": 0}}},
+    {"key": "rang", "deva": "रंग", "name": "Colours of spring", "one": "Both armies begin with three Shakti.", "knobs": {"startShakti": {"raiders": 3, "defenders": 3}}},
+    {"key": "monsoon-night", "deva": "मेघ", "name": "Monsoon night", "one": "Night comes first and the rings turn every four rounds.", "knobs": {"startNight": true, "rotateEvery": 4, "turnLimit": 28}},
+    {"key": "long-watch", "deva": "पहरा", "name": "Long watch", "one": "You have 30 rounds against defenders with two starting Shakti.", "knobs": {"turnLimit": 30, "startShakti": {"raiders": 2, "defenders": 2}}},
+    {"key": "last-lamp", "deva": "दीया", "name": "Last lamp", "one": "The raiders begin with one Shakti and have 28 rounds.", "knobs": {"turnLimit": 28, "startShakti": {"raiders": 1, "defenders": 0}}},
+    {"key": "swift-dawn", "deva": "भोर", "name": "Swift dawn", "one": "The rings turn every three rounds, with 28 rounds to finish.", "knobs": {"rotateEvery": 3, "turnLimit": 28}},
+    {"key": "chariot-road", "deva": "रथ", "name": "Chariot road", "one": "The raiders exchange their Divyadrishti for a third Rath.", "knobs": {"raiders": ["9", "7", "6", "2", "2", "2", "1", "3"], "turnLimit": 28}},
+    {"key": "engineers-path", "deva": "यंत्र", "name": "Engineers’ path", "one": "A second Yantrik replaces one of your two Rath.", "knobs": {"raiders": ["9", "7", "6", "5", "2", "3", "1", "3"]}},
+    {"key": "cavalry-road", "deva": "अश्व", "name": "Cavalry road", "one": "A second Ashvarohi replaces one of your two Rath.", "knobs": {"raiders": ["9", "7", "6", "5", "7", "2", "1", "3"], "turnLimit": 22}},
+    {"key": "two-shadows", "deva": "छाया", "name": "Two shadows", "one": "A second Chara replaces one of your two Rath.", "knobs": {"raiders": ["9", "7", "6", "5", "2", "1", "1", "3"], "turnLimit": 26}},
+    {"key": "night-reserve", "deva": "संध्या", "name": "Night reserve", "one": "Night comes first; both armies begin with one Shakti.", "knobs": {"startNight": true, "startShakti": {"raiders": 1, "defenders": 1}, "turnLimit": 30}},
+    {"key": "turning-petal", "deva": "पंखुड़ी", "name": "Turning petal", "one": "The rings turn every six rounds; each side begins with one Shakti.", "knobs": {"rotateEvery": 6, "startShakti": {"raiders": 1, "defenders": 1}, "turnLimit": 28}}
+  ]);
+  function catalogueFor(day) { return day.utc >= CATALOGUE_II_FROM ? MODIFIERS_II : MODIFIERS; }
+
   function validateModifier(mod) {
     if (!mod || !/^[a-z][a-z0-9-]*$/.test(mod.key || '') ||
         !['deva', 'name', 'one'].every(function (k) { return typeof mod[k] === 'string' && mod[k].trim(); })) {
@@ -258,7 +286,8 @@
     const day = istDay(date);
     const n = Math.floor((day.utc - DAILY_EPOCH) / 86400000) + 1;
     const rng = mulberry32(hashStr('vyuha-daily-' + day.key));
-    const mod = MODIFIERS[Math.floor(rng() * MODIFIERS.length)];
+    const list = catalogueFor(day);
+    const mod = list[Math.floor(rng() * list.length)];
     const boardKey = day.dow === 0 ? 'padma' : 'wheel';
     return { n: n, day: day, seed: hashStr('vyuha-daily-' + day.key), mod: mod, boardKey: boardKey };
   }
@@ -501,6 +530,7 @@
     buildTutorial: buildTutorial,
     LESSON: LESSON,
     MODIFIERS: MODIFIERS,
+    MODIFIERS_II: MODIFIERS_II,
     clear: function () { active = null; }
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

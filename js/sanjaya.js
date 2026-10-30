@@ -23,20 +23,20 @@
       ['start_duel_2', 'The night is old, Maharaj. The war begins before dawn.', 'Raat dhal rahi hai, Maharaj. Yuddh subah se pehle shuru hota hai.', 'रात ढल रही है, महाराज। युद्ध सुबह से पहले शुरू होता है।']
     ],
     start_abhimanyu: [
-      ['start_abhimanyu_1', 'Abhimanyu knew how to break in. Now we learn if you can break through.', 'Abhimanyu andar jaana jaanta tha. Ab dekhte hain aap todke dikhate ho ya nahi.', 'अभिमन्यु अंदर जाना जानता था। अब देखते हैं आप तोड़ के दिखाते हो या नहीं।']
+      ['start_abhimanyu_1', 'Abhimanyu knew how to break in. Now we learn if you can break through.', 'Abhimanyu andar jaana jaanta tha. Ab dekhte hain aap todke dikhate hain ya nahi.', 'अभिमन्यु अंदर जाना जानता था। अब देखते हैं आप तोड़ के दिखाते हैं या नहीं।']
     ],
     start_daily: [
       ['start_daily_1', 'Today’s Chakravyuha is drawn, Maharaj. Everyone faces the same wheel.', 'Aaj ka Chakravyuha taiyaar hai, Maharaj. Sabke saamne wahi chakra hai.', 'आज का चक्रव्यूह तैयार है, महाराज। सबके सामने वही चक्र है।']
     ],
     start_tutorial: [
-      ['start_tutorial_1', 'Guru Drona holds the enemy still. Learn the field, Maharaj.', 'Guru Drona ne dushman ko rok rakha hai. Maidan seekh lijiye, Maharaj.', 'गुरु द्रोण ने दुश्मन को रोक रखा है। मैदान सीख लीजिए, महाराज।']
+      ['start_tutorial_1', 'Guru Drona holds the enemy still. Learn the field, Maharaj.', 'Guru Drona dushman ko roke hue hain. Maidan samajh lijiye, Maharaj.', 'गुरु द्रोण दुश्मन को रोके हुए हैं। मैदान समझ लीजिए, महाराज।']
     ],
     win_capture: [
       ['win_capture_1', 'A clean blow, Maharaj. Their piece falls.', 'Kya vaar tha, Maharaj! Unka mohra gir gaya.', 'क्या वार था, महाराज! उनका मोहरा गिर गया।'],
       ['win_capture_2', 'Our line pushes forward.', 'Hamari pankti aage badh rahi hai.', 'हमारी पंक्ति आगे बढ़ रही है।']
     ],
     lose_capture: [
-      ['lose_capture_1', 'We lost one, Maharaj. They were stronger than they looked.', 'Humne ek kho diya, Maharaj. Woh dikhne se zyada taaqatwar the.', 'हमने एक खो दिया, महाराज। वो दिखने से ज़्यादा ताक़तवर थे।'],
+      ['lose_capture_1', 'We lost one, Maharaj. They were stronger than they looked.', 'Humne ek mohra kho diya, Maharaj. Woh dikhne se zyada taaqatwar the.', 'हमने एक मोहरा खो दिया, महाराज। वो दिखने से ज़्यादा ताक़तवर थे।'],
       ['lose_capture_2', 'Repelled. Now we know what stands there.', 'Rok diya gaya. Ab pata hai wahan kaun khada hai.', 'रोक दिया गया। अब पता है वहाँ कौन खड़ा है।']
     ],
     both_fell: [
@@ -46,7 +46,7 @@
       ['trap_hit_1', 'A Shataghni! The trap held, Maharaj.', 'Shataghni! Jaal ne pakad liya, Maharaj.', 'शतघ्नी! जाल ने पकड़ लिया, महाराज।']
     ],
     trap_defused: [
-      ['trap_defused_1', 'The Yantrik takes the trap apart. The lane is open.', 'Yantrik ne jaal khol diya. Raasta saaf hai.', 'यंत्रिक ने जाल खोल दिया। रास्ता साफ़ है।']
+      ['trap_defused_1', 'The Yantrik takes the trap apart. The lane is open.', 'Yantrik ne jaal bekaar kar diya. Raasta saaf hai.', 'यंत्रिक ने जाल बेकार कर दिया। रास्ता साफ़ है।']
     ],
     assassinate: [
       ['assassinate_1', 'The Chara struck first — and a commander fell!', 'Chara ne pehla vaar kiya — aur ek senapati gir gaya!', 'चर ने पहला वार किया — और एक सेनापति गिर गया!']

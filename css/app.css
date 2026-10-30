@@ -2147,7 +2147,7 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
 }
 
 /* the astra moment: the painted animation fills the stage behind the words */
-.stage { position: relative; overflow: hidden; }
+.stage { overflow: hidden; }  /* stays position: fixed — a relative stage fell behind the board */
 .st-astra-anim {
   position: absolute;
   inset: -6% ;
@@ -2168,3 +2168,91 @@ html.reduce-motion .stage *, html.reduce-motion .stage { animation: none !import
 
 /* the gate breach: the painted doors fill the stage behind the words */
 .st-breach-art { opacity: 0.95; object-fit: cover; inset: -10%; width: 120%; height: 120%; }
+
+/* ── Shanti: a still screen while the player thinks ──────────────────
+ * A phone heats when the browser repaints sixty times a second for nothing.
+ * Every glow below is kept, but held still, or played a few times and then
+ * stopped. Nothing here loops forever except a pulse the player is waiting
+ * on (an armed strike, the last seconds of the clock). Measured with
+ * tools/perf-idle.mjs: idle main-thread time fell from ~40% to ~1%.     */
+.app::before, .app::after, .board-shell::before { animation: none !important; }
+.app::before { opacity: 0.5; }
+.boot.done, .boot[hidden] { display: none; }
+.boot.done * { animation: none !important; }
+.home-chakra .hc-spokes { animation: chakraSlow 9s cubic-bezier(.2, .7, .3, 1) 1 both; }
+.home-chakra .hc-inner { animation: chakraSlow 7s cubic-bezier(.2, .7, .3, 1) 1 reverse both; }
+.card-pulse { animation-iteration-count: 3; }
+.diya.lit { animation: diyaLit .5s ease-out 1; }
+@keyframes diyaLit { from { opacity: .4; transform: scale(.8); } to { opacity: 1; transform: none; } }
+.astra-btn.ready { animation: astraReady 2s ease-in-out 2; box-shadow: 0 0 10px rgba(255, 190, 90, 0.22); }
+.board-shell.tension { animation: none; box-shadow: inset 0 0 34px rgba(200, 69, 43, 0.2); }
+.cell.last-move .cell-fill { animation: lastPulse 1.9s ease-in-out 2; stroke-opacity: 0.8; }
+.tok-crack circle, .tok-trance { animation: none; }
+.cell.coach-hint .cell-fill { animation-iteration-count: 6; }
+.vyuha-link { animation: linkFlow 0.8s linear 3, linkFade 2.2s ease forwards; }
+
+/* Battery saver (Settings → Graphics, on by default on low-memory phones):
+ * no frosted glass, no painted astra films, lighter shadows. */
+html.lite *, html.lite *::before, html.lite *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.lite .st-astra-anim, html.lite .st-breach-art { display: none !important; }
+html.lite .diya.lit, html.lite .home-chakra .hc-bindu { filter: none; }
+html.lite .home-chakra .hc-spokes, html.lite .home-chakra .hc-inner,
+html.lite .astra-btn.ready, html.lite .card-pulse, html.lite .diya.lit { animation: none !important; }
+
+/* ── the player's avatar and the profile hub ─────────────────────── */
+.av {
+  --av: 44px; --ring: rgba(224, 169, 74, 0.85);
+  position: relative; display: inline-grid; place-items: center; flex: none;
+  width: var(--av); height: var(--av); border-radius: 50%;
+  background: radial-gradient(circle at 30% 20%, rgba(224, 169, 74, 0.22), rgba(12, 10, 20, 0.95));
+  box-shadow: 0 0 0 2px var(--ring), 0 2px 10px rgba(0, 0, 0, 0.45);
+  color: var(--solar-2);
+}
+.av .av-img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: 50% 20%; display: block; }
+.av .av-sigil { width: 58%; height: 58%; }
+.av-frame-silver { --ring: rgba(205, 214, 230, 0.9); }
+.av-frame-saffron { --ring: rgba(240, 138, 36, 0.95); }
+.av-frame-indigo { --ring: rgba(139, 143, 240, 0.95); }
+.av-frame-none { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); }
+.av-tint-warm .av-img { filter: sepia(0.35) saturate(1.25) hue-rotate(-8deg); }
+.av-tint-cool .av-img { filter: saturate(0.8) hue-rotate(195deg) brightness(0.95); }
+.av-tint-mono .av-img { filter: grayscale(1) contrast(1.1); }
+.av-badge {
+  position: absolute; right: -4px; bottom: -4px; min-width: 18px; height: 18px; padding: 0 3px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 1px;
+  border-radius: 9px; background: #1a1424; border: 1px solid var(--ring);
+  color: var(--solar-2); font-size: 9.5px; font-weight: 800; line-height: 1;
+}
+.av-badge .ico { width: 12px; height: 12px; }
+.av-badge-txt { font-family: var(--display); font-weight: 400; font-size: 9px; padding: 0 5px; }
+#home-sigil.avatar { background: none; box-shadow: none; border: 0; padding: 0; cursor: pointer; }
+.top-name { cursor: pointer; }
+
+.hub-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
+.hub-name { font-family: var(--display); font-size: 22px; line-height: 1.1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hub-title { color: var(--solar-2); font-size: 13px; margin-top: 2px; }
+.hub-next { color: var(--dim); font-size: 11.5px; margin-top: 2px; }
+.hub-h { margin: 16px 0 8px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+.hub-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.hub-grid .stat-cell { padding: 8px 4px; }
+.hub-standing { display: grid; gap: 6px; }
+.stand-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(242, 207, 139, 0.16); background: rgba(255, 255, 255, 0.025); font-size: 13px; }
+.stand-row.beaten { border-color: rgba(242, 207, 139, 0.55); background: rgba(240, 138, 36, 0.08); }
+.stand-row .stand-wl { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+.stand-row .stand-mark { color: var(--solar-2); font-weight: 700; }
+.av-picker { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; justify-items: center; }
+.av-pick { display: grid; justify-items: center; gap: 4px; background: none; border: 0; color: var(--dim); font-size: 10.5px; cursor: pointer; padding: 2px; min-width: 0; }
+.av-pick .av { --av: 52px; }
+.av-pick.on { color: var(--light); }
+.av-pick.on .av { box-shadow: 0 0 0 3px #ffd98a, 0 0 14px rgba(255, 200, 100, 0.45); }
+.av-pick span:last-child { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-seg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.hub-seg .seg-label { width: 100%; font-size: 12px; color: var(--dim); }
+.hub-photo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hub-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 380px) { .av-pick .av { --av: 46px; } .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.btn-danger-ghost { color: #fda4af; border-color: rgba(244, 63, 94, 0.35); }

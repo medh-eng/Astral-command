@@ -7,6 +7,28 @@ it, wires it into the game, and says plainly if something needs another pass.
 
 **Before any task**, paste the context block once per conversation.
 
+## ▶ Batch 3 — from the Director, 30 Oct 2026 (do these first)
+
+Batch 1 and 2 are merged and good: Daily fixes, Drishti panel, balance screening, the writing
+pack. Of your 25 Daily drafts, the 17 that held the 30–55% band in both seed banks are now
+**live from 1 Nov** (`MODIFIERS_II` in `js/modes.js`); "The gate is open" is retired.
+
+| # | Task | Deliver |
+|---|---|---|
+| 3.1 | **Four avatar portraits** — Drona, Bhishma, Draupadi, Dhrishtadyumna. Prompts in [`ART.md`](../prompts/ART.md) → *Four more portraits*. Same set look as the five heroes. | `incoming/art/heroes/*.png` |
+| 3.2 | **First-run walkthrough (code, PR).** Three cards on the first battle only, each pointing at real buttons: the eye (intel), the book (log/rules), the diya lamps and astra shelf. Skippable, never shown again once closed (a setting key `walkthroughDone`). Uses the existing `modal`/coach styles. Add a `tests/ui.mjs` check. | branch + PR |
+| 3.3 | **Landscape battle (design note first, no code).** One page: how the board, the strips and the action bar sit in landscape on a 6.5" phone, what the "turn your phone" hint says, and the portrait fallback. A sketch image is welcome. | `incoming/text/landscape.md` |
+| 3.4 | **Daily retune.** `harvest`, `quiet-gate`, `brass-reserve` run raider-heavy; `double-scout`, `silver-watch`, `shishir`, `vasant`, `archers-watch` sit near 30%. Propose one knob change each, screen with a **third** fresh seed bank (`--output=incoming/text/daily-balance-bank3.json`). Nothing is promoted without two passing banks. | JSON report + short note |
+
+**New hard rule for any code — keep the phone cool.** The game was heating phones because the
+screen repainted 60 times a second while the player thought. That is fixed (idle CPU ~40% → ~0%).
+So: no `animation: … infinite` on anything that stays on screen; no animated `box-shadow`,
+`filter` or SVG stroke loops; a pulse may play 2–3 times and stop. Before a PR, run
+`node tools/perf-idle.mjs` (every screen must stay under 3% busy) and
+`node tools/playtest-bot.mjs` (must end with "no problems"), as well as the four test suites.
+
+---
+
 ## Context block (paste first)
 
 > You are helping build **VYUHA (व्यूह)**, a free mobile strategy game rooted in the Indian

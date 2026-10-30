@@ -178,17 +178,6 @@
           </button>
         </div>
 
-        <div class="panel stat-panel">
-          <div class="panel-head">
-            <span>Your record</span>
-            <button class="link-btn" id="btn-reset-stats">reset</button>
-          </div>
-          <div class="stat-grid" id="stat-grid"></div>
-          <div class="winrate">
-            <div class="winrate-bar"><span id="winrate-fill"></span></div>
-            <div class="winrate-label" id="winrate-label">No battles yet</div>
-          </div>
-        </div>
       </div>
 
       <aside class="home-side">
@@ -196,19 +185,8 @@
           <div class="panel-head"><span>Sanjaya says</span></div>
           <div class="sanjaya-says"><span class="sanjaya-face" id="home-sanjaya"></span><p class="briefing" id="home-briefing">The armies are gathering, Maharaj.</p></div>
         </div>
-        <div class="panel">
-          <div class="panel-head"><span>Quick settings</span></div>
-          <div class="quick-settings" id="quick-settings"></div>
-        </div>
-        <div class="panel panel-quiet">
-          <div class="panel-head"><span>Data</span></div>
-          <div class="data-actions">
-            <button class="btn btn-ghost btn-sm" id="btn-export">Export backup</button>
-            <button class="btn btn-ghost btn-sm" id="btn-import">Import backup</button>
-            <input type="file" id="file-import" accept="application/json,.json" hidden />
-          </div>
-          <p class="fineprint">Your profile, saves and settings stay on this device. Backups move them to another.</p>
-        </div>
+        <input type="file" id="file-import" accept="application/json,.json" hidden />
+        <input type="file" id="file-photo" accept="image/*" hidden />
       </aside>
     </div>
   </section>
