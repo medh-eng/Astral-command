@@ -5,6 +5,23 @@ this file and not ticked in `docs/prompts/ART.md`, it did not happen.
 
 ---
 
+## 31 Oct 2026 (Sarvam AI) — Hindi review batch 2, and the interface in Hindi and Marathi
+
+- **Hindi review, batch 2** — the remaining 30 of Sanjaya's 44 lines checked for naturalness,
+  grammar, matras, verb agreement and meaning. Seven fixes (टकरा के → टकराकर; दिव्य-दृष्टि →
+  दिव्यदृष्टि; छुपता → छिपता; "exposed" as खुल गया not दिख गया; ढाल टूट गई → चटक गई; the
+  entranced-pass line rewritten; मैदान बराबर → बराबरी का रहा), 22 unchanged, one held back
+  because the Commander has not yet ruled on it. Longest line 12 words.
+  → `incoming/text/sanjaya-review-2.csv`
+- **Interface strings, Hindi and Marathi** — all 149 keys, same keys and same order as
+  `strings.en.json`, numbers and `×2` / `+1` untouched, game terms in Devanagari spelled one way.
+  → `incoming/i18n/strings.hi.json`, `incoming/i18n/strings.mr.json`
+- **Not done:** the four re-recordings (no TTS available in this session) and the two flat lines
+  (still waiting on the Commander). **No audio was generated or replaced.**
+- **Not wired in.** The three files are drafts in `incoming/`; the Director applies them and the
+  language switch still has to be built. The Marathi has not been read by a native speaker.
+- Full detail, the glossary used and the open questions: `docs/HANDOFF-2026-10-31-sarvam.md`.
+
 ## 30 Oct 2026 (evening, Director) — a cool phone, a calm home, the profile hub
 
 - **Heat:** idle main-thread time 20–42% → under 1% on every screen. Every infinite CSS loop on
@@ -141,10 +158,10 @@ tuning.
 
 | # | Task | State |
 |---|---|---|
-| 1 | Sanjaya's 44 Hindi lines — full review | **batch 1 done** (14 highest-frequency lines in `incoming/text/sanjaya-review.csv`); 30 remain |
-| 2 | 115 interface strings → Hindi and Marathi | not started — blocks the language switch |
-| 3 | Sanjaya's lines → Marathi | waiting on 1 |
-| 4 | Bulbul voice re-record after review | one command: `tools/voice-gen.py --ids <id>` |
+| 1 | Sanjaya's 44 Hindi lines — full review | **done** — batch 1 (14 lines) and batch 2 (the other 30, in `incoming/text/sanjaya-review-2.csv`) |
+| 2 | 149 interface strings → Hindi and Marathi | **drafts delivered** in `incoming/i18n/`; needs the Director's language switch, and a native Marathi reader |
+| 3 | Sanjaya's lines → Marathi | waiting on the Commander's ruling on the two flat lines |
+| 4 | Bulbul voice re-record after review | one command: `tools/voice-gen.py --ids <id>` — no TTS available in my sessions |
 | 5 | Cultural read of the whole design | not started |
 
 ## Pending — not mine
