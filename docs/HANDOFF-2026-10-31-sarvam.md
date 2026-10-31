@@ -31,9 +31,9 @@ as batch 1: `id`, `hindi_voice_text`, `note`.
 | `last_rounds_1` | चक्र बंद हो रहा है | चक्र सिकुड़ रहा है | बंद sounded like the wheel being switched off |
 | `draw_1` | मैदान बराबर | मैदान बराबरी का रहा | how a drawn field is actually said |
 
-**Held:** `astra_vayavya_enemy_1` is untouched. The Commander called it flat and the rewrite in
-your 30 Oct handoff is still waiting on his approve/change/remove. Editing it now would mean
-recording a line he may yet delete.
+**Held at the time of review:** `astra_vayavya_enemy_1` was left untouched because the Commander
+had not yet ruled on it. He approved the rewrite on 31 October — the final text is in
+`sanjaya-rewrites-2026-10-31.csv` (task 3.4), not in this review file.
 
 Two lines worth your eye when you wire this in, though neither needed a change:
 
@@ -65,9 +65,12 @@ board is a **खाना** (Hindi) / **घर** (Marathi). The opponents are �
 
 Two judgement calls you may want to overrule:
 
-1. `home.codex` still says **"Codex"** in the English source, though the worklog says it was
-   renamed to *Rules*. I translated the meaning, so Hindi and Marathi both say **नियम**
-   ("rules"). If you change the English to "Rules", the translations already match.
+1. **`home.codex` — settled.** The Commander ruled for "Rules" on 31 October, so
+   `docs/i18n/strings.en.json` now says `"Rules"`, and Hindi and Marathi already said **नियम**.
+   All three agree. **One thing left to finish:** `js/game.js:800` still hardcodes the literal
+   `Codex` on the in-battle rules button, and `vyuha-standalone.html` carries the same text.
+   That is game code, not a string file, so I did not touch it — it needs your rename plus a
+   standalone rebuild and the check suite.
 2. `unit.5.role` is **द्रष्टा** (the seer) while the piece itself is **दिव्यदृष्टि**. Role and
    piece name differ in English too, so I mirrored that rather than flattening them.
 
@@ -91,11 +94,20 @@ python3 tools/voice-gen.py \
 Same for the Marathi and English sets in tasks 3 and 4. **No audio file in this batch is new or
 replaced** — nothing was synthesised, so nothing can be mistaken for a Commander-approved voice.
 
-### 3.4 — The two flat lines: **waiting on the Commander, not on me**
+### 3.4 — The two flat lines: **approved, still not recorded**
 
-`win_capture_2` and `astra_vayavya_enemy_1` still need his approve / change / remove. Your
-proposed rewrites are good and I would record them as written; I have left both lines alone
-rather than pre-empting him.
+**The Commander approved both of your proposed rewrites on 31 October.** The final Hinglish,
+Hindi and English for `win_capture_2` and `astra_vayavya_enemy_1` are in
+`incoming/text/sanjaya-rewrites-2026-10-31.csv`, in the same column shape as
+`sanjaya-lines.csv` so they merge straight in.
+
+What is still missing is the audio. Both lines need Bulbul and I have no TTS here, so the text
+is settled and the recording is not — the same blocker as 3.1:
+
+```bash
+python3 tools/voice-gen.py --ids win_capture_2,astra_vayavya_enemy_1 \
+  --lang both --speaker rahul --pace 1.15
+```
 
 ---
 
@@ -106,8 +118,8 @@ rather than pre-empting him.
 2. Add the language switch and load `strings.hi.json` / `strings.mr.json`. **Nothing reads these
    files yet** — they are drafts in `incoming/`, and the roadmap item stays unticked until the
    switch is wired and playable.
-3. Decide on `home.codex` ("Codex" vs "Rules") before the strings ship, so the three languages
-   do not disagree.
+3. Finish the "Codex" → "Rules" rename in `js/game.js:800` and rebuild the standalone. The
+   string files are already consistent across all three languages.
 4. Run 3.1 and 3.4 once the Commander has the key and has ruled on the two rewrites.
 
 ## Checks I ran
